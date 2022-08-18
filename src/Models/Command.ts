@@ -67,11 +67,9 @@ export abstract class CommandModel {
 	}
 
 	public Execute(ctx: TCommandContext): Promise<string> {
-		try {
-			this.Code(ctx);
-		} catch (error) {
-			this.Reject(new Error(error as string));
-		}
+		this.Code(ctx).catch((error) => {
+			this.Reject(error);
+		});
 		return this.Promolve.promise;
 	}
 

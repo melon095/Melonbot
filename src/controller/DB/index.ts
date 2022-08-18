@@ -1,12 +1,52 @@
 import mysql from 'mysql2/promise';
 import { exit } from 'node:process';
+import { Database } from 'Typings/types.js';
 import { Sleep } from './../../tools/tools.js';
+import fs from 'node:fs';
+import { resolve } from 'node:path';
 
 interface ISQLResult<T> {
 	Data: object[];
 	SingleOrNull: () => null | T;
 	ArrayOrNull: () => null | T[];
 }
+
+interface MigrationResult {
+	OldVersion: number;
+	NewVersion: number;
+}
+
+const createDefaultMigrationTable = async (db: SQLController) =>
+	db.query(`
+        CREATE TABLE IF NOT EXISTS Migration (
+            version INTEGER NOT NULL,
+            PRIMARY KEY (version)
+        )
+    `);
+
+const getCurrentVersion = async (db: SQLController) =>
+	await db
+		.promisifyQuery<Database.migration>(
+			`
+            SELECT version FROM Migration
+            ORDER BY version DESC
+            LIMIT 1
+        `,
+		)
+		.then(async (rows) => {
+			const res = rows.SingleOrNull();
+			if (res === null) {
+				await createDefaultMigrationTable(db);
+				db.query(`
+                    INSERT INTO Migration (version) VALUES (0)
+                `);
+				return 0;
+			}
+			return res.version;
+		})
+		.catch((err) => {
+			throw new Error(err);
+		});
 
 class SQLResult<T> implements ISQLResult<T> {
 	Data: object[];
@@ -164,5 +204,68 @@ export class SQLController {
 					});
 			}
 		});
+	}
+
+	async Transaction(query: string): Promise<void> {
+		return await this.Conn.beginTransaction()
+			.then(() => {
+				return this.Conn.query(query);
+			})
+			.then(() => {
+				return this.Conn.commit();
+			})
+			.catch((err) => {
+				this.Conn.rollback();
+				throw err;
+			});
+	}
+
+	async RunMigration(): Promise<MigrationResult> {
+		await createDefaultMigrationTable(this);
+		const currentVersion = await getCurrentVersion(this);
+		let newVersion = currentVersion;
+
+		const migrationsToRun: [number, string][] = fs
+			.readdirSync(resolve(process.cwd(), 'Migrations'))
+			.map((file) => {
+				// 2_fix_join.sql --> [2, 'fix_join.sql']
+				const [version, name] = file.split(/_(.*)/s).filter(Boolean);
+				return [Number(version), name] as [number, string];
+			})
+			.filter(([fileVersion]) => fileVersion > currentVersion);
+
+		for (const [version, name] of migrationsToRun) {
+			const migrationPath = resolve(
+				process.cwd(),
+				'Migrations',
+				`${version}_${name}`,
+			);
+
+			const data = fs
+				.readFileSync(migrationPath, 'utf8')
+				.split(';')
+				.map((query) => query.trim())
+				.filter(Boolean);
+
+			console.debug(`Running migration ${version}_${name}`);
+
+			for (const query of data) {
+				await this.Transaction(query).catch((err) => {
+					console.error(
+						`Error running migration ${version}_${name}: ${err}`,
+					);
+					process.exit(1);
+				});
+			}
+
+			await this.query('UPDATE Migration SET version = ?', [version]);
+
+			newVersion = version;
+		}
+
+		return {
+			NewVersion: newVersion,
+			OldVersion: currentVersion,
+		};
 	}
 }

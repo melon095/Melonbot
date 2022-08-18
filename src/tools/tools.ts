@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import promiseFS from 'node:fs/promises';
-import path from 'node:path';
 import axios from 'axios';
 import humanize from 'humanize-duration';
 import {
@@ -12,6 +9,8 @@ import {
 	NCommand,
 } from './../Typings/types';
 import { ChatUserstate } from 'tmi.js';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 const VALIDATE_WEBSITE = 'https://id.twitch.tv/oauth2/validate';
 const REFRESH_WEBSITE = 'https://id.twitch.tv/oauth2/token';
@@ -422,3 +421,9 @@ export const RandomNumber = (length: number): number => {
 	}
 	return Number(result);
 };
+
+/**
+ * @param url - import.meta.url
+ * @returns
+ */
+export const getDirname = (url: string) => dirname(fileURLToPath(url));

@@ -54,21 +54,10 @@ import { RedisSingleton } from './../Singletons/Redis/index.js';
 		process.exit(-1);
 	}
 
-	const sql = fs.readFileSync('./init.sql', 'utf-8').split(/\r?\n/);
-	for (let i = 0; i < sql.length; i++) {
-		try {
-			console.log(`Creating table number ${i}`);
-			Bot.SQL.query(sql[i]);
-			await Sleep();
-		} catch (error) {
-			console.log(error);
-			fs.writeFileSync(
-				'INIT_DATABASE_ERROR.txt',
-				`ERROR INITIALIZING TABLES ERROR: \r\n${error}`,
-			);
-			process.exit(-1);
-		}
-	}
+	const migration = await Bot.SQL.RunMigration();
+	console.log(
+		`Migrated from version ${migration.OldVersion} to ${migration.NewVersion}`,
+	);
 
 	Bot.SQL.setDatabase();
 

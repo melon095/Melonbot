@@ -17,7 +17,7 @@ export type ParamsReturnType = {
 	params: TParamsContext;
 };
 
-export type TExecuteFunction = (ctx: TCommandContext) => void;
+export type TExecuteFunction = (ctx: TCommandContext) => Promise<void>;
 
 export type TCommandContext = {
 	channel: Channel;
@@ -203,5 +203,9 @@ export declare namespace Database {
 		cooldown: number;
 		filter: TFilter;
 		leaderboard: TLeaderboard[];
+	};
+
+	export type migration = {
+		version: number;
 	};
 }

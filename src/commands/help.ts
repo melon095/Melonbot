@@ -1,4 +1,4 @@
-import { TCommandContext, Database } from './../Typings/types';
+import { TCommandContext } from './../Typings/types';
 import { EPermissionLevel, ECommandFlags } from './../Typings/enums.js';
 import { CommandModel } from '../Models/Command.js';
 import { NCommandFunctions } from './../tools/tools.js';
@@ -20,8 +20,8 @@ export default class extends CommandModel {
 				`You can find all the commands here, ${Bot.Config.Website.WebUrl}/bot/commands !`,
 			);
 
-        const name = ctx.input[0];
-            
+		const name = ctx.input[0];
+
 		const command = await Bot.Commands.get(name);
 
 		if (command === undefined) {

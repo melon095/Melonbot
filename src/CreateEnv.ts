@@ -43,6 +43,15 @@ export const Setup = {
 		Bot.HandleErrors = ErrorHandler;
 		Bot.SQL = await SQLController.getInstanceAsync();
 		Bot.SQL.setDatabase();
+		const migrationVersion = await Bot.SQL.RunMigration().catch((error) => {
+			console.error(error);
+			process.exit(-1);
+		});
+		if (migrationVersion.NewVersion > migrationVersion.OldVersion) {
+			console.log(
+				`Migrated from version ${migrationVersion.OldVersion} to ${migrationVersion.NewVersion}`,
+			);
+		}
 		await import('./SevenTVGQL.js')
 			.then((module) => module.default)
 			.then((module) => {
