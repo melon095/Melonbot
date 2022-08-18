@@ -341,20 +341,20 @@ export class Channel {
 	static async Join(username: string, user_id: string) {
 		const queries = [];
 
-		queries.push(
-			Bot.SQL.promisifyQuery(
-				'INSERT INTO channels (name, user_id, bot_permission, disabled_commands) VALUES (?, ?, ?, ?)',
-				[username, user_id, 1, JSON.stringify([])],
-			),
+		await Bot.SQL.promisifyQuery(
+			'INSERT INTO channels (name, user_id, bot_permission, disabled_commands) VALUES (?, ?, ?, ?)',
+			[username, user_id, 1, JSON.stringify([])],
 		);
+
 		queries.push(
 			Bot.SQL.promisifyQuery('INSERT INTO stats (name) VALUES (?)', [
 				username,
 			]),
 		);
+
 		queries.push(
 			Bot.SQL.promisifyQuery(
-				'INSERT INTO banphrases (channel, Phrase) VALUES (?, JSON_ARRAY())',
+				'INSERT INTO banphrases VALUES (?, JSON_ARRAY())',
 				[username],
 			),
 		);
@@ -371,7 +371,10 @@ export class Channel {
 			),
 		);
 
-		await Promise.all(queries);
+		await Promise.all(queries).catch((e) => {
+			Bot.HandleErrors('channel/join', e);
+			throw '';
+		});
 
 		try {
 			await Bot.Twitch.Controller.client.join('#' + username);
