@@ -33,8 +33,6 @@ interface IWhisperUser {
 }
 
 export default class Twitch {
-	private static instance: Twitch;
-
 	public client!: tmi.Client;
 	public admins!: string[];
 	public owner!: string;
@@ -104,10 +102,7 @@ export default class Twitch {
 	}
 
 	static async Init() {
-		if (!Twitch.instance) {
-			Twitch.instance = new Twitch();
-		}
-		return Twitch.instance;
+		return new Twitch();
 	}
 
 	private async _setupRedisCallbacks() {
@@ -191,12 +186,12 @@ export default class Twitch {
 				`[Whisper - ${User.Username}] Finding closest channel to user.`,
 			);
 
-			let channel = this.channels.find(
+			const channel = this.channels.find(
 				(chl) => chl.Name === User.Username,
 			);
 			if (channel === undefined) {
 				// Bot is not instanced in their own channel.
-				let list = await FindClosestChannelToUser(
+				const list = await FindClosestChannelToUser(
 					User.Username,
 					User.ID,
 				);

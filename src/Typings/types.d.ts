@@ -187,17 +187,6 @@ export declare namespace Database {
 		scope: string;
 	};
 
-	export type config = {
-		ID: 1;
-		TwitchClientID: string;
-		TwitchClientSecret: string;
-		TwitchOAuth: string;
-		WebUrl: string;
-		BotUsername: string;
-		OwnerUserID: string;
-		BotUserID: string;
-	};
-
 	type TFilter = {
 		exclude: string[];
 		include: string[];

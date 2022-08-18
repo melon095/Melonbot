@@ -86,22 +86,12 @@ export const Setup = {
 
 			Bot.Twitch.Emotes.SevenTVEvent.Connect();
 
-			const id = (
-				await Bot.SQL.promisifyQuery<{ id: string }>(
-					'SELECT `BotUserID` FROM `config` WHERE `ID` = 1',
-				)
-			).SingleOrNull();
+			const id = await Bot.Redis.SGet('SelfID');
 
-			// Join Bot channel
-			if (id !== null) {
-				await twitch.client.join('#' + Bot.Config.BotUsername);
-				twitch.channels.push(
-					new Channel(Bot.Config.BotUsername, id.id, 'Bot', false),
-				);
-			} else {
-				console.error('Missing BotUserId in database config.');
-				process.exit(-1);
-			}
+			await twitch.client.join('#' + Bot.Config.BotUsername);
+			twitch.channels.push(
+				new Channel(Bot.Config.BotUsername, id, 'Bot', false),
+			);
 
 			// Join all channels
 			const channelList = (

@@ -78,6 +78,48 @@ export const differenceFormat = (numToDiff: number) =>
 			parseInt(numToDiff.toString().slice(0, 10)),
 	);
 
+const createToken = async (): Promise<string | null> => {
+	const scopes: string[] = [
+		'channel:manage:broadcast',
+		'moderation:read',
+		'whispers:read',
+		'chat:read',
+		'chat:edit',
+		'channel:moderate',
+	];
+
+	const newToken = await axios(
+		`https://id.twitch.tv/oauth2/token?client_id=${
+			Bot.Config.Twitch.ClientID
+		}&client_secret=${
+			Bot.Config.Twitch.ClientSecret
+		}&grant_type=client_credentials&scope=${scopes.join(' ')}`,
+		{
+			method: 'POST',
+			headers: {
+				accepts: 'application/json',
+			},
+		},
+	)
+		.then((res) => res.data)
+		.then((data) => {
+			return {
+				access: data.access_token,
+				expires: data.expires_in,
+			};
+		})
+		.catch((err) => {
+			console.log(err);
+			return null;
+		});
+
+	if (!newToken) return null;
+
+	await Bot.Redis.SSet('apptoken', newToken.access);
+	await Bot.Redis.Expire('apptoken', newToken.expires);
+	return newToken.access;
+};
+
 export const token: Token = {
 	async User(id: number): Promise<TTokenFunction> {
 		const result: TTokenFunction = { status: 'OK', error: '', token: '' };
@@ -197,51 +239,17 @@ export const token: Token = {
 				return apptoken;
 			})
 			.catch(async (err) => {
-				// Token has either ran out or something actually failed v
+				// Token has either ran out or something actually failed
 				// [TODO]: Better error handling.
 				// Currently no idea if the token has actually failed as i can't find any documentation regarding this.
 				// https://dev.twitch.tv/docs/authentication#validating-requests
 				console.log(err);
-				const scopes: string[] = [
-					'channel:manage:broadcast',
-					'moderation:read',
-					'whispers:read',
-					'chat:read',
-					'chat:edit',
-					'channel:moderate',
-				];
 
-				const newToken = await axios(
-					`https://id.twitch.tv/oauth2/token?client_id=${
-						Bot.Config.Twitch.ClientID
-					}&client_secret=${
-						Bot.Config.Twitch.ClientSecret
-					}&grant_type=client_credentials&scope=${scopes.join(' ')}`,
-					{
-						method: 'POST',
-						headers: {
-							accepts: 'application/json',
-						},
-					},
-				)
-					.then((res) => res.data)
-					.then((data) => {
-						return {
-							access: data.access_token,
-							expires: data.expires_in,
-						};
-					})
-					.catch((err) => {
-						console.log(err);
-						return null;
-					});
-
-				if (newToken === null) return null;
-
-				await Bot.Redis.SSet('apptoken', newToken.access);
-				await Bot.Redis.Expire('apptoken', newToken.expires);
-				return newToken.access;
+				return await createToken();
 			});
+
+		if (!token) return { status: 'ERROR', token: '', error: 'No token' };
+
 		return { status: 'OK', token: token, error: '' };
 	},
 };
@@ -384,11 +392,11 @@ export const NCommandFunctions: NCommand.Functions = {
 	},
 };
 
-export const Sleep = async (seconds: number): Promise<boolean> => {
+export const Sleep = async (seconds = 1): Promise<boolean> => {
 	return new Promise((Resolve) => {
 		setTimeout(() => {
 			Resolve(true);
-		}, seconds * 1000);
+		}, seconds);
 	});
 };
 

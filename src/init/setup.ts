@@ -1,8 +1,9 @@
 import fs from 'node:fs';
-import fsPromise from 'node:fs/promises';
 import { SQLController } from '../controller/DB/index.js';
-import axios from 'axios';
+import { token, Sleep } from './../tools/tools.js';
 import Path from 'node:path';
+import ErrorHandler from './../ErrorHandler.js';
+import { RedisSingleton } from './../Singletons/Redis/index.js';
 
 (async () => {
 	console.log('Reading config.json.');
@@ -14,20 +15,16 @@ import Path from 'node:path';
 		process.exit(-1);
 	}
 
-	async function sleep(): Promise<void> {
-		return new Promise((Resolve) => {
-			setTimeout(() => {
-				Resolve();
-			}, 1000);
-		});
-	}
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
 	global.Bot = {};
+	Bot.HandleErrors = ErrorHandler;
 	Bot.Config = JSON.parse(
 		fs.readFileSync(process.cwd() + '/config.json', 'utf-8'),
 	);
 	Bot.SQL = await SQLController.getInstanceAsync();
+	Bot.Redis = RedisSingleton.Factory(Bot.Config.Redis.Address);
+	await Bot.Redis.Connect();
 
 	for (const folder of [`${process.cwd()}/stats`, `${process.cwd()}/logs`]) {
 		fs.mkdir(folder, (err) => {
@@ -40,19 +37,19 @@ import Path from 'node:path';
 	}
 
 	// Setup database
-	let v = (
+	const version = (
 		await Bot.SQL.promisifyQuery<{ v: string }>('SELECT VERSION() AS v')
 	).SingleOrNull();
-	if (v === null) {
+	if (version === null) {
 		console.error('Database is missing critical function VERSION().');
 		process.exit(-1);
 	}
 
-	v.v = v.v.split('-')[0];
+	version.v = version.v.split('-')[0];
 
-	if (Number(v.v) < Number('10.3.30')) {
+	if (Number(version.v) < Number('10.3.30')) {
 		console.error(
-			`Mariadb server version is too old at ${v.v}. Please upgrade to atleast version 10.3.30 or higher.`,
+			`Mariadb server version is too old at ${version.v}. Please upgrade to atleast version 10.3.30 or higher.`,
 		);
 		process.exit(-1);
 	}
@@ -62,7 +59,7 @@ import Path from 'node:path';
 		try {
 			console.log(`Creating table number ${i}`);
 			Bot.SQL.query(sql[i]);
-			await sleep();
+			await Sleep();
 		} catch (error) {
 			console.log(error);
 			fs.writeFileSync(
@@ -75,70 +72,12 @@ import Path from 'node:path';
 
 	Bot.SQL.setDatabase();
 
-	console.log("Acquiring the bot's access token");
-
-	const { data } = await axios(
-		`https://api.ivr.fi/twitch/resolve/${Bot.Config.BotUsername}`,
-		{
-			method: 'GET',
-			headers: { accept: 'application/json' },
-		},
-	);
-	const id = data.id;
-
-	const scopes: string[] = [
-		'channel:manage:broadcast',
-		'moderation:read',
-		'whispers:read',
-		'chat:read',
-		'chat:edit',
-		'channel:moderate',
-	];
-
-	// https://dev.twitch.tv/docs/authentication // App access token
 	// Generate the bots auth token
-	const token = await axios(
-		`https://id.twitch.tv/oauth2/token?client_id=${
-			Bot.Config.Twitch.ClientID
-		}&client_secret=${
-			Bot.Config.Twitch.ClientSecret
-		}&grant_type=client_credentials&scope=${scopes.join(' ')}`,
-		{
-			method: 'POST',
-			headers: {
-				accept: 'application/json',
-			},
-		},
-	)
-		.then((res) => res.data)
-		.then((data) => {
-			return { access: data.access_token, expires: data.expires_in };
-		})
-		.catch((err) => {
-			console.error(err);
-			process.exit(-1);
-		});
-
-	const date = new Date();
-	date.setDate(date.getDate() + Math.floor(token.expires / (3600 * 24)));
-	const ISO = date.toISOString().slice(0, 19).replace('T', ' ');
-	console.log('Saving config.json to database config table.');
-
-	await Bot.SQL.promisifyQuery(
-		'INSERT IGNORE INTO config VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-		[
-			1,
-			Bot.Config.Twitch.ClientID,
-			Bot.Config.Twitch.ClientSecret,
-			Bot.Config.Twitch.OAuth,
-			token.access,
-			Bot.Config.Website.WebUrl,
-			Bot.Config.BotUsername,
-			Bot.Config.OwnerUserID,
-			id,
-			ISO,
-		],
-	);
+	const t = await token.Bot();
+	if (t.status === 'ERROR') {
+		console.error(t.error);
+		process.exit(-1);
+	}
 
 	console.log('Finished setting up.');
 	process.exit();
