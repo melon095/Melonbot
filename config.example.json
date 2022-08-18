@@ -1,0 +1,32 @@
+{
+	"Twitch": {
+		"OAuth": "", // https://twitchapps.com/tmi/
+		"ClientID": "", // https://dev.twitch.tv/
+		"ClientSecret": "" // https://dev.twitch.tv/
+	},
+	"SQL": {
+		"Host": "",
+		"User": "",
+		"Password": ""
+	},
+	"EventSub": {
+		"PublicUrl": "https://example.website.root",
+		"Secret": ""
+	},
+	"Redis": {
+		"Address": "redis://password@host:port"
+	},
+	"Development": false,
+	"Verified": false, // If you are verified by twitch
+	"Prefix": "melon",
+	"BotUsername": "", // Username of bot LOWERCASE!!
+	"OwnerUserID": "", // ID of the owner
+	"Website": {
+		"WebUrl": "", // Public facing IP/Domain to the website if enabled.
+		"Port": 3000
+	},
+	"SevenTV": {
+		"Bearer": "",
+		"user_id": ""
+	}
+}

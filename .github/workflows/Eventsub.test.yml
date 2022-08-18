@@ -1,0 +1,55 @@
+name: Run EventSub tests
+
+# This action works with pull requests and pushes
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+    - 'EventSub/**'
+  push:
+    branches: ["master"]
+    paths:
+    - 'EventSub/**'
+
+defaults:
+  run:
+    working-directory: EventSub
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install and setup Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18.1
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y make
+          go get -v -t -d ./...
+
+      - name: Build Project
+        run: |
+          make
+
+      - name: Run tests
+        run: |
+          make test
+
+      - name: Generate Codecov
+        run: |
+          make coverage
+
+      - name: Upload codecov
+        uses: codecov/codecov-action@v3.1.0
+        with:
+          fail_ci_if_error: true
+          files: ./EventSub/coverage.out

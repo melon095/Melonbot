@@ -1,0 +1,19 @@
+import { TCommandContext } from './../Typings/types';
+import { EPermissionLevel } from './../Typings/enums.js'
+import { CommandModel } from '../Models/Command.js';
+
+export default class extends CommandModel
+{
+    Name = "this would trigger the command, in lowercase, one word.";
+    Ping = false;
+    Description = "This would show up in the help command and on the website.";
+    Permission = EPermissionLevel.VIEWER;
+    OnlyOffline = false;
+    Aliases = [];
+    Cooldown = 5;
+    Params = [];
+    Flags = [];
+    Code = async (ctx: TCommandContext) => {
+        this.Resolve("This text would show up in chat!");
+    };
+}

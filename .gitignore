@@ -1,0 +1,12 @@
+build
+logs
+node_modules
+stats
+config.json
+package-lock.json
+src/credentials/config.ts
+builds
+EventSub/bin
+EventSub/coverage.out
+EventSub/coverage.html
+EventSub/.evsub.secret.key

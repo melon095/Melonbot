@@ -1,0 +1,17 @@
+[Unit]
+Description=EventSub handler for Melonbot
+After=network.target
+
+[Service]
+ExecStart=/my/path/to/the/program/bin/eventsub -config ./../config.json -loglevel info
+WorkingDirectory=/my/path/to/Melonbot/EventSub
+User=UHHHHHHH
+Group=UHHHHHHH
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=%n
+
+[Install]
+WantedBy=multi-user.target

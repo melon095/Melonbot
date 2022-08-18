@@ -1,0 +1,24 @@
+doctype html
+html 
+    head 
+        title= title
+
+        style 
+            include /css/html.css
+            include /css/commands.css
+
+    body 
+        include header.pug
+        table(class='basic-table') 
+            tr(class='TableHeader')
+                th(scope="col") ID
+                th(scope="col") Name
+                th(scope="col") Description
+                th(scope="col") Perm
+            
+            for command in commands
+                tr(key=command.id id='basic-row')
+                    th(scope='row')= command.id
+                    td= command.name
+                    td= command.description
+                    td= command.perm
