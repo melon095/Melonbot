@@ -228,6 +228,17 @@ export const token: Token = {
 	async Bot(): Promise<TTokenFunction> {
 		const apptoken = await Bot.Redis.SGet('apptoken');
 
+		if (!apptoken) {
+			const newToken = await createToken();
+			if (!newToken)
+				return {
+					status: 'ERROR',
+					error: 'Could not get new token',
+					token: '',
+				};
+			return { status: 'OK', error: '', token: newToken };
+		}
+
 		const token = await axios(VALIDATE_WEBSITE, {
 			method: 'GET',
 			headers: {
