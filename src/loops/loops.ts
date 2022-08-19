@@ -153,71 +153,54 @@ export function __loops() {
 			const { emote_set_id: default_emote_sets } =
 				await gql.getDefaultEmoteSet(user_sets.user.id);
 			// Get every editor of their channel
-			const is_editor = await gql
-				.getEditors(user_sets.user.id)
-				.then(async (response) => {
-					// Store the editors in redis.
-					// Only editors of the channel are allowed to modify the emote-set.
-					const editors = response.user.editors.map(
-						(editor) => editor.user.username,
-					);
+			await gql.getEditors(user_sets.user.id).then(async (response) => {
+				// Store the editors in redis.
+				// Only editors of the channel are allowed to modify the emote-set.
+				const editors = response.user.editors.map(
+					(editor) => editor.user.username,
+				);
 
-					const current_editors = await Bot.Redis.SetMembers(
+				const current_editors = await Bot.Redis.SetMembers(
+					`seventv:${default_emote_sets}:editors`,
+				);
+
+				const new_editors = editors.filter(
+					(editor) => !current_editors.includes(editor),
+				);
+				const remove_editors = current_editors.filter(
+					(editor) => !editors.includes(editor),
+				);
+
+				if (new_editors.length > 0) {
+					Bot.Redis.SetAdd(
 						`seventv:${default_emote_sets}:editors`,
+						new_editors,
 					);
+				}
 
-					const new_editors = editors.filter(
-						(editor) => !current_editors.includes(editor),
+				if (remove_editors.length > 0) {
+					Bot.Redis.SetRemove(
+						`seventv:${default_emote_sets}:editors`,
+						remove_editors,
 					);
-					const remove_editors = current_editors.filter(
-						(editor) => !editors.includes(editor),
-					);
+				}
+			});
 
-					if (new_editors.length > 0) {
-						Bot.Redis.SetAdd(
-							`seventv:${default_emote_sets}:editors`,
-							new_editors,
-						);
-					}
+			// We don't care if we have permission or not to edit the emote-set.
+			// We need the emote-set id to use EventSub
 
-					if (remove_editors.length > 0) {
-						Bot.Redis.SetRemove(
-							`seventv:${default_emote_sets}:editors`,
-							remove_editors,
-						);
-					}
+			// This means that they don't have an emote set on twitch,
+			// Or they unlinked twitch.
+			if (default_emote_sets === '') continue;
+			if (default_emote_sets === channel?.seventv_emote_set) continue;
 
-					if (
-						// Check if we are there.
-						!response.user.editors.map(
-							(editor) => editor.id === bot_id,
-						)
-					) {
-						return false;
-					}
-					return true;
-				});
-
-			if (!is_editor) {
-				// Not an editor? We are null.
-				Bot.SQL.query(
-					'UPDATE `channels` SET `seventv_emote_set` = ? WHERE `name` = ?',
-					[null, channel?.name],
-				);
-			} else {
-				// This means that they don't have an emote set on twitch,
-				// Or they unlinked twitch.
-				if (default_emote_sets === '') continue;
-				if (default_emote_sets === channel?.seventv_emote_set) continue;
-
-				console.log(
-					`${channel?.name} new 7TV emote set ${channel?.seventv_emote_set} --> ${default_emote_sets}`,
-				);
-				Bot.SQL.query(
-					'UPDATE `channels` SET `seventv_emote_set` = ? WHERE `name` = ?',
-					[default_emote_sets, channel?.name],
-				);
-			}
+			console.log(
+				`${channel?.name} new 7TV emote set ${channel?.seventv_emote_set} --> ${default_emote_sets}`,
+			);
+			Bot.SQL.query(
+				'UPDATE `channels` SET `seventv_emote_set` = ? WHERE `name` = ?',
+				[default_emote_sets, channel?.name],
+			);
 		}
 	}, ONE_MINUTE);
 

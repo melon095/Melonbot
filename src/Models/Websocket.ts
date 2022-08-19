@@ -29,9 +29,15 @@ export default abstract class MWebSocket implements IWebsocket {
 	category: string;
 	manualExit = false;
 
-	constructor(category: string, ip: string, port?: number, secure = true) {
-		this.address = `${secure ? 'wss' : 'ws'}://${ip}`;
-		if (port) this.address += `:${port}`;
+	constructor(
+		category: string,
+		ip: string,
+		opts?: { port?: number; secure?: boolean },
+	) {
+		if (!opts) opts = { secure: true };
+
+		this.address = `${opts.secure ? 'wss' : 'ws'}://${ip}`;
+		if (opts.port) this.address += `:${opts.port}`;
 
 		this.category = category;
 	}
@@ -58,6 +64,7 @@ export default abstract class MWebSocket implements IWebsocket {
 		try {
 			if (!this.manualExit)
 				await this.Connect().then(() => this.OnReconnect());
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (err: any) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			this.Log('WEBSOCKET_RECONNECT. ', new Error(err).message);

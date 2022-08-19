@@ -14,6 +14,7 @@ import { ChatUserstate } from 'tmi.js';
 import { CommandModel } from '../../Models/Command.js';
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
+import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
 
 /**
  * Encapsulated data for every channel.
@@ -86,6 +87,17 @@ export class Channel {
 	 */
 	public Trivia: TriviaController | null;
 
+	static async WithEventsub(
+		Name: string,
+		Id: string,
+		Mode: NChannel.Mode,
+		Live: boolean,
+	): Promise<Channel> {
+		const channel = new Channel(Name, Id, Mode, Live);
+		await channel.joinEventSub();
+		return channel;
+	}
+
 	constructor(Name: string, Id: string, Mode: NChannel.Mode, Live: boolean) {
 		this.Name = Name;
 		this.Id = Id;
@@ -102,9 +114,6 @@ export class Channel {
 			this.ModerationModule = null;
 		}
 
-		if (Mode === 'Moderator' || Mode === 'VIP') {
-			Bot.Twitch.Emotes.SevenTVEvent.addChannel(Name);
-		}
 		this.Filter = [];
 		this.Trivia = null;
 
@@ -338,6 +347,47 @@ export class Channel {
 		}
 	}
 
+	async joinEventSub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
+		if (this.Mode === 'Moderator' || this.Mode === 'VIP') {
+			if (!emoteSetID) {
+				try {
+					emoteSetID = await this.getEmoteSetID();
+				} catch (error) {
+					Bot.HandleErrors('channel/joinEventSub', error as Error);
+					return;
+				}
+			}
+
+			Bot.Twitch.Emotes.SevenTVEvent.addChannel(emoteSetID);
+		}
+	}
+
+	async leaveEventsub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
+		if (!emoteSetID) {
+			try {
+				emoteSetID = await this.getEmoteSetID();
+			} catch (error) {
+				Bot.HandleErrors('channel/leaveEventSub', error as Error);
+				return;
+			}
+		}
+
+		Bot.Twitch.Emotes.SevenTVEvent.removeChannel(emoteSetID);
+	}
+
+	async getEmoteSetID(): Promise<SevenTVChannelIdentifier> {
+		const channel = await Bot.Twitch.Controller.GetChannel(this.Id);
+		if (!channel) throw new Error('Channel not found');
+		if (!channel.seventv_emote_set)
+			throw new Error('Channel has no emote set');
+		else {
+			return {
+				EmoteSet: channel.seventv_emote_set,
+				Channel: channel.name,
+			};
+		}
+	}
+
 	static async Join(username: string, user_id: string) {
 		const queries = [];
 
@@ -378,7 +428,7 @@ export class Channel {
 
 		try {
 			await Bot.Twitch.Controller.client.join('#' + username);
-			const channel = Bot.Twitch.Controller.AddChannelList(
+			const channel = await Bot.Twitch.Controller.AddChannelList(
 				username!,
 				user_id,
 			);
@@ -442,7 +492,7 @@ export class Channel {
 			[3, this.Id],
 		);
 		this.ModerationModule = new ModerationModule(this);
-		Bot.Twitch.Emotes.SevenTVEvent.addChannel(this.Name);
+		this.joinEventSub();
 		console.info("Channel '" + this.Name + "' is now set as Moderator.");
 	}
 
@@ -455,7 +505,7 @@ export class Channel {
 			[2, this.Id],
 		);
 		this.ModerationModule = null;
-		Bot.Twitch.Emotes.SevenTVEvent.addChannel(this.Name);
+		this.joinEventSub();
 		console.info("Channel '" + this.Name + "' is now set as VIP.");
 	}
 
@@ -469,7 +519,7 @@ export class Channel {
 			[1, this.Id],
 		);
 		this.ModerationModule = null;
-		Bot.Twitch.Emotes.SevenTVEvent.removeChannel(this.Name);
+		this.leaveEventsub();
 		console.info("Channel '" + this.Name + "' is now set as Norman.");
 	}
 
