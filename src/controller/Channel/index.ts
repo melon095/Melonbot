@@ -351,7 +351,9 @@ export class Channel {
 		if (this.Mode === 'Moderator' || this.Mode === 'VIP') {
 			if (!emoteSetID) {
 				try {
-					emoteSetID = await this.getEmoteSetID();
+					const e = await this.getEmoteSetID();
+					if (!e) return;
+					emoteSetID = e;
 				} catch (error) {
 					Bot.HandleErrors('channel/joinEventSub', error as Error);
 					return;
@@ -365,7 +367,9 @@ export class Channel {
 	async leaveEventsub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
 		if (!emoteSetID) {
 			try {
-				emoteSetID = await this.getEmoteSetID();
+				const e = await this.getEmoteSetID();
+				if (!e) return;
+				emoteSetID = e;
 			} catch (error) {
 				Bot.HandleErrors('channel/leaveEventSub', error as Error);
 				return;
@@ -375,11 +379,10 @@ export class Channel {
 		Bot.Twitch.Emotes.SevenTVEvent.removeChannel(emoteSetID);
 	}
 
-	async getEmoteSetID(): Promise<SevenTVChannelIdentifier> {
+	async getEmoteSetID(): Promise<SevenTVChannelIdentifier | void> {
 		const channel = await Bot.Twitch.Controller.GetChannel(this.Id);
 		if (!channel) throw new Error('Channel not found');
-		if (!channel.seventv_emote_set)
-			throw new Error('Channel has no emote set');
+		if (!channel.seventv_emote_set) return;
 		else {
 			return {
 				EmoteSet: channel.seventv_emote_set,
