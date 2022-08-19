@@ -129,8 +129,10 @@ export class SevenTVEvent extends MWebSocket {
 	override CloseListener(
 		e: WebSocket.CloseEvent,
 	): WebSocket.CloseEvent | void {
-		if (!this.manualExit) super.Log('Connection closed by server. ', e);
-		this.Reconnect();
+		if (!this.manualExit) {
+			super.Log('Connection closed by server. ', e);
+			this.Reconnect();
+		}
 	}
 
 	override MessageListener(e: WebSocket.MessageEvent): void {

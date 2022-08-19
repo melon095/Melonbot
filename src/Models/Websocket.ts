@@ -46,7 +46,6 @@ export default abstract class MWebSocket implements IWebsocket {
 
 			this.ws.addEventListener('close', (e) => {
 				this.CloseListener(e);
-				Resolve(this.OpenListener());
 			});
 
 			this.ws.addEventListener('message', (e) => this.MessageListener(e));
