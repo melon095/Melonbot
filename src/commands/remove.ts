@@ -2,6 +2,7 @@ import { TCommandContext, Database } from './../Typings/types';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import { CommandModel } from '../Models/Command.js';
 import gql, { ListItemAction } from './../SevenTVGQL.js';
+import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
 
 export default class extends CommandModel {
 	Name = 'remove';
@@ -38,8 +39,14 @@ export default class extends CommandModel {
 			.ModifyEmoteSet(okay.emote_set!, ListItemAction.REMOVE, emote.id)
 			.then(() => {
 				this.Resolve(`Removed the emote => ${emote.name}`);
+
+				const identifier: SevenTVChannelIdentifier = {
+					Channel: ctx.channel.Name,
+					EmoteSet: okay.emote_set!,
+				};
+
 				Bot.Twitch.Emotes.SevenTVEvent.HideNotification(
-					ctx.channel.Name,
+					identifier,
 					emote?.name || '',
 					'REMOVE',
 				);

@@ -8,6 +8,7 @@ import { Promolve, IPromolve } from '@melon95/promolve';
 import { FindClosestChannelToUser } from './tools/FindClosestChannelToUser.js';
 import { RandomNumber } from './tools/RandomNumber.js';
 import EventSubTriggers from './triggers/eventsub/index.js';
+import { Database } from './Typings/types.js';
 
 interface IUserInformation {
 	data: [
@@ -131,8 +132,9 @@ export default class Twitch {
 		this.InitReady.resolve(true);
 	}
 
-	AddChannelList(channel: string, user_id: string): Channel {
-		this.channels.push(new Channel(channel, user_id, 'Write', false));
+	async AddChannelList(channel: string, user_id: string): Promise<Channel> {
+		const c = await Channel.WithEventsub(channel, user_id, 'Write', false);
+		this.channels.push(c);
 		return this.TwitchChannelSpecific({ ID: user_id })!;
 	}
 
@@ -148,6 +150,15 @@ export default class Twitch {
 
 	get InitPromise() {
 		return this.InitReady.promise;
+	}
+
+	async GetChannel(ID: string): Promise<Database.channels | null> {
+		return (
+			await Bot.SQL.promisifyQuery<Database.channels>(
+				'SELECT * FROM channels WHERE user_id = ?',
+				[ID],
+			)
+		).SingleOrNull();
 	}
 
 	TwitchChannelSpecific({ ID, Name }: { ID?: string; Name?: string }) {

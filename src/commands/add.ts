@@ -3,6 +3,7 @@ import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import { CommandModel } from '../Models/Command.js';
 import gql, { ListItemAction } from './../SevenTVGQL.js';
 import { ObjectID } from 'bson';
+import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
 
 export default class extends CommandModel {
 	Name = 'add';
@@ -44,7 +45,6 @@ export default class extends CommandModel {
 				.GetEmoteByID(ctx.input[0].split('/').filter(Boolean).pop()!)
 				.then((res) => res)
 				.catch(() => {
-					this.Resolve('No emote found with your given URL. :/');
 					return null;
 				});
 		} else if (valid[0] && emote === null) {
@@ -52,7 +52,6 @@ export default class extends CommandModel {
 				.GetEmoteByID(ctx.input[0])
 				.then((res) => res)
 				.catch(() => {
-					this.Resolve('No emote found with your given ID. :/');
 					return null;
 				});
 		}
@@ -64,8 +63,13 @@ export default class extends CommandModel {
 		gql.ModifyEmoteSet(okay.emote_set!, ListItemAction.ADD, emote.id)
 			.then(() => {
 				this.Resolve(`Added the emote => ${emote?.name}`);
+				const identifier: SevenTVChannelIdentifier = {
+					Channel: ctx.channel.Name,
+					EmoteSet: okay.emote_set!,
+				};
+
 				Bot.Twitch.Emotes.SevenTVEvent.HideNotification(
-					ctx.channel.Name,
+					identifier,
 					emote?.name || '',
 					'ADD',
 				);

@@ -2,6 +2,7 @@ import { TCommandContext, Database } from './../Typings/types';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import { CommandModel } from '../Models/Command.js';
 import gql, { ListItemAction } from './../SevenTVGQL.js';
+import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
 
 export default class extends CommandModel {
 	Name = 'alias';
@@ -51,8 +52,14 @@ export default class extends CommandModel {
 				} else {
 					this.Resolve(`I set the alias of ${src.name} to ${dst}`);
 				}
+
+				const identifier: SevenTVChannelIdentifier = {
+					Channel: ctx.channel.Name,
+					EmoteSet: okay.emote_set!,
+				};
+
 				Bot.Twitch.Emotes.SevenTVEvent.HideNotification(
-					ctx.channel.Name,
+					identifier,
 					src?.name || '',
 					'REMOVE',
 				);

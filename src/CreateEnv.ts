@@ -115,7 +115,7 @@ export const Setup = {
 						.join('#' + channel.name)
 						.catch((err: string) => console.error(err));
 					twitch.channels.push(
-						new Channel(
+						await Channel.WithEventsub(
 							channel.name,
 							channel.user_id,
 							NChannelFunctions.DatabaseToMode(
