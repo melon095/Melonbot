@@ -133,8 +133,8 @@ export enum UserEditorPermissions {
 	DEFAULT = 17,
 	// Modify emotes + add/remove editors
 	EDITOR = 81,
-  // Removes the user.
-  NONE = 0,
+	// Removes the user.
+	NONE = 0,
 }
 
 export enum ListItemAction {
