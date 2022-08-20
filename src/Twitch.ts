@@ -97,7 +97,7 @@ export default class Twitch {
 				Name: channel.replace('#', ''),
 			});
 			if (_chl) {
-				_chl.AutomodMessage(message);
+				_chl.AutomodMessage(message, userstate);
 			}
 		});
 

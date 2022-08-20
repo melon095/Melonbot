@@ -557,8 +557,11 @@ export class Channel {
 		} else this.UserCooldowns[id][idx] = val;
 	}
 
-	AutomodMessage(message: string): void {
-		if (this.Queue.hasMessage) {
+	AutomodMessage(
+		message: string,
+		userstate: 'msg_rejected' | 'msg_rejected_mandatory',
+	): void {
+		if (this.Queue.hasMessage && userstate === 'msg_rejected_mandatory') {
 			this.say(message, { SkipBanphrase: true });
 			return;
 		}
