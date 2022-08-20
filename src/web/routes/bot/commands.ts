@@ -28,15 +28,18 @@ export default (async function () {
 				}
 				return all;
 			});
-		if (commands === null) return;
-		res.render(
-			'commands',
-			{ commands: commands, title: 'Commands' },
-			function (err, html) {
-				if (err) return console.log('Render error: ', err);
-				res.send(html);
-			},
-		);
+		if (commands === null) {
+			res.render('error', { safeError: 'There are no commands' });
+		} else {
+			res.render(
+				'commands',
+				{ commands: commands, title: 'Commands' },
+				function (err, html) {
+					if (err) return console.log('Render error: ', err);
+					res.send(html);
+				},
+			);
+		}
 	});
 
 	return Router;

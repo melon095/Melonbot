@@ -5,25 +5,17 @@ html
         meta(charset="utf-8")
         meta(name="viewport" content="width=device-width, initial-scale=1")
         meta(http-equiv="X-UA-Compatible" content="IE=edge")
+        style 
+            include /css/html.css
+        
         style.
-            html, body {
-                height: 100%;
-            }
-
-            html {
-                display: table;
-                margin: auto;
-            }
-
-            body {
-                vertical-align: middle;    
-            }
-            
             #bigFourOFour {
                 font-size: xx-large;
             }
 
     body
+        include header.pug
+        
         img(src="https://cdn.7tv.app/emote/60e5d610a69fc8d27f2737b7/4x")
         .underImage
             p
