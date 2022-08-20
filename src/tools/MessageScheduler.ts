@@ -3,6 +3,7 @@ import { ChannelTalkOptions } from './../Typings/types';
 
 export class MessageScheduler extends EventEmitter {
 	private Queue: number[];
+	private _hasMessage = false;
 
 	constructor() {
 		super();
@@ -10,15 +11,24 @@ export class MessageScheduler extends EventEmitter {
 	}
 
 	schedule(message: string, options: ChannelTalkOptions, cooldown: number) {
+		this._hasMessage = true;
+
 		this.Queue.push(
 			setTimeout(
 				() => {
 					this.emit('message', message, options);
+					if (this.Queue.length === 0) {
+						this._hasMessage = false;
+					}
 				},
 				cooldown,
 				true,
 			),
 		);
+	}
+
+	public get hasMessage(): boolean {
+		return this._hasMessage;
 	}
 
 	/**
