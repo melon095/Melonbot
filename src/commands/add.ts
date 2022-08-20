@@ -13,7 +13,12 @@ export default class extends CommandModel {
 	OnlyOffline = false;
 	Aliases = [];
 	Cooldown = 5;
-	Params = [];
+	Params = [
+		{
+			name: 'alias',
+			type: 'string',
+		},
+	];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
 	Code = async (ctx: TCommandContext) => {
 		const okay = await gql.isAllowedToModify(ctx);
@@ -60,9 +65,11 @@ export default class extends CommandModel {
 			return;
 		}
 
-		gql.ModifyEmoteSet(okay.emote_set!, ListItemAction.ADD, emote.id)
+		const name = (ctx.data.Params.alias as string) || emote.name;
+
+		gql.ModifyEmoteSet(okay.emote_set!, ListItemAction.ADD, emote.id, name)
 			.then(() => {
-				this.Resolve(`Added the emote => ${emote?.name}`);
+				this.Resolve(`Added the emote => ${name}`);
 				const identifier: SevenTVChannelIdentifier = {
 					Channel: ctx.channel.Name,
 					EmoteSet: okay.emote_set!,
