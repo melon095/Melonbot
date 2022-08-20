@@ -1,0 +1,16 @@
+doctype html
+html
+    head
+        title= "Error"
+
+        style
+            include /css/html.css
+            include /css/error.css
+
+    body
+        include header.pug
+        div(class='error')
+            h1(class='error-title') Error
+            p(class='error-message') An error occured while processing your request.
+            p(class='error-message') Please try again later.
+            p(class='error-message') Error Message: #{safeError}

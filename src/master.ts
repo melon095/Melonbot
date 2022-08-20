@@ -15,7 +15,7 @@ process.on('unhandledRejection', async (err, promise) => {
 	console.error(`Unhandled rejection (promise: ${promise}, reason: ${err})`);
 });
 
-Setup.All().then((cfg) => Setup.Bot(cfg));
+Setup.All().then(() => Setup.Bot());
 
 async function exitHandler(): Promise<void> {
 	// Close error file
