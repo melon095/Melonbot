@@ -6,7 +6,7 @@ import gql from '../SevenTVGQL.js';
 export default class extends CommandModel {
 	Name = '7tv';
 	Ping = true;
-	Description = 'Search 7TV emotes.!';
+	Description = 'Search 7TV emotes';
 	Permission = EPermissionLevel.VIEWER;
 	OnlyOffline = false;
 	Aliases = [];

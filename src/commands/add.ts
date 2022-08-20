@@ -8,7 +8,7 @@ import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI
 export default class extends CommandModel {
 	Name = 'add';
 	Ping = false;
-	Description = 'Alias for removing 7TV emotes';
+	Description = 'Add a 7TV emote';
 	Permission = EPermissionLevel.VIEWER;
 	OnlyOffline = false;
 	Aliases = [];
