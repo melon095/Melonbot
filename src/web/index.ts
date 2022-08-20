@@ -1,112 +1,98 @@
-import express from 'express';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import path, { join } from 'node:path';
 import cors from 'cors';
-import { CommonRoutesConfig } from './routes/common.routes.config.js';
-import { BotRoutes } from './routes/bot.routes.config.js';
-import { IndexRoutes } from './routes/index.routes.config.js';
-import { TwitchRoutes } from './routes/authentication/twitch.routes.config.js';
-import { StatsRoutes } from './routes/api/stats.routes.config.js';
+import * as tools from './../tools/tools.js';
 
-const error = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width='device-width', initial-scale=1.0">
-    <title>Nothing here, move along!</title>
-    <style>
-        html, body {
-            height: 100%;
-        }
+export const Import = async (folder: string, route: string) =>
+	await (
+		await import(join('file://', folder, route))
+	).default;
 
-        html {
-            display: table;
-            margin: auto;
-        }
-
-        body {
-            vertical-align: middle;    
-        }
-        
-        #bigFourOFour {
-            font-size: xx-large;
-        }
-        
-    </style>
-</head>
-<body>
-    <img src="https://cdn.7tv.app/emote/60e5d610a69fc8d27f2737b7/4x">
-    <div class="underImage">
-        <p><span id="bigFourOFour">404</span> Page <b><span id="url"></span></b> not found...</p>
-    </div>        
+(async function () {
+	const error = `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width='device-width', initial-scale=1.0">
+        <title>Nothing here, move along!</title>
+        <style>
+            html, body {
+                height: 100%;
+            }
     
-    <script type="text/javascript">
-        document.getElementById("url").innerHTML = document.location.pathname;
-    </script>
-</body>
-</html>`;
+            html {
+                display: table;
+                margin: auto;
+            }
+    
+            body {
+                vertical-align: middle;    
+            }
+            
+            #bigFourOFour {
+                font-size: xx-large;
+            }
+            
+        </style>
+    </head>
+    <body>
+        <img src="https://cdn.7tv.app/emote/60e5d610a69fc8d27f2737b7/4x">
+        <div class="underImage">
+            <p><span id="bigFourOFour">404</span> Page <b><span id="url"></span></b> not found...</p>
+        </div>        
+        
+        <script type="text/javascript">
+            document.getElementById("url").innerHTML = document.location.pathname;
+        </script>
+    </body>
+    </html>`;
 
-const dirname = path.dirname(fileURLToPath(import.meta.url));
+	const middlewares = ['logger'];
 
-export default class App {
-	private readonly app: express.Application;
-	private readonly router: express.Router;
-	private readonly port = Bot.Config.Website.Port;
-	private routes: Array<CommonRoutesConfig> = [];
-	constructor() {
-		this.app = express();
-		this.router = express.Router();
+	const subroutes = ['api', 'bot', 'login'];
 
-		this.app.use('/', this.router);
+	const Express = await import('express');
 
-		this.app.locals.basedir = path.resolve(dirname);
+	const dirname = tools.getDirname(import.meta.url);
 
-		this.app.use(cors());
+	const port = Bot.Config.Website.Port || 3000;
 
-		this.app.use(express.json());
+	const app = Express.default();
 
-		this.app.set('views', path.resolve(dirname, 'views'));
-		this.app.set('view engine', 'pug');
+	app.use(cors());
+	app.use(Express.json());
+	app.set('views', path.resolve(dirname, 'views'));
+	app.set('view engine', 'pug');
+	app.locals.basedir = path.resolve(dirname);
 
-		this.app.use(function logger(
-			req: express.Request,
-			res: express.Response,
-			next: express.NextFunction,
-		) {
-			console.log(req.url);
-			next();
-		});
+	app.use(
+		'/public',
+		Express.static(`${dirname}/public`, {
+			etag: true,
+			maxAge: '1 day',
+			lastModified: true,
+		}),
+	);
 
-		//////////////////// Website ////////////////////
+	app.get('/robots.txt', (_, res) => {
+		// No, i don't think so.
+		res.type('text/plain');
+		res.send('User-agent: *\nDisallow: /');
+	});
 
-		this.routes.push(new IndexRoutes(this.app));
-		this.routes.push(new BotRoutes(this.app));
+	app.get('/', (_, res) => {
+		res.render('index', { title: 'Index' });
+	});
 
-		//////////////////// API ////////////////////
-
-		this.routes.push(new StatsRoutes(this.app));
-
-		//////////////////// LOGIN ////////////////////
-
-		this.routes.push(new TwitchRoutes(this.app));
-
-		//////////////////// MISC ////////////////////
-
-		this.app.get(
-			'*',
-			async function (req: express.Request, res: express.Response) {
-				res.send(error);
-			},
-		);
+	for (const middleware of middlewares) {
+		app.use(await Import(dirname, `middlewares/${middleware}.js`));
 	}
 
-	Listen() {
-		this.app.listen(this.port, () => {
-			for (const route of this.routes) {
-				console.log(`Routes configured for ${route.getName()}`);
-			}
-			console.log(`App listening on port ${this.port}`);
-		});
+	for (const route of subroutes) {
+		app.use(`/${route}`, await Import(dirname, `routes/${route}/index.js`));
 	}
-}
+
+	app.get('*', (req, res) => res.status(404).send(error));
+
+	app.listen(port, () => console.info('Listening...'));
+})();

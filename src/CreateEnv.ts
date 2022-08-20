@@ -17,7 +17,6 @@ import { CommandsHandler } from './controller/Commands/Handler.js';
 import { SevenTVEvent } from './controller/Emote/SevenTV/EventAPI.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import App from './web/index.js';
 import ErrorHandler from './ErrorHandler.js';
 // import { PM2FILENAME } from './commands/git.js';
 import { Channel } from './controller/Channel/index.js';
@@ -26,7 +25,7 @@ import { RedisSingleton } from './Singletons/Redis/index.js';
 import * as tools from './tools/tools.js';
 
 export const Setup = {
-	All: async (): Promise<TConfigFile> => {
+	All: async (): Promise<void> => {
 		process.on('uncaughtException', function (exception) {
 			console.error(exception);
 			process.exitCode = -1;
@@ -69,10 +68,10 @@ export const Setup = {
 
 		Bot.Redis = redis;
 
-		return Promise.resolve(cfg);
+		return;
 	},
 
-	Bot: async (cfg: TConfigFile) => {
+	Bot: async () => {
 		// Twitch Specific Config
 		if (!(await tools.token.Bot()).token) {
 			console.error('Missing Twitch Config');
@@ -199,10 +198,6 @@ export const Setup = {
 			// 	fs.unlinkSync(PM2FILENAME);
 			// }
 		});
-	},
-
-	Web: async (cfg: TConfigFile): Promise<App> => {
-		return Promise.resolve(new App());
 	},
 };
 
