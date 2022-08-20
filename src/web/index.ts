@@ -8,45 +8,6 @@ export const Import = async (folder: string, route: string) =>
 	).default;
 
 (async function () {
-	const error = `<!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width='device-width', initial-scale=1.0">
-        <title>Nothing here, move along!</title>
-        <style>
-            html, body {
-                height: 100%;
-            }
-    
-            html {
-                display: table;
-                margin: auto;
-            }
-    
-            body {
-                vertical-align: middle;    
-            }
-            
-            #bigFourOFour {
-                font-size: xx-large;
-            }
-            
-        </style>
-    </head>
-    <body>
-        <img src="https://cdn.7tv.app/emote/60e5d610a69fc8d27f2737b7/4x">
-        <div class="underImage">
-            <p><span id="bigFourOFour">404</span> Page <b><span id="url"></span></b> not found...</p>
-        </div>        
-        
-        <script type="text/javascript">
-            document.getElementById("url").innerHTML = document.location.pathname;
-        </script>
-    </body>
-    </html>`;
-
 	const middlewares = ['logger'];
 
 	const subroutes = ['api', 'bot', 'login'];
@@ -92,7 +53,7 @@ export const Import = async (folder: string, route: string) =>
 		app.use(`/${route}`, await Import(dirname, `routes/${route}/index.js`));
 	}
 
-	app.get('*', (req, res) => res.status(404).send(error));
+	app.get('*', (req, res) => res.status(404).render('404'));
 
 	app.listen(port, () => console.info('Listening...'));
 })();
