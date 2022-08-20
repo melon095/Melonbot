@@ -93,6 +93,12 @@ export default class Twitch {
 
 		this.client.on('automod', (channel, userstate, message) => {
 			console.log({ channel, userstate, message });
+			const _chl = this.TwitchChannelSpecific({
+				Name: channel.replace('#', ''),
+			});
+			if (_chl) {
+				_chl.AutomodMessage(message);
+			}
 		});
 
 		this._setupRedisCallbacks();
