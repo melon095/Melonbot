@@ -445,8 +445,20 @@ export class SevenTVEvent extends MWebSocket {
 		emote: string,
 		type: 'ADD' | 'REMOVE',
 	): void {
-		if (EMOTES[identifier.Channel][identifier.EmoteSet] === undefined)
-			return;
+		const getEmoteList = (identifier: SevenTVChannelIdentifier) => {
+			if (EMOTES[identifier.Channel]) {
+				if (EMOTES[identifier.Channel][identifier.EmoteSet]) {
+					return EMOTES[identifier.Channel][identifier.EmoteSet];
+				} else {
+					newArrayIdentifier(identifier);
+				}
+			} else {
+				newArrayIdentifier(identifier);
+			}
+			return undefined;
+		};
+
+		if (getEmoteList(identifier) === undefined) return;
 
 		switch (type) {
 			case 'ADD': {
