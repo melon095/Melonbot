@@ -394,7 +394,10 @@ export class SevenTVEvent extends MWebSocket {
 	}
 
 	override OnReconnect(): void {
-		for (const channel of this.List) this.addChannel(channel);
+		for (const channel of this.List) {
+			this.List = [];
+			this.addChannel(channel);
+		}
 	}
 
 	override ErrorListener(e: WebSocket.ErrorEvent): Error {
