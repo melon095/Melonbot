@@ -59,7 +59,7 @@ import { RedisSingleton } from './../Singletons/Redis/index.js';
 		`Migrated from version ${migration.OldVersion} to ${migration.NewVersion}`,
 	);
 
-	Bot.SQL.setDatabase();
+	Bot.SQL.SetDatabase();
 
 	// Generate the bots auth token
 	const t = await token.Bot();

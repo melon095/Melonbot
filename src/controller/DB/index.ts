@@ -1,7 +1,7 @@
-import mysql from 'mysql2/promise';
+/* eslint-disable @typescript-eslint/ban-types */
+import postgres from 'postgres';
 import { exit } from 'node:process';
 import { Database } from 'Typings/types.js';
-import { Sleep } from './../../tools/tools.js';
 import fs from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -78,88 +78,49 @@ class SQLResult<T> implements ISQLResult<T> {
 export class SQLController {
 	private static instance: SQLController;
 
-	private Conn!: mysql.Connection;
+	private Conn!: postgres.Sql<{}>;
 	private Open!: boolean;
 
-	private constructor() {
-		this.CreateConnection(true).then(() => (this.Open = true));
-	}
-
-	public static async getInstanceAsync(): Promise<SQLController> {
+	public async New(): Promise<SQLController> {
 		if (!SQLController.instance) {
-			SQLController.instance = new SQLController();
-		}
-		while (!SQLController.instance.Open) {
-			await Sleep(1);
+			const c = new SQLController();
+			await c.IsOpen();
+			SQLController.instance = c;
 		}
 		return SQLController.instance;
 	}
 
-	setDatabase(): void {
-		this.Conn.changeUser({
-			database: 'twitch',
-		});
+	private getAddress(): string {
+		return Bot.Config.SQL.Address;
 	}
 
-	private isAlive(): boolean {
-		try {
-			this.Conn.ping();
-		} catch (e) {
-			return false;
-		}
-		return true;
+	private constructor() {
+		this.createConnection(this.getAddress()).then(() => (this.Open = true));
 	}
 
-	private async CreateConnection(initial = false): Promise<void> {
-		if (!initial) {
-			if (this.isAlive()) return;
-		}
-
-		this.Conn = await mysql
-			.createConnection({
-				host: Bot.Config.SQL.Host,
-				user: Bot.Config.SQL.User,
-				password: Bot.Config.SQL.Password,
-			})
-			.catch((error) => {
-				console.error('MARIADB | Error connecting: ', error);
-				process.exit(1);
-			});
-		this.Conn.on('close', async () => {
-			console.log(
-				'MYSQL2 Closed the connecting, catched and reconnecting!',
-			);
-			this.Open = false;
-			this.Open = await this.connect();
-		});
-		this.Conn.on('error', async (e: mysql.QueryError) => {
-			Bot.HandleErrors('SQL', e);
-			this.Open = false;
-			this.Open = await this.connect();
-		});
-		Promise.resolve();
+	async SetDatabase(): Promise<void> {
+		await this.Conn`USE melonbot`;
 	}
 
-	private asyncRun(query: string): Promise<object[]> {
-		return new Promise((Resolve, Reject) => {
-			this.Conn.query(query)
-				.then((result) => {
-					const [rows, _] = result;
-					Resolve(rows as object[]);
-				})
-				.catch((reason) => {
-					return Reject(reason);
-				});
-		});
+	public async IsOpen(): Promise<boolean> {
+		return await this.Conn`SELECT 1`.then(() => true).catch(() => false);
 	}
 
-	/**
-	 * @description Use this for queries which requests data.
-	 */
+	private async createConnection(
+		address: string,
+		opts: postgres.Options<{}> = {},
+	): Promise<void> {
+		this.Conn = postgres(address, opts);
+		this.Conn.notify;
+	}
+
 	async promisifyQuery<T>(
 		query: string,
 		data: unknown[] = [],
 	): Promise<SQLResult<T>> {
+        await this.connect();
+        return await 
+        
 		return new Promise((Resolve, Reject) => {
 			this.connect().then(() => {
 				this.asyncRun(mysql.format(query, data))
@@ -226,8 +187,17 @@ export class SQLController {
 		let newVersion = currentVersion;
 
 		const migrationsToRun: [number, string][] = fs
-			.readdirSync(resolve(process.cwd(), 'Migrations'))
+			.readdirSync(resolve(process.cwd(), 'Migrations'), {
+				withFileTypes: true,
+			})
 			.map((file) => {
+				if (file.isFile()) return file.name;
+				return;
+			})
+			.filter(Boolean)
+			.map((file) => {
+				// Don't think this can happen..
+				if (!file) return [0, ''] as [number, string];
 				// 2_fix_join.sql --> [2, 'fix_join.sql']
 				const [version, name] = file.split(/_(.*)/s).filter(Boolean);
 				return [Number(version), name] as [number, string];

@@ -41,7 +41,7 @@ export const Setup = {
 		addConfig(cfg);
 		Bot.HandleErrors = ErrorHandler;
 		Bot.SQL = await SQLController.getInstanceAsync();
-		Bot.SQL.setDatabase();
+		Bot.SQL.SetDatabase();
 		const migrationVersion = await Bot.SQL.RunMigration().catch((error) => {
 			console.error(error);
 			process.exit(-1);
