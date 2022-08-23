@@ -382,10 +382,7 @@ export class SevenTVEvent extends MWebSocket {
 		}
 	}
 
-	private async handleUpdatedEmote(
-		data: SevenTVEmoteSetUpdate,
-		channel: Channel,
-	) {
+	private async handleUpdatedEmote(data: SevenTVEmoteSetUpdate, channel: Channel) {
 		const emotes = data.updated ?? [];
 
 		for (const emote of emotes) {
