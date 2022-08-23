@@ -144,7 +144,6 @@ export declare namespace Database {
 		user_id: string;
 		live: boolean;
 		bot_permission: number;
-		viewers: string[];
 		disabled_commands: string[];
 		seventv_emote_set?: string;
 	};

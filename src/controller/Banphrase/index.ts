@@ -44,9 +44,9 @@ export class Banphrase {
 	constructor(Name: string) {
 		this.Name = Name;
 		Bot.SQL.Query<Database.banphrases[]>`
-            SELECT phrase 
-            FROM banphrases 
-            WHERE channel = ${this.Name}`.then((phrases) => {
+        SELECT phrase 
+        FROM banphrases 
+        WHERE channel = ${this.Name}`.then((phrases) => {
 			if (!phrases.length) return;
 			for (const phrase of phrases[0].phrase) {
 				this.Bans.push(phrase);
@@ -55,7 +55,11 @@ export class Banphrase {
 	}
 
 	async Update() {
-		Bot.SQL.Query<PhraseType[]>`SELECT phrase FROM banphrases WHERE channel = ${this.Name}`
+		await Bot.SQL.Query<PhraseType[]>`
+            SELECT phrase 
+            FROM banphrases 
+            WHERE channel = ${this.Name}`
+
 			.then((phrases) => {
 				if (!phrases.length) return;
 				for (const phrase of phrases) {

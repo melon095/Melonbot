@@ -65,10 +65,12 @@ export function __loops() {
 
 	setInterval(async () => {
 		try {
-			const channels = await Bot.SQL.Query<Database.channels[]>`SELECT * FROM channels`;
+			const channels = await Bot.SQL.Query<
+				Database.channels[]
+			>`SELECT name, user_id FROM channels`;
 			if (!channels.length) return;
 
-			for (const { name } of channels) {
+			for (const { name, user_id } of channels) {
 				await axios
 					.get(VIEWER_LIST_API(name.toLowerCase()))
 					.then((response) => response.data.chatters)
@@ -86,12 +88,10 @@ export function __loops() {
 							viewers = viewers.substring(0, viewers.length - 1);
 						}
 
-						// Convert to string and convert back to array to join all array elements to one.
-						// const viewers: string = JSON.stringify(viewersArr.join(',').split(',')).replace("[", "").replace("]", "");
-						Bot.SQL.Query`
-                            UPDATE channels 
-                            SET viewers = JSON_ARRAY(${viewers.split(',')}) 
-                            WHERE name = ${name}`;
+						await Bot.Redis.SSet(
+							`channel:${user_id}:viewers`,
+							JSON.stringify(viewers.split(',')),
+						);
 					})
 					.catch((error) => {
 						throw error;

@@ -93,9 +93,23 @@ export class Channel {
 		Mode: NChannel.Mode,
 		Live: boolean,
 	): Promise<Channel> {
-		const channel = new Channel(Name, Id, Mode, Live);
+		const channel = new this(Name, Id, Mode, Live);
 		await channel.joinEventSub();
 		return channel;
+	}
+
+	static async CreateBot(): Promise<Channel> {
+		const Creds = {
+			name: Bot.Config.BotUsername,
+			user_id: await Bot.Redis.SGet('SelfID'),
+		};
+
+		await Bot.SQL.Query`
+            INSERT INTO channels (name, user_id, bot_permission) 
+            VALUES (${Creds.name}, ${Creds.user_id}, ${3}) 
+            ON CONFLICT (user_id) DO NOTHING;`;
+
+		return new this(Creds.name, Creds.user_id, 'Bot', false);
 	}
 
 	constructor(Name: string, Id: string, Mode: NChannel.Mode, Live: boolean) {
@@ -120,7 +134,7 @@ export class Channel {
 		this.setupTrivia();
 
 		// Create callback for the message queue.
-		this.Queue.on('message', this.onQueue);
+		this.Queue.on('message', (a, b) => this.onQueue(a, b));
 	}
 
 	async say(
@@ -365,12 +379,11 @@ export class Channel {
 	static async Join(username: string, user_id: string) {
 		const queries = [];
 
-		await Bot.SQL
-			.Query`INSERT INTO channels (name, user_id, bot_permission, disabled_commands) VALUES (${username}, ${user_id} ${1} ${'[]'})`;
+		await Bot.SQL.Query`INSERT INTO channels (name, user_id) VALUES (${username}, ${user_id})`;
 
 		queries.push(Bot.SQL.Query`INSERT INTO stats (name) VALUES (${username})`);
 
-		queries.push(Bot.SQL.Query`INSERT INTO banphrases VALUES (${username}, JSON_ARRAY())`);
+		queries.push(Bot.SQL.Query`INSERT INTO banphrases VALUES (${username}, ${'[]'})`);
 
 		const triviaValues: Database.trivia = {
 			channel: username,

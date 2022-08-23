@@ -277,13 +277,9 @@ export async function Live(id: string): Promise<boolean> {
 }
 
 export async function ViewerList(id: string): Promise<string[]> {
-	const [list] = await Bot.SQL.Query<Database.channels[]>`
-            SELECT viewers 
-            FROM channels 
-            WHERE user_id = ${id}`;
-
-	if (!list) return [];
-	return Promise.resolve(list.viewers);
+	const viewers = await Bot.Redis.SGet(`channel:${id}:viewers`);
+	if (!viewers) return [];
+	return JSON.parse(viewers);
 }
 
 export function isMod(user: ChatUserstate, channel: string): boolean {
