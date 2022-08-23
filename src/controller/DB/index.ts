@@ -30,7 +30,7 @@ const getCurrentVersion = async (db: SQLController) =>
         `.then(async ([row]) => {
 		if (row === undefined) {
 			await createDefaultMigrationTable(db);
-			db.Query`INSERT INTO migration (version) VALUES (0)`;
+			await db.Query`INSERT INTO migration (version) VALUES (0)`;
 			return 0;
 		}
 		return row.version;
@@ -94,8 +94,6 @@ export class SQLController {
 			.filter(([fileVersion]) => fileVersion > currentVersion);
 
 		for (const [version, name] of migrationsToRun) {
-			// const migration = resolve(process.cwd(), 'Migrations', `${version}_${name}`);
-
 			console.debug(`Running migration ${version}_${name}`);
 
 			await this.Conn.begin(async (sql) => {

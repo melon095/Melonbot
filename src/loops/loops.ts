@@ -88,11 +88,10 @@ export function __loops() {
 
 						// Convert to string and convert back to array to join all array elements to one.
 						// const viewers: string = JSON.stringify(viewersArr.join(',').split(',')).replace("[", "").replace("]", "");
-						Bot.SQL.Query(
-							`UPDATE channels SET viewers = JSON_ARRAY(${viewers.split(
-								',',
-							)}) WHERE name = ${name}`,
-						);
+						Bot.SQL.Query`
+                            UPDATE channels 
+                            SET viewers = JSON_ARRAY(${viewers.split(',')}) 
+                            WHERE name = ${name}`;
 					})
 					.catch((error) => {
 						throw error;

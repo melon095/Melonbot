@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { exit } from 'node:process';
 import { resolve } from 'node:path';
 import { EPermissionLevel } from './../../Typings/enums.js';
+import { Import } from './../../tools/tools.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare type Class = new (...args: any[]) => CommandModel;
@@ -54,9 +55,7 @@ export class CommandsHandler {
 
 			if (command === undefined) return Resolve(undefined);
 
-			const name = 'file://' + resolve(process.cwd(), 'build/commands', command.Name + '.js');
-			import(name)
-				.then((c) => c.default)
+			Import(resolve(process.cwd(), 'build/commands'), `${command.Name}.js`)
 				.then((c) => Resolve(new c()))
 				.catch((e) => {
 					Bot.HandleErrors('CommandsHandler/getCommands', new Error(e as string));
@@ -87,10 +86,11 @@ export class CommandsHandler {
 
 				for (const command of dir) {
 					if (command.name.split('.')[2] !== 'map') {
-						const name =
-							'file://' + resolve(process.cwd(), 'build/commands', command.name);
-						const file = await import(name);
-						commands.push(file.default);
+						const file = await Import(
+							resolve(process.cwd(), 'build/commands'),
+							command.name,
+						);
+						commands.push(file);
 					}
 				}
 				return Resolve(commands as unknown as Class[]);
