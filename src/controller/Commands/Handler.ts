@@ -41,10 +41,7 @@ export class CommandsHandler {
 			}
 			return Promise.resolve();
 		} catch (e) {
-			Bot.HandleErrors(
-				'CommandsHandler/initialize',
-				new Error(e as never),
-			);
+			Bot.HandleErrors('CommandsHandler/initialize', new Error(e as never));
 			return Promise.reject();
 		}
 	}
@@ -52,24 +49,17 @@ export class CommandsHandler {
 	async get(identifier: string): Promise<CommandModel | undefined> {
 		return new Promise((Resolve) => {
 			const command = this.commandNameList.find(
-				(command) =>
-					command.Name === identifier ||
-					command.Aliases?.includes(identifier),
+				(command) => command.Name === identifier || command.Aliases?.includes(identifier),
 			);
 
 			if (command === undefined) return Resolve(undefined);
 
-			const name =
-				'file://' +
-				resolve(process.cwd(), 'build/commands', command.Name + '.js');
+			const name = 'file://' + resolve(process.cwd(), 'build/commands', command.Name + '.js');
 			import(name)
 				.then((c) => c.default)
 				.then((c) => Resolve(new c()))
 				.catch((e) => {
-					Bot.HandleErrors(
-						'CommandsHandler/getCommands',
-						new Error(e as string),
-					);
+					Bot.HandleErrors('CommandsHandler/getCommands', new Error(e as string));
 					Resolve(undefined);
 				});
 		});
@@ -98,12 +88,7 @@ export class CommandsHandler {
 				for (const command of dir) {
 					if (command.name.split('.')[2] !== 'map') {
 						const name =
-							'file://' +
-							resolve(
-								process.cwd(),
-								'build/commands',
-								command.name,
-							);
+							'file://' + resolve(process.cwd(), 'build/commands', command.name);
 						const file = await import(name);
 						commands.push(file.default);
 					}

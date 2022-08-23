@@ -29,9 +29,7 @@ export default class extends CommandModel {
 
 		const valid = [
 			ObjectID.isValid(ctx.input[0]),
-			/https?:\/\/(?:next\.)?7tv.app\/emotes\/\b6\d[a-f0-9]{22}\b/.test(
-				ctx.input[0],
-			),
+			/https?:\/\/(?:next\.)?7tv.app\/emotes\/\b6\d[a-f0-9]{22}\b/.test(ctx.input[0]),
 		];
 
 		let emote: { name: string; id: string } | null = {

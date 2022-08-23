@@ -62,10 +62,6 @@ export type TAccessToken = {
 	access_token: string;
 };
 
-export type TStatsFile = {
-	channel: string;
-};
-
 export type TUserCooldown = {
 	Command: string;
 	TimeExecute: number;
@@ -107,9 +103,7 @@ export type TConfigFile = {
 		ClientSecret: string;
 	};
 	SQL: {
-		Host: string;
-		User: string;
-		Password: string;
+		Address: string;
 	};
 	EventSub: {
 		PublicUrl: string;
@@ -142,7 +136,7 @@ export type TStaticDataConfig = {
 export declare namespace Database {
 	export type banphrases = {
 		channel: string;
-		Phrase: PhraseType[];
+		phrase: PhraseType[];
 	};
 
 	export type channels = {
@@ -166,11 +160,6 @@ export declare namespace Database {
 		error_id: number;
 		error_message: string;
 		timestamp: Date;
-	};
-
-	export type stats = {
-		name: string;
-		commands_handled: number;
 	};
 
 	export type suggestions = {

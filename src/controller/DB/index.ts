@@ -1,91 +1,55 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import postgres from 'postgres';
-import { exit } from 'node:process';
 import { Database } from 'Typings/types.js';
 import fs from 'node:fs';
 import { resolve } from 'node:path';
-
-interface ISQLResult<T> {
-	Data: object[];
-	SingleOrNull: () => null | T;
-	ArrayOrNull: () => null | T[];
-}
+import { Import } from './../../tools/tools.js';
 
 interface MigrationResult {
 	OldVersion: number;
 	NewVersion: number;
 }
 
-const createDefaultMigrationTable = async (db: SQLController) =>
-	db.query(`
-        CREATE TABLE IF NOT EXISTS Migration (
+const createDefaultMigrationTable = async (db: SQLController) => {
+	await db.Query`CREATE SCHEMA IF NOT EXISTS bot`;
+	await db.Query`ALTER DATABASE melonbot RESET search_path`;
+	await db.Query`ALTER DATABASE melonbot SET search_path TO 'bot'`;
+	await db.Query`
+        CREATE TABLE IF NOT EXISTS migration (
             version INTEGER NOT NULL,
             PRIMARY KEY (version)
         )
-    `);
+    `;
+};
 
 const getCurrentVersion = async (db: SQLController) =>
-	await db
-		.promisifyQuery<Database.migration>(
-			`
-            SELECT version FROM Migration
+	await db.Query<Database.migration[]>`
+            SELECT version FROM migration
             ORDER BY version DESC
             LIMIT 1
-        `,
-		)
-		.then(async (rows) => {
-			const res = rows.SingleOrNull();
-			if (res === null) {
-				await createDefaultMigrationTable(db);
-				db.query(`
-                    INSERT INTO Migration (version) VALUES (0)
-                `);
-				return 0;
-			}
-			return res.version;
-		})
-		.catch((err) => {
-			throw new Error(err);
-		});
-
-class SQLResult<T> implements ISQLResult<T> {
-	Data: object[];
-
-	constructor(d: object[]) {
-		this.Data = d;
-	}
-
-	public SingleOrNull(): null | T {
-		switch (this.Data.length) {
-			case 0:
-				return null;
-			case 1:
-				return this.Data[0] as unknown as T;
-			default:
-				// TODO: Should not do this?
-				throw new Error(
-					`SQL Data length is more than 1... Found length of: ${this.Data.length}`,
-				);
+        `.then(async ([row]) => {
+		if (row === undefined) {
+			await createDefaultMigrationTable(db);
+			db.Query`INSERT INTO migration (version) VALUES (0)`;
+			return 0;
 		}
-	}
+		return row.version;
+	});
 
-	public ArrayOrNull(): null | T[] {
-		if (this.Data.length === 0) return null;
-		return this.Data as unknown as T[];
-	}
-}
+const defaultOpts: postgres.Options<{}> = {
+	// Shush
+	// eslint-disable-next-line @typescript-eslint/no-empty-function
+	onnotice: () => {},
+};
 
 export class SQLController {
 	private static instance: SQLController;
 
 	private Conn!: postgres.Sql<{}>;
-	private Open!: boolean;
 
-	public async New(): Promise<SQLController> {
+	public static New(): SQLController {
 		if (!SQLController.instance) {
-			const c = new SQLController();
-			await c.IsOpen();
-			SQLController.instance = c;
+			SQLController.instance = new SQLController();
 		}
 		return SQLController.instance;
 	}
@@ -94,91 +58,16 @@ export class SQLController {
 		return Bot.Config.SQL.Address;
 	}
 
-	private constructor() {
-		this.createConnection(this.getAddress()).then(() => (this.Open = true));
+	private constructor(opts: postgres.Options<{}> = defaultOpts) {
+		this.Conn = postgres(this.getAddress(), opts);
 	}
 
-	async SetDatabase(): Promise<void> {
-		await this.Conn`USE melonbot`;
+	public get Get(): postgres.Sql<{}> {
+		return this.Conn;
 	}
 
-	public async IsOpen(): Promise<boolean> {
-		return await this.Conn`SELECT 1`.then(() => true).catch(() => false);
-	}
-
-	private async createConnection(
-		address: string,
-		opts: postgres.Options<{}> = {},
-	): Promise<void> {
-		this.Conn = postgres(address, opts);
-		this.Conn.notify;
-	}
-
-	async promisifyQuery<T>(
-		query: string,
-		data: unknown[] = [],
-	): Promise<SQLResult<T>> {
-        await this.connect();
-        return await 
-        
-		return new Promise((Resolve, Reject) => {
-			this.connect().then(() => {
-				this.asyncRun(mysql.format(query, data))
-					.then((result) => {
-						return Resolve(new SQLResult<T>(result));
-					})
-					.catch((reason) => {
-						Bot.HandleErrors('SQL', new Error(reason));
-						return Reject();
-					});
-			});
-		});
-	}
-
-	/**
-	 * @description Use this for queries which update, remove or add data and doesnt request anything back.
-	 */
-	query(query: string, data: unknown[] = []): void {
-		this.connect().then(async () => {
-			try {
-				await this.asyncRun(mysql.format(query, data));
-			} catch (e) {
-				Bot.HandleErrors('SQL', new Error(e as never));
-				throw null;
-			}
-		});
-	}
-
-	private connect(): Promise<boolean> {
-		return new Promise((Resolve) => {
-			if (this.Open) {
-				Resolve(true);
-			} else {
-				this.Conn.connect()
-					.then(() => {
-						Resolve(true);
-					})
-					.catch((reason) => {
-						Bot.HandleErrors('SQL', new Error(reason));
-						process.exitCode = -1;
-						exit();
-					});
-			}
-		});
-	}
-
-	async Transaction(query: string): Promise<void> {
-		return await this.Conn.beginTransaction()
-			.then(() => {
-				return this.Conn.query(query);
-			})
-			.then(() => {
-				return this.Conn.commit();
-			})
-			.catch((err) => {
-				this.Conn.rollback();
-				throw err;
-			});
+	get Query() {
+		return this.Conn;
 	}
 
 	async RunMigration(): Promise<MigrationResult> {
@@ -205,30 +94,18 @@ export class SQLController {
 			.filter(([fileVersion]) => fileVersion > currentVersion);
 
 		for (const [version, name] of migrationsToRun) {
-			const migrationPath = resolve(
-				process.cwd(),
-				'Migrations',
-				`${version}_${name}`,
-			);
-
-			const data = fs
-				.readFileSync(migrationPath, 'utf8')
-				.split(';')
-				.map((query) => query.trim())
-				.filter(Boolean);
+			// const migration = resolve(process.cwd(), 'Migrations', `${version}_${name}`);
 
 			console.debug(`Running migration ${version}_${name}`);
 
-			for (const query of data) {
-				await this.Transaction(query).catch((err) => {
-					console.error(
-						`Error running migration ${version}_${name}: ${err}`,
-					);
-					process.exit(1);
-				});
-			}
+			await this.Conn.begin(async (sql) => {
+				await sql.file(resolve(process.cwd(), 'Migrations', `${version}_${name}`));
+			}).catch((error) => {
+				console.error(`Error running migration ${version}_${name}: ${error}`);
+				process.exit(1);
+			});
 
-			await this.query('UPDATE Migration SET version = ?', [version]);
+			await this.Query`UPDATE migration SET version = ${version}`;
 
 			newVersion = version;
 		}

@@ -6,8 +6,7 @@ import { NCommandFunctions } from './../tools/tools.js';
 export default class extends CommandModel {
 	Name = 'help';
 	Ping = true;
-	Description =
-		'Prints out the description of a command or the website if nothing was specified';
+	Description = 'Prints out the description of a command or the website if nothing was specified';
 	Permission = EPermissionLevel.VIEWER;
 	OnlyOffline = false;
 	Aliases = ['commands'];

@@ -58,10 +58,7 @@ export default class extends CommandModel {
 			if (index < chunks.length) {
 				this.Resolve(
 					chunks[index]
-						.map(
-							(emote) =>
-								`${emote.name} - https://7tv.app/emotes/${emote.id}`,
-						)
+						.map((emote) => `${emote.name} - https://7tv.app/emotes/${emote.id}`)
 						.join(' '),
 				);
 			} else {
@@ -70,8 +67,6 @@ export default class extends CommandModel {
 			return;
 		}
 
-		this.Resolve(
-			`'${emotes.items[0].name}' - https://7tv.app/emotes/${emotes.items[0].id}`,
-		);
+		this.Resolve(`'${emotes.items[0].name}' - https://7tv.app/emotes/${emotes.items[0].id}`);
 	};
 }

@@ -117,65 +117,10 @@ export class Channel {
 		this.Filter = [];
 		this.Trivia = null;
 
-		(async () => {
-			const filter = (
-				await Bot.SQL.promisifyQuery<Database.channels>(
-					'SELECT disabled_commands FROM `channels` WHERE `user_id` = ?',
-					[Id],
-				)
-			).SingleOrNull();
-			if (filter !== null) {
-				this.Filter = filter.disabled_commands;
-				if (!filter.disabled_commands.includes('trivia')) {
-					this.InitiateTrivia();
-				}
-			} else this.InitiateTrivia();
-		})();
+		this.setupTrivia();
 
 		// Create callback for the message queue.
-		this.Queue.on(
-			'message',
-			async (message: string, options: ChannelTalkOptions) => {
-				let result = message;
-				if (!options.NoEmoteAtStart) result = `👤 ${message}`;
-
-				if (!options.SkipBanphrase) {
-					this.Banphrase.Check(message)
-						.then((IsBanned) => {
-							if (!IsBanned.okay) {
-								Bot.Twitch.Controller.client.say(
-									'#' + this.Name,
-									result,
-								);
-							} else {
-								console.log({
-									What: 'Received bad word in channel',
-									Channel: this.Name,
-									Message: message,
-									Reason: IsBanned.reason,
-								});
-
-								Bot.Twitch.Controller.client.say(
-									this.Name,
-									'cmonBruh bad word.',
-								);
-							}
-						})
-						.catch((error) => {
-							Bot.HandleErrors(
-								'banphraseCheck',
-								new Error(error as never),
-							);
-							Bot.Twitch.Controller.client.say(
-								this.Name,
-								'PoroSad unable to verify message against banphrase api.',
-							);
-						});
-				} else {
-					Bot.Twitch.Controller.client.say('#' + this.Name, result);
-				}
-			},
-		);
+		this.Queue.on('message', this.onQueue);
 	}
 
 	async say(
@@ -202,11 +147,7 @@ export class Channel {
 		this.Trivia.tryAnswer(user, input.join(' '));
 	}
 
-	async tryCommand(
-		user: ChatUserstate,
-		_command: string,
-		input: string[],
-	): Promise<void> {
+	async tryCommand(user: ChatUserstate, _command: string, input: string[]): Promise<void> {
 		try {
 			/*
                 Checks if mode is read, allows the owner to use commands there.
@@ -232,12 +173,9 @@ export class Channel {
 			const timeout = this.GetCooldown(Number(user['user-id']));
 			if (typeof timeout === 'object') {
 				// User has done commands before, find the specific value for current command.
-				const cr = timeout.find(
-					(time) => time.Command === command.Name,
-				);
+				const cr = timeout.find((time) => time.Command === command.Name);
 				// If found and is still on cooldown we return.
-				if (typeof cr !== 'undefined' && cr.TimeExecute > current)
-					return;
+				if (typeof cr !== 'undefined' && cr.TimeExecute > current) return;
 			}
 
 			// First time running command this instance or not on cooldown, so we set their cooldown.
@@ -277,12 +215,8 @@ export class Channel {
 					if (paramType !== undefined) {
 						switch (paramType.type) {
 							case 'string': {
-								const value = word.slice(
-									word.indexOf('=') + 1,
-									word.length,
-								);
-								values[word.slice(2, word.indexOf('=', 3))] =
-									value.toString();
+								const value = word.slice(word.indexOf('=') + 1, word.length);
+								values[word.slice(2, word.indexOf('=', 3))] = value.toString();
 								break;
 							}
 							case 'boolean': {
@@ -317,12 +251,8 @@ export class Channel {
 				if (command.Ping) data = `@${user['display-name']}, ${data}`;
 
 				this.say(data, {
-					SkipBanphrase: command.Flags.includes(
-						ECommandFlags.NO_BANPHRASE,
-					),
-					NoEmoteAtStart: command.Flags.includes(
-						ECommandFlags.NO_EMOTE_PREPEND,
-					),
+					SkipBanphrase: command.Flags.includes(ECommandFlags.NO_BANPHRASE),
+					NoEmoteAtStart: command.Flags.includes(ECommandFlags.NO_EMOTE_PREPEND),
 				});
 			});
 
@@ -331,19 +261,14 @@ export class Channel {
 				this.say('PoroSad Command Failed...');
 			});
 
-			Bot.SQL.promisifyQuery(
-				'UPDATE `stats` SET `commands_handled` = `commands_handled` + 1 WHERE `name` = ?',
-				[this.Name],
-			);
-
-			Promise.resolve();
+			Bot.SQL
+				.Query`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`;
 		} catch (e) {
 			Bot.HandleErrors('channel/tryCommand/catch', new Error(e as never));
 			this.say('BrokeBack command failed', {
 				SkipBanphrase: true,
 				NoEmoteAtStart: true,
 			});
-			Promise.resolve();
 		}
 	}
 
@@ -391,37 +316,73 @@ export class Channel {
 		}
 	}
 
+	private async onQueue(message: string, options: ChannelTalkOptions): Promise<void> {
+		let result = message;
+		if (!options.NoEmoteAtStart) result = `👤 ${message}`;
+
+		if (!options.SkipBanphrase) {
+			this.Banphrase.Check(message)
+				.then((IsBanned) => {
+					if (!IsBanned.okay) {
+						Bot.Twitch.Controller.client.say('#' + this.Name, result);
+					} else {
+						console.log({
+							What: 'Received bad word in channel',
+							Channel: this.Name,
+							Message: message,
+							Reason: IsBanned.reason,
+						});
+
+						Bot.Twitch.Controller.client.say(this.Name, 'cmonBruh bad word.');
+					}
+				})
+				.catch((error) => {
+					Bot.HandleErrors('banphraseCheck', new Error(error as never));
+					Bot.Twitch.Controller.client.say(
+						this.Name,
+						'PoroSad unable to verify message against banphrase api.',
+					);
+				});
+		} else {
+			Bot.Twitch.Controller.client.say('#' + this.Name, result);
+		}
+	}
+
+	private async setupTrivia(): Promise<void> {
+		const filter = await Bot.SQL.Query<Database.channels[]>`
+            SELECT disabled_commands 
+            FROM channels
+            WHERE user_id = ${this.Id}`;
+
+		if (filter.length) {
+			this.Filter = filter[0].disabled_commands;
+			if (!filter[0].disabled_commands.includes('trivia')) {
+				this.InitiateTrivia();
+			}
+		} else this.InitiateTrivia();
+	}
+
 	static async Join(username: string, user_id: string) {
 		const queries = [];
 
-		await Bot.SQL.promisifyQuery(
-			'INSERT INTO channels (name, user_id, bot_permission, disabled_commands) VALUES (?, ?, ?, ?)',
-			[username, user_id, 1, JSON.stringify([])],
-		);
+		await Bot.SQL
+			.Query`INSERT INTO channels (name, user_id, bot_permission, disabled_commands) VALUES (${username}, ${user_id} ${1} ${'[]'})`;
+
+		queries.push(Bot.SQL.Query`INSERT INTO stats (name) VALUES (${username})`);
+
+		queries.push(Bot.SQL.Query`INSERT INTO banphrases VALUES (${username}, JSON_ARRAY())`);
+
+		const triviaValues: Database.trivia = {
+			channel: username,
+			user_id: user_id,
+			cooldown: 60000,
+			filter: { exclude: [], include: [] },
+			leaderboard: [],
+		};
 
 		queries.push(
-			Bot.SQL.promisifyQuery('INSERT INTO stats (name) VALUES (?)', [
-				username,
-			]),
-		);
-
-		queries.push(
-			Bot.SQL.promisifyQuery(
-				'INSERT INTO banphrases VALUES (?, JSON_ARRAY())',
-				[username],
-			),
-		);
-		queries.push(
-			Bot.SQL.promisifyQuery(
-				'INSERT INTO trivia VALUES (?, ?, ?, ?, ?)',
-				[
-					username,
-					user_id,
-					60000,
-					JSON.stringify({ exclude: [], include: [] }),
-					JSON.stringify([]),
-				],
-			),
+			Bot.SQL.Query`
+                INSERT INTO trivia ${Bot.SQL.Get(triviaValues)}`,
 		);
 
 		await Promise.all(queries).catch((e) => {
@@ -431,10 +392,7 @@ export class Channel {
 
 		try {
 			await Bot.Twitch.Controller.client.join('#' + username);
-			const channel = await Bot.Twitch.Controller.AddChannelList(
-				username!,
-				user_id,
-			);
+			const channel = await Bot.Twitch.Controller.AddChannelList(username!, user_id);
 			channel.say('ApuApustaja 👋 Hi');
 			// await Helix.EventSub.Create('channel.moderator.add', '1', {
 			// 	broadcaster_user_id: ctx.user.id,
@@ -455,13 +413,12 @@ export class Channel {
 	}
 
 	async updateFilter(): Promise<void> {
-		const filter = (
-			await Bot.SQL.promisifyQuery<Database.channels>(
-				'SELECT `disabled_commands` FROM `channels` WHERE `user_id` = ?',
-				[this.Id],
-			)
-		).SingleOrNull();
-		if (filter === null) this.Filter = [];
+		const [filter] = await Bot.SQL.Query<Database.channels[]>`
+            SELECT disabled_commands 
+            FROM channels 
+            WHERE user_id = ${this.Id}`;
+
+		if (!filter) this.Filter = [];
 		else this.Filter = filter.disabled_commands;
 	}
 
@@ -476,11 +433,7 @@ export class Channel {
 			this.setVip();
 		}
 		// Default user
-		else if (
-			this.Mode !== 'Read' &&
-			!user.mod &&
-			!user.badges?.vip?.length
-		) {
+		else if (this.Mode !== 'Read' && !user.mod && !user.badges?.vip?.length) {
 			this.setNorman();
 		}
 	}
@@ -488,12 +441,8 @@ export class Channel {
 	setMod(): void {
 		if (this.Mode === 'Moderator') return;
 		this.Mode = 'Moderator';
-		this.Cooldown =
-			tools.NChannelFunctions.ModeToCooldown('Moderator') ?? 1250;
-		Bot.SQL.query(
-			'UPDATE `channels` SET `bot_permission` = ? WHERE `user_id` = ?',
-			[3, this.Id],
-		);
+		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('Moderator') ?? 1250;
+		Bot.SQL.Query`UPDATE channels SET bot_permission = ${3} WHERE user_id = ${this.Id}`;
 		this.ModerationModule = new ModerationModule(this);
 		this.joinEventSub();
 		console.info("Channel '" + this.Name + "' is now set as Moderator.");
@@ -503,10 +452,7 @@ export class Channel {
 		if (this.Mode === 'VIP') return;
 		this.Mode = 'VIP';
 		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('VIP') ?? 1250;
-		Bot.SQL.query(
-			'UPDATE `channels` SET `bot_permission` = ? WHERE `user_id` = ?',
-			[2, this.Id],
-		);
+		Bot.SQL.Query`UPDATE channels SET bot_permission = ${2} WHERE user_id = ${this.Id}`;
 		this.ModerationModule = null;
 		this.joinEventSub();
 		console.info("Channel '" + this.Name + "' is now set as VIP.");
@@ -517,10 +463,7 @@ export class Channel {
 		if (this.Mode === 'Write') return;
 		this.Mode = 'Write';
 		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('Write') ?? 1250;
-		Bot.SQL.query(
-			'UPDATE `channels` SET `bot_permission` = ? WHERE `user_id` = ?',
-			[1, this.Id],
-		);
+		Bot.SQL.Query`UPDATE channels SET bot_permission = ${1} WHERE user_id = ${this.Id}`;
 		this.ModerationModule = null;
 		this.leaveEventsub();
 		console.info("Channel '" + this.Name + "' is now set as Norman.");
@@ -528,7 +471,7 @@ export class Channel {
 
 	async UpdateLive(): Promise<void> {
 		this.Live = await tools.Live(this.Id);
-		return Promise.resolve();
+		return;
 	}
 
 	setMode(mode: NChannel.Mode): void {
@@ -548,19 +491,14 @@ export class Channel {
 			this.UserCooldowns[id] = [val];
 			return;
 		}
-		const idx = this.UserCooldowns[id].findIndex(
-			(channel) => channel.Command === val.Command,
-		);
+		const idx = this.UserCooldowns[id].findIndex((channel) => channel.Command === val.Command);
 		if (idx === -1) {
 			this.UserCooldowns[id].push(val);
 			return;
 		} else this.UserCooldowns[id][idx] = val;
 	}
 
-	AutomodMessage(
-		message: string,
-		userstate: 'msg_rejected' | 'msg_rejected_mandatory',
-	): void {
+	AutomodMessage(message: string, userstate: 'msg_rejected' | 'msg_rejected_mandatory'): void {
 		if (this.Queue.hasMessage && userstate === 'msg_rejected_mandatory') {
 			this.say(message, { SkipBanphrase: true });
 			return;
@@ -570,36 +508,28 @@ export class Channel {
 	private async InitiateTrivia(): Promise<void> {
 		this.Trivia = new TriviaController();
 
-		this.Trivia.on(
-			'ready',
-			(category: string, question: string, hasHint: boolean) => {
-				this.say(
-					`(Trivia) ThunBeast 👉 [${category}] ${question} ${
-						hasHint
-							? `| MaxLOL ❓ 👉 ${Bot.Config.Prefix} hint`
-							: ''
-					}`,
-					{ NoEmoteAtStart: true, SkipBanphrase: false },
-				);
-			},
-		);
-
-		this.Trivia.on('timeout', (answer: string) => {
+		this.Trivia.on('ready', (category: string, question: string, hasHint: boolean) => {
 			this.say(
-				`(Trivia) SuperVinlin you guys suck! The answer was ${answer}`,
+				`(Trivia) ThunBeast 👉 [${category}] ${question} ${
+					hasHint ? `| MaxLOL ❓ 👉 ${Bot.Config.Prefix} hint` : ''
+				}`,
 				{ NoEmoteAtStart: true, SkipBanphrase: false },
 			);
 		});
 
-		this.Trivia.on(
-			'complete',
-			(winner: string, answer: string, sim: number) => {
-				this.say(
-					`(Trivia) ThunBeast 📣 ${winner} won the trivia! The answer was ${answer} (${sim}% similarity)`,
-					{ NoEmoteAtStart: true, SkipBanphrase: false },
-				);
-			},
-		);
+		this.Trivia.on('timeout', (answer: string) => {
+			this.say(`(Trivia) SuperVinlin you guys suck! The answer was ${answer}`, {
+				NoEmoteAtStart: true,
+				SkipBanphrase: false,
+			});
+		});
+
+		this.Trivia.on('complete', (winner: string, answer: string, sim: number) => {
+			this.say(
+				`(Trivia) ThunBeast 📣 ${winner} won the trivia! The answer was ${answer} (${sim}% similarity)`,
+				{ NoEmoteAtStart: true, SkipBanphrase: false },
+			);
+		});
 
 		this.Trivia.on('fail', () => {
 			this.say('(Trivia) BrokeBack Trivia broken.', {
@@ -609,24 +539,15 @@ export class Channel {
 		});
 	}
 
-	private permissionCheck(
-		command: CommandModel,
-		user: ChatUserstate,
-	): boolean {
+	private permissionCheck(command: CommandModel, user: ChatUserstate): boolean {
 		let userPermission = EPermissionLevel.VIEWER;
+		userPermission = (user.badges?.vip && EPermissionLevel.VIP) || userPermission;
 		userPermission =
-			(user.badges?.vip && EPermissionLevel.VIP) || userPermission;
+			((user.mod || user['user-type'] === 'mod') && EPermissionLevel.MOD) || userPermission;
 		userPermission =
-			((user.mod || user['user-type'] === 'mod') &&
-				EPermissionLevel.MOD) ||
-			userPermission;
+			(this.Id === user['user-id'] && EPermissionLevel.BROADCAST) || userPermission;
 		userPermission =
-			(this.Id === user['user-id'] && EPermissionLevel.BROADCAST) ||
-			userPermission;
-		userPermission =
-			(Bot.Twitch.Controller.admins.find(
-				(name) => name === user.username,
-			) !== undefined &&
+			(Bot.Twitch.Controller.admins.find((name) => name === user.username) !== undefined &&
 				EPermissionLevel.ADMIN) ||
 			userPermission;
 		return command.Permission <= userPermission ? true : false;

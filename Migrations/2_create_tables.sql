@@ -1,25 +1,15 @@
-CREATE DATABASE melonbot WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE = 'en_US.UTF-8';
-\connect melonbot
-ALTER DATABASE melonbot RESET search_path;
-ALTER DATABASE melonbot SET search_path TO 'bot';
-\connect melonbot
-
 CREATE TYPE bot.config_id AS ENUM (
     '1'
 );
 
 CREATE FUNCTION bot.on_update_current_timestamp_error_logs() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
-BEGIN
-   NEW.timestamp = now();
-   RETURN NEW;
-END;
-$$;
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
+        AS $$
+    BEGIN
+        NEW.timestamp = now();
+        RETURN NEW;
+    END;
+    $$;
 
 CREATE TABLE bot.banphrases (
     channel character varying(255) NOT NULL,
@@ -81,10 +71,6 @@ CREATE SEQUENCE bot.error_logs_error_id_seq
 
 ALTER SEQUENCE bot.error_logs_error_id_seq OWNED BY bot.error_logs.error_id;
 
-CREATE TABLE bot.migration (
-    version bigint NOT NULL
-);
-
 CREATE TABLE bot.stats (
     name character varying(255) NOT NULL,
     commands_handled bigint DEFAULT '0'::bigint NOT NULL
@@ -125,7 +111,6 @@ CREATE TABLE bot.trivia (
     filter text NOT NULL,
     leaderboard text NOT NULL
 );
-
 COMMENT ON COLUMN bot.trivia.cooldown IS 'Formatted as Milliseconds';
 COMMENT ON COLUMN bot.trivia.filter IS 'filter: {
     exclude: string[],
@@ -152,9 +137,6 @@ ALTER TABLE ONLY bot.config
 
 ALTER TABLE ONLY bot.error_logs
     ADD CONSTRAINT idx_1745920_primary PRIMARY KEY (error_id);
-
-ALTER TABLE ONLY bot.migration
-    ADD CONSTRAINT idx_1745927_primary PRIMARY KEY (version);
 
 ALTER TABLE ONLY bot.suggestions
     ADD CONSTRAINT idx_1745936_primary PRIMARY KEY (suggestion_id);
@@ -191,3 +173,4 @@ ALTER TABLE ONLY bot.tokens
 
 ALTER TABLE ONLY bot.tokens
     ADD CONSTRAINT fk_tokens_channels2 FOREIGN KEY (id) REFERENCES bot.channels(user_id) ON UPDATE CASCADE ON DELETE CASCADE;
+

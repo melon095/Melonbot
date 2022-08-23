@@ -285,9 +285,7 @@ export default {
 
 		return data.data;
 	},
-	getDefaultEmoteSet: async (
-		id: string,
-	): Promise<{ emote_set_id: string }> => {
+	getDefaultEmoteSet: async (id: string): Promise<{ emote_set_id: string }> => {
 		const data: Base<Connections> = await api
 			.post('', {
 				body: JSON.stringify({
@@ -309,9 +307,9 @@ export default {
 			.json();
 
 		return (
-			data.data.user.connections.find(
-				(x) => x.platform === ConnectionPlatform.TWITCH,
-			) || { emote_set_id: '' }
+			data.data.user.connections.find((x) => x.platform === ConnectionPlatform.TWITCH) || {
+				emote_set_id: '',
+			}
 		);
 	},
 	ModifyEmoteSet: async (
@@ -351,16 +349,12 @@ export default {
 		return await got.get(`https://api.7tv.app/v2/users/${username}`).json();
 	},
 	GetUserByUsername: async function (username: string): Promise<V3User> {
-		const id = await Bot.Redis.SGet(`seventv:id:${username}`).then(
-			async (id) => {
-				if (id) return id;
-				const v2_id = await this.V2GetUser(username).then(
-					({ id }) => id,
-				);
-				await Bot.Redis.SSet(`seventv:id:${username}`, v2_id);
-				return v2_id;
-			},
-		);
+		const id = await Bot.Redis.SGet(`seventv:id:${username}`).then(async (id) => {
+			if (id) return id;
+			const v2_id = await this.V2GetUser(username).then(({ id }) => id);
+			await Bot.Redis.SSet(`seventv:id:${username}`, v2_id);
+			return v2_id;
+		});
 
 		const data: Base<{ user: V3User }> = await api
 			.post('', {
@@ -437,15 +431,11 @@ export default {
 		}
 		return data.data;
 	},
-	isAllowedToModify: async function (
-		ctx: TCommandContext,
-	): Promise<ModifyData> {
-		const emote_set_id = (
-			await Bot.SQL.promisifyQuery<Database.channels>(
-				'SELECT seventv_emote_set FROM channels WHERE name = ?',
-				[ctx.channel.Name],
-			)
-		).SingleOrNull();
+	isAllowedToModify: async function (ctx: TCommandContext): Promise<ModifyData> {
+		const [emote_set_id] = await Bot.SQL.Query<Database.channels[]>`
+                SELECT seventv_emote_set 
+                    FROM channels 
+                    WHERE name = ${ctx.channel.Name}`;
 		if (
 			emote_set_id?.seventv_emote_set === null ||
 			emote_set_id?.seventv_emote_set === undefined
@@ -456,9 +446,7 @@ export default {
 			};
 		}
 
-		const user = await this.GetUserByUsername(ctx.channel.Name).catch(
-			() => null,
-		);
+		const user = await this.GetUserByUsername(ctx.channel.Name).catch(() => null);
 
 		if (!user) {
 			return {

@@ -38,20 +38,15 @@ export default (async function () {
 				return res.status(500).json({ error: '500' });
 			}
 
-			const authorize: TwitchOAuthRes = await Got.post(
-				TWITCH_USER_TOKEN(code),
-			).json();
+			const authorize: TwitchOAuthRes = await Got.post(TWITCH_USER_TOKEN(code)).json();
 
 			// Get some more info about the user, like user id and login name.
-			const user: any = await Got.get(
-				'https://api.twitch.tv/helix/users',
-				{
-					headers: {
-						Authorization: `Bearer ${authorize.access_token}`,
-						'Client-Id': Bot.Config.Twitch.ClientID,
-					},
+			const user: any = await Got.get('https://api.twitch.tv/helix/users', {
+				headers: {
+					Authorization: `Bearer ${authorize.access_token}`,
+					'Client-Id': Bot.Config.Twitch.ClientID,
 				},
-			).json();
+			}).json();
 
 			const userInfo = {
 				id: user.data[0].id,
@@ -62,43 +57,24 @@ export default (async function () {
 				expires: authorize.expires_in,
 			};
 
-			const token = (
-				await Bot.SQL.promisifyQuery<Database.tokens>(
-					'SELECT * FROM tokens WHERE id = ?',
-					[userInfo.id],
-				)
-			).SingleOrNull();
+			const [token] = await Bot.SQL.Query<Database.tokens[]>`
+                        SELECT * 
+                        FROM tokens 
+                        WHERE id = ${userInfo.id}`;
 
-			if (token !== null) {
+			if (token) {
 				// Delete old token if the user decides to login again.
-				Bot.SQL.query('DELETE FROM tokens WHERE id = ?;', [
-					userInfo.id,
-				]);
+				await Bot.SQL.Query`DELETE FROM tokens WHERE id = ${userInfo.id}`;
 			}
 
-			Bot.SQL.query(
-				`INSERT INTO tokens 
-                    (id, access_token, name, refresh_token, scope, expires_in)
-                VALUES (?,?,?,?,?,?);`,
-				[
-					userInfo.id,
-					userInfo.access_token,
-					userInfo.login_name,
-					userInfo.refresh_token,
-					userInfo.scope,
-					userInfo.expires,
-				],
-			);
+			await Bot.SQL.Query`INSERT INTO tokens ${Bot.SQL.Get(userInfo)} `;
 
 			(logger += `User_id: ${userInfo.id} - ${userInfo.login_name} added to database`),
 				res.redirect(302, `/login?loggedIn=true`);
 			res.end();
 			return;
 		} catch (error) {
-			Bot.HandleErrors(
-				'Web/Twitch/Login',
-				new Error(JSON.stringify(error)),
-			);
+			Bot.HandleErrors('Web/Twitch/Login', new Error(JSON.stringify(error)));
 			res.status(500).json({ error: '500' });
 			res.end();
 			return;

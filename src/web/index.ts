@@ -1,11 +1,6 @@
-import path, { join } from 'node:path';
+import path from 'node:path';
 import cors from 'cors';
 import * as tools from './../tools/tools.js';
-
-export const Import = async (folder: string, route: string) =>
-	await (
-		await import(join('file://', folder, route))
-	).default;
 
 (async function () {
 	const middlewares = ['logger'];
@@ -46,11 +41,11 @@ export const Import = async (folder: string, route: string) =>
 	});
 
 	for (const middleware of middlewares) {
-		app.use(await Import(dirname, `middlewares/${middleware}.js`));
+		app.use(await tools.Import(dirname, `middlewares/${middleware}.js`));
 	}
 
 	for (const route of subroutes) {
-		app.use(`/${route}`, await Import(dirname, `routes/${route}/index.js`));
+		app.use(`/${route}`, await tools.Import(dirname, `routes/${route}/index.js`));
 	}
 
 	app.get('*', (req, res) => res.status(404).render('404'));

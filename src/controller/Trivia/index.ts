@@ -43,11 +43,7 @@ export default class TriviaController extends EventEmitter {
 		this.invoker = '';
 	}
 
-	async start(
-		exclude: string,
-		include: string,
-		invoker: string,
-	): Promise<string> {
+	async start(exclude: string, include: string, invoker: string): Promise<string> {
 		if (this.block || this.initiated) return Promise.resolve('');
 
 		this.block = true;
@@ -60,9 +56,7 @@ export default class TriviaController extends EventEmitter {
 
 		if (include !== '') uri.append('include', include);
 
-		console.log(
-			`https://api.gazatu.xyz/trivia/questions?${uri.toString()}`,
-		);
+		console.log(`https://api.gazatu.xyz/trivia/questions?${uri.toString()}`);
 
 		got(`https://api.gazatu.xyz/trivia/questions?${uri.toString()}`, {
 			method: 'GET',
@@ -83,8 +77,7 @@ export default class TriviaController extends EventEmitter {
 				// Expect that hint2 will only contain data when hint1 is null.
 				if (data.hint1 !== null && data.hint1.length > 0) {
 					this.hints[0] = data.hint1;
-					if (data.hint2 !== null && data.hint2.length > 0)
-						this.hints[1] = data.hint2;
+					if (data.hint2 !== null && data.hint2.length > 0) this.hints[1] = data.hint2;
 				}
 
 				this.invoker = invoker;
@@ -103,10 +96,7 @@ export default class TriviaController extends EventEmitter {
 
 	tryAnswer(user: ChatUserstate, attempt: string): void {
 		const result =
-			similarity.compareTwoStrings(
-				attempt.toLowerCase(),
-				this.answer.toLowerCase(),
-			) * 100;
+			similarity.compareTwoStrings(attempt.toLowerCase(), this.answer.toLowerCase()) * 100;
 
 		if (Number(result) > 70.0) {
 			this.emitComplete(user, Number(result.toFixed(2)));
@@ -133,15 +123,13 @@ export default class TriviaController extends EventEmitter {
 
 			if (this.hint_len[0] <= len && len !== 0) this.hint_len[0]++;
 
-			if (this.hint_len[1] === 0 && this.hint_len[1] <= len)
-				this.hint_len[1] = len;
+			if (this.hint_len[1] === 0 && this.hint_len[1] <= len) this.hint_len[1] = len;
 
 			if (this.hints.length > 0 && this.hints[0] !== null) {
 				const copy = this.hints[0];
 				delete this.hints[0];
 
-				if (this.hints.length > 1)
-					this.hints[0] = this.hints.pop() || '';
+				if (this.hints.length > 1) this.hints[0] = this.hints.pop() || '';
 
 				return {
 					length: this.hint_len,
@@ -207,11 +195,6 @@ export default class TriviaController extends EventEmitter {
 			id,
 		); // 60 Seconds, static for now.
 
-		this.emit(
-			'ready',
-			this.category,
-			this.question,
-			this.hints[0] !== null ? true : false,
-		);
+		this.emit('ready', this.category, this.question, this.hints[0] !== null ? true : false);
 	}
 }

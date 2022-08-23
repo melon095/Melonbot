@@ -26,10 +26,7 @@ export default class extends CommandModel {
 			case 'config': {
 				const env = await import('./../CreateEnv.js');
 				const config = JSON.parse(
-					fs.readFileSync(
-						path.join(process.cwd() + '/config.json'),
-						'utf-8',
-					),
+					fs.readFileSync(path.join(process.cwd() + '/config.json'), 'utf-8'),
 				);
 				env.addConfig(config);
 				break;

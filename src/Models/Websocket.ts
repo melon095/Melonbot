@@ -29,11 +29,7 @@ export default abstract class MWebSocket implements IWebsocket {
 	category: string;
 	manualExit = false;
 
-	constructor(
-		category: string,
-		ip: string,
-		opts?: { port?: number; secure?: boolean },
-	) {
+	constructor(category: string, ip: string, opts?: { port?: number; secure?: boolean }) {
 		if (!opts) opts = { secure: true };
 
 		this.address = `${opts.secure ? 'wss' : 'ws'}://${ip}`;
@@ -46,9 +42,7 @@ export default abstract class MWebSocket implements IWebsocket {
 		return new Promise((Resolve, Reject) => {
 			this.ws = new WebSocket(this.address);
 
-			this.ws.addEventListener('open', () =>
-				Resolve(this.OpenListener()),
-			);
+			this.ws.addEventListener('open', () => Resolve(this.OpenListener()));
 
 			this.ws.addEventListener('close', (e) => {
 				this.CloseListener(e);
@@ -62,8 +56,7 @@ export default abstract class MWebSocket implements IWebsocket {
 
 	async Reconnect(): Promise<void> {
 		try {
-			if (!this.manualExit)
-				await this.Connect().then(() => this.OnReconnect());
+			if (!this.manualExit) await this.Connect().then(() => this.OnReconnect());
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (err: any) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,9 +111,7 @@ export default abstract class MWebSocket implements IWebsocket {
 	}
 
 	abstract OpenListener(): boolean;
-	abstract CloseListener(
-		e: WebSocket.CloseEvent,
-	): WebSocket.CloseEvent | void;
+	abstract CloseListener(e: WebSocket.CloseEvent): WebSocket.CloseEvent | void;
 	abstract MessageListener(e: WebSocket.MessageEvent): void;
 	abstract ErrorListener(e: WebSocket.ErrorEvent): Error;
 	abstract OnReconnect(): void;

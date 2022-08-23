@@ -40,8 +40,7 @@ export const Setup = {
 		);
 		addConfig(cfg);
 		Bot.HandleErrors = ErrorHandler;
-		Bot.SQL = await SQLController.getInstanceAsync();
-		Bot.SQL.SetDatabase();
+		Bot.SQL = SQLController.New();
 		const migrationVersion = await Bot.SQL.RunMigration().catch((error) => {
 			console.error(error);
 			process.exit(-1);
@@ -97,17 +96,12 @@ export const Setup = {
 			const id = await Bot.Redis.SGet('SelfID');
 
 			await twitch.client.join('#' + Bot.Config.BotUsername);
-			twitch.channels.push(
-				new Channel(Bot.Config.BotUsername, id, 'Bot', false),
-			);
+			twitch.channels.push(new Channel(Bot.Config.BotUsername, id, 'Bot', false));
 
 			// Join all channels
-			const channelList = (
-				await Bot.SQL.promisifyQuery<Database.channels>(
-					'SELECT * FROM `channels`',
-				)
-			).ArrayOrNull();
-			if (channelList) {
+			const channelList = await Bot.SQL.Query<Database.channels[]>`SELECT * FROM channels`;
+
+			if (channelList.length) {
 				for (const channel of channelList) {
 					console.log(`#Twitch Joining ${channel.name}`);
 					await twitch.client
@@ -117,9 +111,7 @@ export const Setup = {
 						await Channel.WithEventsub(
 							channel.name,
 							channel.user_id,
-							NChannelFunctions.DatabaseToMode(
-								channel.bot_permission,
-							),
+							NChannelFunctions.DatabaseToMode(channel.bot_permission),
 							channel.live,
 						),
 					);
@@ -128,33 +120,22 @@ export const Setup = {
 			}
 
 			// Add or Update commands to the database.
-			const db = (
-				await Bot.SQL.promisifyQuery<Database.commands>(
-					'SELECT * FROM `commands`',
-				)
-			).ArrayOrNull();
+			const db = await Bot.SQL.Query<Database.commands[]>`SELECT * FROM commands`;
+
 			for (const command of Bot.Commands.Commands) {
 				let isCommand = false;
-				if (db) {
+				if (db.length) {
 					for (const dbcommand of db) {
 						if (dbcommand.name) {
 							if (dbcommand.name === command.Name) {
 								if (
-									dbcommand.description !==
-										command.Description ||
+									dbcommand.description !== command.Description ||
 									dbcommand.perm !== command.Permission
 								) {
-									Bot.SQL.query(
-										'UPDATE commands \
-                                SET description=?, \
-                                perm=? \
-                                WHERE name=?;',
-										[
-											command.Description,
-											command.Permission,
-											command.Name,
-										],
-									);
+									Bot.SQL.Query`UPDATE commands
+                                            SET description=${command.Description},
+                                            perm=${command.Permission}
+                                            WHERE name=${command.Name}`;
 								}
 								isCommand = true;
 								continue;
@@ -165,25 +146,18 @@ export const Setup = {
 				if (!isCommand) {
 					if (command.Name !== undefined) {
 						// Need this as it iterates over __proto__
-						Bot.SQL.query(
-							'INSERT IGNORE INTO commands \
-                        (name, description, perm) \
-                        VALUES (?, ?, ?)',
-							[command.Name, command.Name, command.Permission],
-						);
+						Bot.SQL.Query`INSERT IGNORE INTO commands \
+                            (name, description, perm) \
+                            VALUES (${command.Name}, ${command.Description}, ${command.Permission})`;
 					}
 				}
 			}
 			// Find old, removed commands which are still in database.
 			const names = Bot.Commands.Names;
 			if (db) {
-				const remove = db.filter(
-					(dbcommands) => !names.includes(dbcommands.name),
-				);
+				const remove = db.filter((dbcommands) => !names.includes(dbcommands.name));
 				for (const { name } of remove) {
-					Bot.SQL.query('DELETE FROM `commands` WHERE name = ?', [
-						name,
-					]);
+					Bot.SQL.Query`DELETE FROM commands WHERE name = ${name}`;
 				}
 			}
 

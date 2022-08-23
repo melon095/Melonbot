@@ -17,8 +17,6 @@ export default class extends CommandModel {
 
 		const xd = ctx.channel.Trivia.askHint();
 
-		this.Resolve(
-			`(Trivia) Hints(${xd.length[0]}/${xd.length[1]}) ${xd.copy}`,
-		);
+		this.Resolve(`(Trivia) Hints(${xd.length[0]}/${xd.length[1]}) ${xd.copy}`);
 	};
 }

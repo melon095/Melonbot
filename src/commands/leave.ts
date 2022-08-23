@@ -14,9 +14,7 @@ export default class extends CommandModel {
 	Params = [];
 	Flags = [];
 	Code = async (ctx: TCommandContext) => {
-		Bot.SQL.query('DELETE FROM channels WHERE `name` = ?', [
-			ctx.channel.Name,
-		]);
+		await Bot.SQL.Query`DELETE FROM channels WHERE user_id = ${ctx.channel.Id}`;
 		Bot.Twitch.Controller.RemoveChannelList(ctx.channel.Name);
 
 		setTimeout(() => {

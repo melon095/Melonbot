@@ -21,10 +21,7 @@ export default class extends CommandModel {
 			return this.Resolve();
 		}
 
-		if (
-			ctx.input[0] &&
-			['skip', 'stop'].includes(ctx.input[0].toLowerCase())
-		) {
+		if (ctx.input[0] && ['skip', 'stop'].includes(ctx.input[0].toLowerCase())) {
 			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 			this.Resolve(ctx.channel.Trivia?.trySkip(ctx.user.username!));
 		} else {

@@ -1,4 +1,3 @@
-import { CloseErrorHandler } from './ErrorHandler.js';
 import { Setup } from './CreateEnv.js';
 
 //do something when app is closing
@@ -18,8 +17,6 @@ process.on('unhandledRejection', async (err, promise) => {
 Setup.All().then(() => Setup.Bot());
 
 async function exitHandler(): Promise<void> {
-	// Close error file
-	CloseErrorHandler();
 	// Wait for all messages to get sent before turning off bot.
 	await Promise.all(
 		Bot.Twitch.Controller.TwitchChannels.map(async (channel) => {
@@ -29,5 +26,5 @@ async function exitHandler(): Promise<void> {
 
 	await Bot.Twitch.Emotes.SevenTVEvent.Close();
 
-	return Promise.resolve();
+	return;
 }
