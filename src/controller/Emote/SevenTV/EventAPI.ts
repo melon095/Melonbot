@@ -76,6 +76,8 @@ type SevenTVEmoteSetUpdate = {
 	pushed?: Pushed[];
 	/** Pulled is when an emote is removed. */
 	pulled?: Pulled[];
+	/** Updated is when an emote is aliased */
+	updated?: Updated[];
 };
 
 interface Connection {
@@ -130,6 +132,13 @@ interface Pulled {
 interface Pushed {
 	key: string;
 	index: number;
+	value: Value;
+}
+
+interface Updated {
+	key: string;
+	index: number;
+	old_value: OldValue;
 	value: Value;
 }
 
@@ -333,6 +342,8 @@ export class SevenTVEvent extends MWebSocket {
 				if (typeof payload.pushed !== 'undefined') this.handleNewEmote(payload, _chl);
 				else if (typeof payload.pulled !== 'undefined')
 					this.handleRemovedEmote(payload, _chl);
+				else if (typeof payload.updated !== 'undefined')
+					this.handleUpdatedEmote(payload, _chl);
 				else super.Log(`Received bad data ${JSON.stringify(payload)}`);
 			}
 		}
@@ -367,6 +378,30 @@ export class SevenTVEvent extends MWebSocket {
 			Commit(identifier, {
 				type: '-',
 				name: emote.old_value.name,
+			});
+		}
+	}
+
+	private async handleUpdatedEmote(
+		data: SevenTVEmoteSetUpdate,
+		channel: Channel,
+	) {
+		const emotes = data.updated ?? [];
+
+		for (const emote of emotes) {
+			const identifier: SevenTVChannelIdentifier = {
+				Channel: channel.Name,
+				EmoteSet: data.id,
+			};
+
+			Commit(identifier, {
+				type: '-',
+				name: emote.old_value.name,
+			});
+
+			Commit(identifier, {
+				type: '+',
+				name: emote.value.name,
 			});
 		}
 	}
