@@ -99,7 +99,9 @@ export const Setup = {
 			twitch.channels.push(self);
 
 			// Join all channels
-			const channelList = await Bot.SQL.Query<Database.channels[]>`SELECT * FROM channels`;
+			const channelList = await Bot.SQL.Query<Database.channels[]>`
+                SELECT * FROM channels 
+                WHERE name NOT LIKE ${Bot.Config.BotUsername}`;
 
 			if (channelList.length) {
 				for (const channel of channelList) {

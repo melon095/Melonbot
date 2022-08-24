@@ -168,7 +168,7 @@ export class Channel {
                 Or if the command is in the filter.
             */
 			if (
-				(this.Mode === 'Read' && user.id !== Bot.Config.OwnerUserID) ||
+				(this.Mode === 'Read' && user['user-id'] !== Bot.Config.OwnerUserID) ||
 				this.Filter.includes(input[1])
 			) {
 				return Promise.resolve();

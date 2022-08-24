@@ -3,7 +3,6 @@ import postgres from 'postgres';
 import { Database } from 'Typings/types.js';
 import fs from 'node:fs';
 import { resolve } from 'node:path';
-import { Import } from './../../tools/tools.js';
 
 interface MigrationResult {
 	OldVersion: number;
