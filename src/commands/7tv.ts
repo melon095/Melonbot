@@ -1,7 +1,7 @@
 import { Database, TCommandContext } from '../Typings/types';
 import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel } from '../Models/Command.js';
-import gql from '../SevenTVGQL.js';
+import gql, { EmoteSearchFilter } from '../SevenTVGQL.js';
 
 export default class extends CommandModel {
 	Name = '7tv';
@@ -16,6 +16,10 @@ export default class extends CommandModel {
 			name: 'index',
 			type: 'string',
 		},
+		{
+			name: 'exact',
+			type: 'boolean',
+		},
 	];
 	Flags = [];
 	Code = async (ctx: TCommandContext) => {
@@ -28,8 +32,14 @@ export default class extends CommandModel {
 			this.Resolve('Please provide a search term.');
 			return;
 		}
+
+		const filter: EmoteSearchFilter = {};
+		if (ctx.data.Params.exact) {
+			filter.exact_match = true;
+		}
+
 		const emotes = await gql
-			.SearchEmoteByName(ctx.input.join(' '))
+			.SearchEmoteByName(ctx.input.join(' '), filter)
 			.then((res) => res.emotes)
 			.catch((err) => {
 				this.Resolve(`Error: ${err}`);

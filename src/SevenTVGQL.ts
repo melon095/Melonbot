@@ -128,6 +128,23 @@ type ModifyData = {
 	user_id?: string;
 };
 
+enum EmoteSearchCategory {
+	TOP = 'TOP',
+	TRENDING_DAY = 'TRENDING_DAY',
+	TRENDING_WEEK = 'TRENDING_WEEK',
+	TRENDING_MONTH = 'TRENDING_MONTH',
+	FEATURED = 'FEATURED',
+	NEW = 'NEW',
+	GLOBAL = 'GLOBAL',
+}
+
+export type EmoteSearchFilter = {
+	category?: EmoteSearchCategory;
+	case_sensitive?: boolean;
+	exact_match?: boolean;
+	ignore_tags?: boolean;
+};
+
 export enum UserEditorPermissions {
 	// Modify emotes
 	DEFAULT = 17,
@@ -190,12 +207,15 @@ export default {
 
 		return data.data;
 	},
-	SearchEmoteByName: async (emote: string): Promise<EmoteSearchResult> => {
+	SearchEmoteByName: async (
+		emote: string,
+		filter: EmoteSearchFilter = {},
+	): Promise<EmoteSearchResult> => {
 		const data: Base<EmoteSearchResult> = await api
 			.post('', {
 				body: JSON.stringify({
-					query: `query SearchEmotes($query: String!, $page: Int, $limit: Int) {
-                    emotes(query: $query, page: $page, limit: $limit) {
+					query: `query SearchEmotes($query: String!, $page: Int, $limit: Int, $filter: EmoteSearchFilter) {
+                    emotes(query: $query, page: $page, limit: $limit, filter: $filter) {
                       items {
                         id
                         name
@@ -206,6 +226,7 @@ export default {
 						query: emote,
 						limit: 100,
 						page: 1,
+						filter: filter,
 					},
 				}),
 			})

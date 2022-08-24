@@ -1,7 +1,7 @@
 import { TCommandContext } from './../Typings/types';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import { CommandModel } from '../Models/Command.js';
-import gql, { ListItemAction } from './../SevenTVGQL.js';
+import gql, { EmoteSearchFilter, ListItemAction } from './../SevenTVGQL.js';
 import { ObjectID } from 'bson';
 import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
 
@@ -17,6 +17,10 @@ export default class extends CommandModel {
 		{
 			name: 'alias',
 			type: 'string',
+		},
+		{
+			name: 'exact',
+			type: 'boolean',
 		},
 	];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
@@ -39,8 +43,14 @@ export default class extends CommandModel {
 			id: '',
 		};
 
+		const filters: EmoteSearchFilter = {};
+
+		if (ctx.data.Params.exact) {
+			filters.exact_match = true;
+		}
+
 		emote = await gql
-			.SearchEmoteByName(ctx.input[0])
+			.SearchEmoteByName(ctx.input[0], filters)
 			.then((res) => res.emotes.items[0])
 			.catch(() => {
 				return null;
