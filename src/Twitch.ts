@@ -5,8 +5,6 @@ import { __loops } from './loops/loops.js';
 import { Channel } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
-import { FindClosestChannelToUser } from './tools/FindClosestChannelToUser.js';
-import { RandomNumber } from './tools/RandomNumber.js';
 import EventSubTriggers from './triggers/eventsub/index.js';
 import { Database } from './Typings/types.js';
 
@@ -181,49 +179,24 @@ export default class Twitch {
 	// Favor the user's own channel.
 	async Whisper(User: IWhisperUser, Message: string): Promise<void> {
 		const a = () => `@${User.Username}, New message! 📬 👉 ${Message}`;
-		if (Bot.Config.Verified) {
-			this.client
-				.whisper(User.Username, a())
-				// Not allowed to whisper, rate limited.
-				.catch((err) => {
-					// Not important error from twitch.
-					if (!Array.isArray(err)) {
-						console.error(
-							`[Whisper - ${User.Username}] ${new Error(err)}. Message: ${Message}`,
-						);
-					} else {
-						console.error(`[Whisper] ${err}`);
-					}
-				});
-		} else {
-			console.log(`[Whisper - ${User.Username}] Finding closest channel to user.`);
-
-			const channel = this.channels.find((chl) => chl.Name === User.Username);
-			if (channel === undefined) {
-				// Bot is not instanced in their own channel.
-				const list = await FindClosestChannelToUser(User.Username, User.ID);
-
-				if (list === null) {
-					/* 
-                       User is not in any channel. 
-                       Not much i can do. 
-                       Don't want to notify in their channel.
-                    */
-					return;
-				}
-
-				list[RandomNumber(0, list.length)].say(
-					a() + 'Sent through this random channel! Kappa',
-					{
-						SkipBanphrase: false,
-					},
-				);
-
-				return;
-			}
-
-			channel.say(a(), { SkipBanphrase: false });
+		if (!Bot.Config.Verified) {
+			console.error('Tried to whisper without being verified', { User, Message });
+			return;
 		}
+
+		this.client
+			.whisper(User.Username, a())
+			// Not allowed to whisper, rate limited.
+			.catch((err) => {
+				// Not important error from twitch.
+				if (!Array.isArray(err)) {
+					console.error(
+						`[Whisper - ${User.Username}] ${new Error(err)}. Message: ${Message}`,
+					);
+				} else {
+					console.error(`[Whisper] ${err}`);
+				}
+			});
 	}
 
 	private async SetOwner(): Promise<void> {
