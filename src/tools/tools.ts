@@ -1,13 +1,6 @@
 import axios from 'axios';
 import humanize from 'humanize-duration';
-import {
-	NChannel,
-	Database,
-	TStatsFile,
-	Token,
-	TTokenFunction,
-	NCommand,
-} from './../Typings/types';
+import { NChannel, Database, Token, TTokenFunction, NCommand } from './../Typings/types';
 import { ChatUserstate } from 'tmi.js';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -51,9 +44,9 @@ export function YMDHMS(): string {
 	const seconds = date.getSeconds();
 	return `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${(
 		'0' + date.getDate()
-	).slice(-2)} ${hours < 10 ? '0' + hours : hours}:${
-		minutes < 10 ? '0' + minutes : minutes
-	}:${seconds < 10 ? '0' + seconds : seconds}`;
+	).slice(-2)} ${hours < 10 ? '0' + hours : hours}:${minutes < 10 ? '0' + minutes : minutes}:${
+		seconds < 10 ? '0' + seconds : seconds
+	}`;
 }
 
 export const secondsFormat = (input: number): string => {
@@ -73,8 +66,7 @@ export const secondsFormat = (input: number): string => {
 
 export const differenceFormat = (numToDiff: number) =>
 	secondsFormat(
-		parseInt(Date.now().toString().slice(0, 10)) -
-			parseInt(numToDiff.toString().slice(0, 10)),
+		parseInt(Date.now().toString().slice(0, 10)) - parseInt(numToDiff.toString().slice(0, 10)),
 	);
 
 const createToken = async (): Promise<string | null> => {
@@ -88,9 +80,7 @@ const createToken = async (): Promise<string | null> => {
 	];
 
 	const newToken = await axios(
-		`https://id.twitch.tv/oauth2/token?client_id=${
-			Bot.Config.Twitch.ClientID
-		}&client_secret=${
+		`https://id.twitch.tv/oauth2/token?client_id=${Bot.Config.Twitch.ClientID}&client_secret=${
 			Bot.Config.Twitch.ClientSecret
 		}&grant_type=client_credentials&scope=${scopes.join(' ')}`,
 		{
@@ -124,19 +114,17 @@ export const token: Token = {
 		const result: TTokenFunction = { status: 'OK', error: '', token: '' };
 		// Validate token [https://dev.twitch.tv/docs/authentication#validating-requests]
 		try {
-			const access_token = (
-				await Bot.SQL.promisifyQuery<Database.tokens>(
-					'SELECT `access_token` FROM `tokens` WHERE `id` = ?',
-					[id],
-				)
-			).SingleOrNull();
+			const [access_token] = await Bot.SQL.Query<Database.tokens[]>`
+                        SELECT access_token 
+                        FROM tokens 
+                        WHERE id = ${id}`;
 
-			if (access_token === null) {
-				return Promise.resolve({
+			if (!access_token) {
+				return {
 					status: 'MESSAGE',
 					error: `Sorry, user is not in our database. Please login: [ ${Bot.Config.Website.WebUrl} ]`,
 					token: '',
-				});
+				};
 			}
 
 			const verifiedToken: string = await axios
@@ -156,55 +144,43 @@ export const token: Token = {
 					return access_token.access_token;
 				})
 				.catch(async (error) => {
-					if (
-						error.response.data['message'] ===
-						'invalid access token'
-					) {
+					if (error.response.data['message'] === 'invalid access token') {
 						// // https://discuss.dev.twitch.tv/t/status-400-missing-client-id-when-refreshing-user-token-with-granttype-refresh-token-on-postman-it-works/26371/2
 						// Refresh token
-						const refresh_token = (
-							await Bot.SQL.promisifyQuery<Database.tokens>(
-								'SELECT `refresh_token` FROM `tokens` WHERE `id` = ?',
-								[id],
-							)
-						).SingleOrNull();
+						const [refresh_token] = await Bot.SQL.Query<Database.tokens[]>`
+                                    SELECT refresh_token 
+                                    FROM tokens 
+                                    WHERE id = ${id}`;
 
-						if (refresh_token === null) return;
+						if (!refresh_token) return;
 
 						const params: URLSearchParams = new URLSearchParams();
 						params.append('grant_type', 'refresh_token');
-						params.append(
-							'refresh_token',
-							refresh_token.refresh_token,
-						);
+						params.append('refresh_token', refresh_token.refresh_token);
 						params.append('client_id', Bot.Config.Twitch.ClientID);
-						params.append(
-							'client_secret',
-							Bot.Config.Twitch.ClientSecret,
-						);
+						params.append('client_secret', Bot.Config.Twitch.ClientSecret);
 
 						const token = await axios({
 							method: 'POST',
 							url: REFRESH_WEBSITE,
 							headers: {
-								'Content-Type':
-									'application/x-www-form-urlencoded;charset=UTF-8',
+								'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
 							},
 							data: params.toString(),
 						})
 							.then((data) => data.data)
 							.then((data) => {
-								Bot.SQL.query(
-									'UPDATE `tokens` SET `access_token` = ?, `refresh_token` = ? WHERE `id` = ?',
-									[data.access_token, data.refresh_token, id],
-								);
+								Bot.SQL.Query`
+                                    UPDATE tokens 
+                                    SET 
+                                        access_token = ${data.access_token}, 
+                                        refresh_token = ${data.refresh_token} 
+                                    WHERE id = ${id}`;
+
 								return data.access_token;
 							})
 							.catch((error) => {
-								if (
-									error.data.message ===
-									'Invalid refresh token'
-								)
+								if (error.data.message === 'Invalid refresh token')
 									throw `The broadcaster is required to login to [ ${Bot.Config.Website.WebUrl} ] again.`;
 								console.log(error);
 								throw error;
@@ -215,13 +191,13 @@ export const token: Token = {
 			result.status = 'OK';
 			result.token = verifiedToken;
 		} catch (error) {
-			return Promise.resolve({
+			return {
 				status: 'ERROR',
 				token: '',
 				error: error as string,
-			});
+			};
 		}
-		return Promise.resolve(result);
+		return result;
 	},
 
 	async Bot(): Promise<TTokenFunction> {
@@ -291,25 +267,19 @@ export function humanizeDuration(seconds: number): string {
 }
 
 export async function Live(id: string): Promise<boolean> {
-	const isLive = (
-		await Bot.SQL.promisifyQuery<Database.channels>(
-			'SELECT `live` FROM `channels` WHERE `user_id` = ?',
-			[id],
-		)
-	).SingleOrNull();
-	if (isLive === null) return false;
-	return Promise.resolve(Boolean(isLive.live));
+	const [isLive] = await Bot.SQL.Query<Database.channels[]>`
+        SELECT live 
+        FROM channels 
+        WHERE user_id = ${id}`;
+
+	if (!isLive) return false;
+	return Boolean(isLive.live);
 }
 
 export async function ViewerList(id: string): Promise<string[]> {
-	const list = (
-		await Bot.SQL.promisifyQuery<Database.channels>(
-			'SELECT `viewers` FROM `channels` WHERE `user_id` = ?',
-			[id],
-		)
-	).SingleOrNull();
-	if (list === null) return [];
-	return Promise.resolve(list.viewers);
+	const viewers = await Bot.Redis.SGet(`channel:${id}:viewers`);
+	if (!viewers) return [];
+	return JSON.parse(viewers);
 }
 
 export function isMod(user: ChatUserstate, channel: string): boolean {
@@ -415,9 +385,7 @@ export const RandomNumber = (length: number): number => {
 	let result = '';
 	const characters = '0123456789';
 	for (let i = 0; i < length; i++) {
-		result += characters.charAt(
-			Math.floor(Math.random() * characters.length),
-		);
+		result += characters.charAt(Math.floor(Math.random() * characters.length));
 	}
 	return Number(result);
 };
@@ -427,3 +395,12 @@ export const RandomNumber = (length: number): number => {
  * @returns
  */
 export const getDirname = (url: string) => dirname(fileURLToPath(url));
+
+/**
+ * Import that actually works
+ * @returns Module
+ */
+export const Import = async (folder: string, route: string) =>
+	await (
+		await import(join('file://', folder, route))
+	).default;

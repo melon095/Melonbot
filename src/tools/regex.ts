@@ -9,7 +9,6 @@ export const racism4 = /gibson.*dog/;
 /**/
 export const url =
 	/[(http(s)?):\/\/(www\.)?a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/;
-export const invisChar =
-	/[\u034f\u2800\u{E0000}\u180e\ufeff\u2000-\u200d\u206D]/gu;
+export const invisChar = /[\u034f\u2800\u{E0000}\u180e\ufeff\u2000-\u200d\u206D]/gu;
 export const underage =
 	/.*((\b[Ii].[Mm]\b)|(\b[Aa][Mm]\b)|(\b[Ii][Mm]\b)|(\b[Aa][Gg][Ee]\b)) \b([1-9]|1[0-2])\b.*/;

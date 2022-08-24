@@ -1,4 +1,3 @@
-import { ChatUserstate } from 'tmi.js';
 import { Channel } from './../controller/Channel/index.js';
 
 /**
@@ -15,9 +14,8 @@ export class ModerationModule {
 	}
 
 	ThankFollow(username: string): void {
-		this.self.say(
-			'Thanks for following, @' + username + ' peepoFloppaHug',
-			{ NoEmoteAtStart: true },
-		);
+		this.self.say('Thanks for following, @' + username + ' peepoFloppaHug', {
+			NoEmoteAtStart: true,
+		});
 	}
 }

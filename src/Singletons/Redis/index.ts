@@ -1,12 +1,6 @@
 import redis, { createClient, RedisClientType } from 'redis';
 import { RandomNumber } from './../../tools/tools.js';
-import {
-	IPing,
-	IPubBase,
-	IPubConnect,
-	IPubModAdd,
-	TPubRecType,
-} from './Data.Types.js';
+import { IPing, IPubBase, IPubConnect, IPubModAdd, TPubRecType } from './Data.Types.js';
 import { EventEmitter } from 'node:events';
 
 const INTERNAL_LOAD_ID = 'Melonbot:';
@@ -91,10 +85,8 @@ export class RedisSingleton extends EventEmitter {
 	public async Subscribe(channel: string): Promise<string | undefined> {
 		return new Promise((Resolve) => {
 			this._pubsub
-				.PSUBSCRIBE(
-					`${INTERNAL_LOAD_ID}${channel}`,
-					(Message, Channel) =>
-						this._onSubMessage({ Message, Channel }),
+				.PSUBSCRIBE(`${INTERNAL_LOAD_ID}${channel}`, (Message, Channel) =>
+					this._onSubMessage({ Message, Channel }),
 				)
 				.then(() => {
 					Resolve(`${INTERNAL_LOAD_ID}${channel}`);

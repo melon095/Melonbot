@@ -39,9 +39,7 @@ export default class extends CommandModel {
 			.catch(() => this.Resolve('User is missing default emote set'));
 		if (!default_emote_set) return;
 
-		const emote_set = user.emote_sets.find(
-			(e) => e.id === default_emote_set.emote_set_id,
-		);
+		const emote_set = user.emote_sets.find((e) => e.id === default_emote_set.emote_set_id);
 
 		const slots = emote_set?.emotes.length || 0;
 		const max_slots = emote_set?.capacity || 0;
@@ -51,12 +49,8 @@ export default class extends CommandModel {
 				`Username: ${user.username}`,
 				`7TV ID: ${user.id}`,
 				`Roles: ${roleString}`,
-				`Created: ${differenceFormat(
-					new Date(user.created_at).getTime(),
-				)} ago`,
-				`Slots: ${slots} / ${max_slots
-					.toString()
-					.replace(/\B(?=(\d{3})+(?!\d))/g, `_`)}`,
+				`Created: ${differenceFormat(new Date(user.created_at).getTime())} ago`,
+				`Slots: ${slots} / ${max_slots.toString().replace(/\B(?=(\d{3})+(?!\d))/g, `_`)}`,
 			].join(' | '),
 		);
 	};

@@ -24,8 +24,7 @@ export default class extends CommandModel {
 	Flags = [];
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	Code = async (ctx: TCommandContext) => {
-		const MESSAGE = (advice: string) =>
-			`PotFriend advice: ${advice} PotFriend`;
+		const MESSAGE = (advice: string) => `PotFriend advice: ${advice} PotFriend`;
 
 		const result = await got
 			.get(ADVICE_API, {

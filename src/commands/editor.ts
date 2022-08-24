@@ -4,8 +4,8 @@ import { CommandModel } from '../Models/Command.js';
 import gql, { UserEditorPermissions } from '../SevenTVGQL.js';
 
 const isAlreadyEditor = async (owner: string, editor: string) => {
-	return await Bot.Redis.SetMembers(`seventv:${owner}:editors`).then(
-		(editors) => editors.includes(editor),
+	return await Bot.Redis.SetMembers(`seventv:${owner}:editors`).then((editors) =>
+		editors.includes(editor),
 	);
 };
 
@@ -52,32 +52,20 @@ export default class extends CommandModel {
 		const isEditor = await isAlreadyEditor(owner.user_id!, user.username);
 		if (isEditor) {
 			await gql
-				.ModifyUserEditorPermissions(
-					owner.user_id!,
-					user.id,
-					UserEditorPermissions.NONE,
-				)
+				.ModifyUserEditorPermissions(owner.user_id!, user.id, UserEditorPermissions.NONE)
 				.then(async () => {
-					await Bot.Redis.SetRemove(
-						`seventv:${owner.emote_set!}:editors`,
-						[user.username],
-					);
+					await Bot.Redis.SetRemove(`seventv:${owner.emote_set!}:editors`, [
+						user.username,
+					]);
 					this.Resolve(resultPrompt('Removed', user.username));
 				})
 				.catch((err: string) => this.Resolve(errorPrompt(err)));
 			return;
 		} else {
 			await gql
-				.ModifyUserEditorPermissions(
-					owner.user_id!,
-					user.id,
-					UserEditorPermissions.DEFAULT,
-				)
+				.ModifyUserEditorPermissions(owner.user_id!, user.id, UserEditorPermissions.DEFAULT)
 				.then(async () => {
-					await Bot.Redis.SetAdd(
-						`seventv:${owner.emote_set!}:editors`,
-						[user.username],
-					);
+					await Bot.Redis.SetAdd(`seventv:${owner.emote_set!}:editors`, [user.username]);
 					this.Resolve(resultPrompt('Added', name));
 				})
 				.catch((err: string) => this.Resolve(errorPrompt(err)));

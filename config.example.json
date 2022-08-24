@@ -5,9 +5,7 @@
 		"ClientSecret": "" // https://dev.twitch.tv/
 	},
 	"SQL": {
-		"Host": "",
-		"User": "",
-		"Password": ""
+		"Address": "postgres://user:password@localhost:5432/melonbot"
 	},
 	"EventSub": {
 		"PublicUrl": "https://example.website.root",

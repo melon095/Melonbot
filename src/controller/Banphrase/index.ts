@@ -43,27 +43,25 @@ export class Banphrase {
 
 	constructor(Name: string) {
 		this.Name = Name;
-		Bot.SQL.promisifyQuery<Database.banphrases>(
-			'SELECT `Phrase` FROM `banphrases` WHERE `channel` = ?',
-			[this.Name],
-		)
-			.then((_p) => _p.SingleOrNull())
-			.then((phrases) => {
-				if (phrases === null) return;
-				for (const phrase of phrases.Phrase) {
-					this.Bans.push(phrase);
-				}
-			});
+		Bot.SQL.Query<Database.banphrases[]>`
+        SELECT phrase 
+        FROM banphrases 
+        WHERE channel = ${this.Name}`.then((phrases) => {
+			if (!phrases.length) return;
+			for (const phrase of phrases[0].phrase) {
+				this.Bans.push(phrase);
+			}
+		});
 	}
 
 	async Update() {
-		Bot.SQL.promisifyQuery<PhraseType>(
-			'SELECT Phrase FROM `banphrases` WHERE `channel` = ?',
-			[this.Name],
-		)
-			.then((_p) => _p.ArrayOrNull())
+		await Bot.SQL.Query<PhraseType[]>`
+            SELECT phrase 
+            FROM banphrases 
+            WHERE channel = ${this.Name}`
+
 			.then((phrases) => {
-				if (phrases === null) return;
+				if (!phrases.length) return;
 				for (const phrase of phrases) {
 					if (!this.Bans.includes(phrase)) this.Bans.push(phrase);
 				}
@@ -80,8 +78,7 @@ export class Banphrase {
 
 			for (let i = 0; i < this.GlobalBans.length; i++)
 				_chvl.push(this.GlobalBans[i].test(message));
-			if (_chvl.includes(true))
-				return Resolve({ okay: false, reason: 'Global Ban' });
+			if (_chvl.includes(true)) return Resolve({ okay: false, reason: 'Global Ban' });
 
 			// const _chbnphrs: Database.banphrases[] = this.ChannelBans.filter((i) => i.channel === _channel);
 			for (let i = 0; i < this.Bans.length; i++) {
@@ -93,9 +90,7 @@ export class Banphrase {
 						const modifiers = a.pop();
 						a.shift();
 						const pattern = a.join('/');
-						_chvl.push(
-							new RegExp(pattern, modifiers).test(message),
-						);
+						_chvl.push(new RegExp(pattern, modifiers).test(message));
 
 						break;
 					}
@@ -107,8 +102,7 @@ export class Banphrase {
 							...requestOptions.headers,
 							'Content-Type': 'Application/json',
 						};
-						requestOptions.url =
-							parsedPhrase.url + '/api/v1/banphrases/test';
+						requestOptions.url = parsedPhrase.url + '/api/v1/banphrases/test';
 						requestOptions.data = {
 							...requestOptions.data,
 							message: message,

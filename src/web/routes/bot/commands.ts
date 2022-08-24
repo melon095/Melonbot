@@ -6,13 +6,9 @@ export default (async function () {
 	const Router = Express.Router();
 
 	Router.get('/', async (req, res) => {
-		const commands = await Bot.SQL.promisifyQuery<Database.commands>(
-			'SELECT * FROM commands',
-		)
-			.then((c) => c.ArrayOrNull())
-			.then((commands) => {
-				if (commands === null) {
-					res.status(500);
+		const commands = await Bot.SQL.Query<Database.commands[]>`SELECT * FROM commands`.then(
+			(commands) => {
+				if (!commands.length) {
 					return null;
 				}
 				const all = [];
@@ -27,18 +23,15 @@ export default (async function () {
 					all.push(rewrote);
 				}
 				return all;
-			});
+			},
+		);
 		if (commands === null) {
 			res.render('error', { safeError: 'There are no commands' });
 		} else {
-			res.render(
-				'commands',
-				{ commands: commands, title: 'Commands' },
-				function (err, html) {
-					if (err) return console.log('Render error: ', err);
-					res.send(html);
-				},
-			);
+			res.render('commands', { commands: commands, title: 'Commands' }, function (err, html) {
+				if (err) return console.log('Render error: ', err);
+				res.send(html);
+			});
 		}
 	});
 

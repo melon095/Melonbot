@@ -8,10 +8,7 @@ import { RedisSingleton } from './Singletons/Redis/index.js';
 import { RedisEvents } from './Singletons/Redis/Redis.Events.js';
 
 declare interface RS extends RedisSingleton {
-	on<U extends keyof RedisEvents>(
-		event: U,
-		listener: RedisEvents[U],
-	): ThisParameterType;
+	on<U extends keyof RedisEvents>(event: U, listener: RedisEvents[U]): ThisParameterType;
 
 	// emit<U extends keyof RedisEvents>(
 	// 	event: U,

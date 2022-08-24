@@ -6,10 +6,7 @@ import Helix from './../Helix/index.js';
 import { Channel } from './../controller/Channel/index.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function Execute(
-	script: string,
-	ctx: TCommandContext,
-): Promise<object | string> {
+async function Execute(script: string, ctx: TCommandContext): Promise<object | string> {
 	const crypto = await import('crypto');
 	return new Promise((Resolve, Reject) => {
 		const context = vm.createContext({
@@ -62,56 +59,17 @@ export default class extends CommandModel {
 			return;
 		}
 
-		if (ctx.input[0] === 'migrate') {
-			switch (ctx.input[1]) {
-				// Quick fix lol.
-				case 'eventsub': {
-					const channels = (
-						await Bot.SQL.promisifyQuery<Database.channels>(
-							'SELECT `user_id` FROM `channels`',
-						)
-					).ArrayOrNull();
+		const script = `(async () => {"use strict"; \n${ctx.input.join(' ')}\n})()`;
 
-					if (channels === null) return;
-					for (const channel of channels) {
-						await Helix.EventSub.Create(
-							'channel.moderator.add',
-							'1',
-							{
-								broadcaster_user_id: channel.user_id,
-							},
-						);
-
-						await Helix.EventSub.Create(
-							'channel.moderator.remove',
-							'1',
-							{
-								broadcaster_user_id: channel.user_id,
-							},
-						);
-					}
-				}
-
-				default: {
-					this.Resolve();
-					break;
-				}
+		try {
+			const res = await Execute(script, ctx);
+			if (typeof res !== 'undefined') {
+				this.Resolve(JSON.stringify(res, null, 4));
+			} else {
+				this.Resolve('Done!');
 			}
-		} else {
-			const script = `(async () => {"use strict"; \n${ctx.input.join(
-				' ',
-			)}\n})()`;
-
-			try {
-				const res = await Execute(script, ctx);
-				if (typeof res !== 'undefined') {
-					this.Resolve(JSON.stringify(res, null, 4));
-				} else {
-					this.Resolve('Done!');
-				}
-			} catch (e) {
-				this.Reject(new Error(e as string));
-			}
+		} catch (e) {
+			this.Reject(new Error(e as string));
 		}
 	};
 }

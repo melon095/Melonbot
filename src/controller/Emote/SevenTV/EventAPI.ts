@@ -195,16 +195,12 @@ function split_array<T>(array: T[], size: number) {
 }
 
 function Commit(identifier: SevenTVChannelIdentifier, emote: EMOTE_TYPE) {
-	if (EMOTES[identifier.Channel] === undefined)
-		newArrayIdentifier(identifier);
+	if (EMOTES[identifier.Channel] === undefined) newArrayIdentifier(identifier);
 
 	EMOTES[identifier.Channel][identifier.EmoteSet].push(emote);
 }
 
-function Remove(
-	{ Channel, EmoteSet }: SevenTVChannelIdentifier,
-	emote: EMOTE_TYPE,
-) {
+function Remove({ Channel, EmoteSet }: SevenTVChannelIdentifier, emote: EMOTE_TYPE) {
 	EMOTES[Channel][EmoteSet] = EMOTES[Channel][EmoteSet].filter(
 		(e) => e.name !== emote.name && e.type !== emote.type,
 	);
@@ -214,11 +210,9 @@ function Push() {
 	setInterval(() => {
 		for (const identifier of Bot.Twitch.Emotes.SevenTVEvent.List) {
 			if (EMOTES[identifier.Channel] === undefined) continue;
-			if (!EMOTES[identifier.Channel][identifier.EmoteSet].length)
-				continue;
+			if (!EMOTES[identifier.Channel][identifier.EmoteSet].length) continue;
 
-			const emotes_to_send =
-				EMOTES[identifier.Channel][identifier.EmoteSet];
+			const emotes_to_send = EMOTES[identifier.Channel][identifier.EmoteSet];
 			newArrayIdentifier(identifier);
 
 			const payload: string[] = [];
@@ -258,8 +252,7 @@ function Push() {
 	}, PUSH_INTERVAL);
 }
 
-const createMessage = (code: number, data: object): string =>
-	JSON.stringify({ op: code, d: data });
+const createMessage = (code: number, data: object): string => JSON.stringify({ op: code, d: data });
 
 export class SevenTVEvent extends MWebSocket {
 	public List: SevenTVChannelIdentifier[];
@@ -280,9 +273,7 @@ export class SevenTVEvent extends MWebSocket {
 		return true;
 	}
 
-	override CloseListener(
-		e: WebSocket.CloseEvent,
-	): WebSocket.CloseEvent | void {
+	override CloseListener(e: WebSocket.CloseEvent): WebSocket.CloseEvent | void {
 		if (!this.manualExit) {
 			super.Log('Connection closed by server. ', e);
 			this.Reconnect();
@@ -327,23 +318,17 @@ export class SevenTVEvent extends MWebSocket {
 		switch (type) {
 			case 'emote_set.update': {
 				const payload = data.body as SevenTVEmoteSetUpdate;
-				const channel = (
-					await Bot.SQL.promisifyQuery<Database.channels>(
-						`SELECT user_id from channels WHERE seventv_emote_set = ?`,
-						[payload.id],
-					)
-				).SingleOrNull();
+				const channel = await Bot.SQL.Query<Database.channels[]>`
+                    SELECT user_id from channels 
+                    WHERE seventv_emote_set = ${payload.id}`;
 
-				if (!channel) {
-					super.Log(
-						'Channel not found for emote set update',
-						JSON.stringify(payload),
-					);
+				if (!channel.length) {
+					super.Log('Channel not found for emote set update', JSON.stringify(payload));
 					return;
 				}
 
 				const _chl = Bot.Twitch.Controller.TwitchChannelSpecific({
-					ID: channel.user_id,
+					ID: channel[0].user_id,
 				});
 
 				if (!_chl) {
@@ -354,8 +339,7 @@ export class SevenTVEvent extends MWebSocket {
 					return;
 				}
 
-				if (typeof payload.pushed !== 'undefined')
-					this.handleNewEmote(payload, _chl);
+				if (typeof payload.pushed !== 'undefined') this.handleNewEmote(payload, _chl);
 				else if (typeof payload.pulled !== 'undefined')
 					this.handleRemovedEmote(payload, _chl);
 				else if (typeof payload.updated !== 'undefined')
@@ -365,10 +349,7 @@ export class SevenTVEvent extends MWebSocket {
 		}
 	}
 
-	private async handleNewEmote(
-		data: SevenTVEmoteSetUpdate,
-		channel: Channel,
-	) {
+	private async handleNewEmote(data: SevenTVEmoteSetUpdate, channel: Channel) {
 		const emotes = data.pushed ?? [];
 
 		// it's an array, might send multiple updates at once in the future.
@@ -385,10 +366,7 @@ export class SevenTVEvent extends MWebSocket {
 		}
 	}
 
-	private async handleRemovedEmote(
-		data: SevenTVEmoteSetUpdate,
-		channel: Channel,
-	) {
+	private async handleRemovedEmote(data: SevenTVEmoteSetUpdate, channel: Channel) {
 		const emotes = data.pulled ?? [];
 
 		for (const emote of emotes) {
@@ -404,10 +382,7 @@ export class SevenTVEvent extends MWebSocket {
 		}
 	}
 
-	private async handleUpdatedEmote(
-		data: SevenTVEmoteSetUpdate,
-		channel: Channel,
-	) {
+	private async handleUpdatedEmote(data: SevenTVEmoteSetUpdate, channel: Channel) {
 		const emotes = data.updated ?? [];
 
 		for (const emote of emotes) {

@@ -66,11 +66,7 @@ const _createHeaders = async (): Promise<Record<string, string>> => {
 	};
 };
 
-const _request = async (
-	method: Method,
-	path: string,
-	body?: object,
-): Promise<any> => {
+const _request = async (method: Method, path: string, body?: object): Promise<any> => {
 	return new Promise(async (Resolve, Reject) => {
 		const headers = await _createHeaders();
 		const url = `${BASE_URL}${path}`;

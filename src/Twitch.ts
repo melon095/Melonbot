@@ -62,44 +62,7 @@ export default class Twitch {
 				secure: true,
 			},
 		});
-		this.admins = JSON.parse(
-			fs.readFileSync('./admins.json', { encoding: 'utf-8' }),
-		);
-
-		this.SetOwner();
-
-		this.owner = '';
-		const connect = async () => {
-			try {
-				this.client.connect();
-			} catch (err) {
-				console.log(err);
-			}
-		};
-		connect().catch((err) => console.log(err));
-		this.client.on('connected', async (addr: string, port: number) => {
-			console.log(`* Connected to ${addr}:${port}`);
-			this.initFlags[0] = true;
-		});
-
-		this.client.on('message', (a, b, c, d) =>
-			this.MessageHandler(a, b, c, d),
-		);
-
-		this.client.on('pong', async (l) => {
-			console.log(`Twitch Latency : ${l}`);
-			await Bot.Redis.SSet('Latency', String(l));
-		});
-
-		this.client.on('automod', (channel, userstate, message) => {
-			console.log({ channel, userstate, message });
-			const _chl = this.TwitchChannelSpecific({
-				Name: channel.replace('#', ''),
-			});
-			if (_chl) {
-				_chl.AutomodMessage(message, userstate);
-			}
-		});
+		this.admins = JSON.parse(fs.readFileSync('./admins.json', { encoding: 'utf-8' }));
 
 		this._setupRedisCallbacks();
 
@@ -109,7 +72,41 @@ export default class Twitch {
 	}
 
 	static async Init() {
-		return new Twitch();
+		const t = new Twitch();
+
+		await t.SetOwner();
+
+		t.owner = '';
+		try {
+			await t.client.connect();
+		} catch (err) {
+			console.log('Failed to connect to Twitch', err);
+			process.exit(1);
+		}
+
+		t.client.on('connected', async (addr: string, port: number) => {
+			console.log(`* Connected to ${addr}:${port}`);
+			t.initFlags[0] = true;
+		});
+
+		t.client.on('message', (a, b, c, d) => t.MessageHandler(a, b, c, d));
+
+		t.client.on('pong', async (l) => {
+			console.log(`Twitch Latency : ${l}`);
+			await Bot.Redis.SSet('Latency', String(l));
+		});
+
+		t.client.on('automod', (channel, userstate, message) => {
+			console.log({ channel, userstate, message });
+			const _chl = t.TwitchChannelSpecific({
+				Name: channel.replace('#', ''),
+			});
+			if (_chl) {
+				_chl.AutomodMessage(message, userstate);
+			}
+		});
+
+		return t;
 	}
 
 	private async _setupRedisCallbacks() {
@@ -159,12 +156,14 @@ export default class Twitch {
 	}
 
 	async GetChannel(ID: string): Promise<Database.channels | null> {
-		return (
-			await Bot.SQL.promisifyQuery<Database.channels>(
-				'SELECT * FROM channels WHERE user_id = ?',
-				[ID],
-			)
-		).SingleOrNull();
+		const channel = await Bot.SQL.Query<Database.channels[]>`
+            SELECT * FROM channels
+             WHERE user_id = ${ID}`;
+
+		if (!channel.length) {
+			return null;
+		}
+		return channel[0];
 	}
 
 	TwitchChannelSpecific({ ID, Name }: { ID?: string; Name?: string }) {
@@ -190,28 +189,19 @@ export default class Twitch {
 					// Not important error from twitch.
 					if (!Array.isArray(err)) {
 						console.error(
-							`[Whisper - ${User.Username}] ${new Error(
-								err,
-							)}. Message: ${Message}`,
+							`[Whisper - ${User.Username}] ${new Error(err)}. Message: ${Message}`,
 						);
 					} else {
 						console.error(`[Whisper] ${err}`);
 					}
 				});
 		} else {
-			console.log(
-				`[Whisper - ${User.Username}] Finding closest channel to user.`,
-			);
+			console.log(`[Whisper - ${User.Username}] Finding closest channel to user.`);
 
-			const channel = this.channels.find(
-				(chl) => chl.Name === User.Username,
-			);
+			const channel = this.channels.find((chl) => chl.Name === User.Username);
 			if (channel === undefined) {
 				// Bot is not instanced in their own channel.
-				const list = await FindClosestChannelToUser(
-					User.Username,
-					User.ID,
-				);
+				const list = await FindClosestChannelToUser(User.Username, User.ID);
 
 				if (list === null) {
 					/* 
@@ -292,9 +282,7 @@ export default class Twitch {
 	) {
 		internal_channel = internal_channel.slice(1);
 
-		const channel = this.channels.find(
-			(chl) => chl.LowercaseName === internal_channel,
-		);
+		const channel = this.channels.find((chl) => chl.LowercaseName === internal_channel);
 
 		// This would never happen, but typescript rules..
 		if (!channel) return;
@@ -319,10 +307,7 @@ export default class Twitch {
 
 			channel.tryCommand(user, command, input);
 		} catch (error) {
-			Bot.HandleErrors(
-				'Twitch/MessageHandler',
-				new Error(error as never),
-			);
+			Bot.HandleErrors('Twitch/MessageHandler', new Error(error as never));
 			channel.say('BrokeBack command failed', {
 				SkipBanphrase: true,
 				NoEmoteAtStart: true,

@@ -7,8 +7,7 @@ import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI
 export default class extends CommandModel {
 	Name = 'alias';
 	Ping = false;
-	Description =
-		"Sets the alias of an emote, don't give it a name and it will remove the alias";
+	Description = "Sets the alias of an emote, don't give it a name and it will remove the alias";
 	Permission = EPermissionLevel.VIEWER;
 	OnlyOffline = false;
 	Aliases = [];
@@ -42,13 +41,9 @@ export default class extends CommandModel {
 			.ModifyEmoteSet(okay.emote_set!, ListItemAction.UPDATE, src.id, dst)
 			.then((emotes) => {
 				if (dst === '') {
-					const newEmote = emotes.emoteSet.emotes.find(
-						(emote) => emote.id === src.id,
-					);
+					const newEmote = emotes.emoteSet.emotes.find((emote) => emote.id === src.id);
 
-					this.Resolve(
-						`I reset the alias from ${src.name} to ${newEmote?.name}`,
-					);
+					this.Resolve(`I reset the alias from ${src.name} to ${newEmote?.name}`);
 				} else {
 					this.Resolve(`I set the alias of ${src.name} to ${dst}`);
 				}
