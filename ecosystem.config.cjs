@@ -8,14 +8,14 @@ module.exports = {
 	apps: [
 		{
 			name: 'Bot',
-			script: './build/master.js',
+			script: './build/bin/master.js',
 			env: {
 				NODE_OPTIONS: OPTIONS_BOT,
 			},
 		},
 		{
 			name: 'web',
-			script: './build/web.js',
+			script: './build/bin/web.js',
 			env: {
 				NODE_OPTIONS: OPTIONS_WEB,
 			},
