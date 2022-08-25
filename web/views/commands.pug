@@ -1,6 +1,7 @@
 doctype html
 html 
     head 
+        include ./header.pug
         title= title
 
         style 
@@ -8,7 +9,8 @@ html
             include /css/commands.css
 
     body 
-        include header.pug
+        block header
+
         table(class='basic-table') 
             tr(class='TableHeader')
                 th(scope="col") ID

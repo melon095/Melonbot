@@ -2,6 +2,30 @@ import path, { resolve } from 'node:path';
 import cors from 'cors';
 import * as tools from './../tools/tools.js';
 
+type HeaderItem = {
+	name: string;
+	url?: string;
+	items?: {
+		name: string;
+		url: string;
+	}[];
+};
+
+const header: HeaderItem[] = [
+	{
+		name: 'Home',
+		url: '',
+	},
+	{
+		name: 'Bot',
+		items: [
+			{ name: 'Commands', url: 'bot/commands' },
+			{ name: 'Channels', url: 'bot/channels' },
+			{ name: 'Suggestions', url: 'bot/suggestions' },
+		],
+	},
+];
+
 (async function () {
 	const middlewares = ['logger'];
 
@@ -32,6 +56,8 @@ import * as tools from './../tools/tools.js';
 			lastModified: true,
 		}),
 	);
+
+	app.locals.headeritems = header;
 
 	app.get('/robots.txt', (_, res) => {
 		// No, i don't think so.

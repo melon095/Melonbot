@@ -1,24 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Display&display=swap');
+
 header {
-    top: 20px;
-    bottom: 20px;
-    right: 20px;
-    left: 20px;
-    display: flex; 
-    vertical-align: top; 
-    column-gap: 20px;
-    border-style: solid;
-    border-color: #FF5349;
-    box-sizing: border-box;
-    padding: 20px;
+	top: 20px;
+	bottom: 20px;
+	right: 20px;
+	left: 20px;
+	display: flex;
+	vertical-align: top;
+	column-gap: 20px;
+	border-style: solid;
+	border-color: #ff5349;
+	box-sizing: border-box;
+	padding: 20px;
 }
 
-a {
-    text-decoration: none;
-    padding: 0 5px;
-    color: #FF5349;
-    transition: all .9s;
+a.dropdown-item {
+	padding: 0 5px;
+	color: #ff5349;
+	transition: all 0.5s;
 }
 
-a:hover {
-    color: white
+a.dropdown-item:not(:last-child) {
+	margin-bottom: 0.7em;
 }

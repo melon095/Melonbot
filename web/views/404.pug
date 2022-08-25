@@ -1,6 +1,8 @@
 doctype html
 html
     head
+        include ./header.pug
+    
         title= "Not found"
         meta(charset="utf-8")
         meta(name="viewport" content="width=device-width, initial-scale=1")
@@ -14,7 +16,7 @@ html
             }
 
     body
-        include header.pug
+        block header
         
         img(src="https://cdn.7tv.app/emote/60e5d610a69fc8d27f2737b7/4x")
         .underImage

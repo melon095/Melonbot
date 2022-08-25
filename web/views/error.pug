@@ -2,13 +2,15 @@ doctype html
 html
     head
         title= "Error"
+        
+        include ./header.pug
 
         style
             include /css/html.css
             include /css/error.css
 
     body
-        include header.pug
+        block header
         div(class='error')
             h1(class='error-title') Error
             p(class='error-message') An error occured while processing your request.
