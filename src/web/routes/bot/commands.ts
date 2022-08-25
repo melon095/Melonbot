@@ -35,5 +35,17 @@ export default (async function () {
 		}
 	});
 
+	Router.get('/:name', async (req, res) => {
+		const name = req.params.name;
+		const command = await Bot.Commands.get(name);
+		if (!command) {
+			return res.status(404).render('error', { safeError: 'That command does not exist' });
+		}
+
+		const prefix = Bot.Config.Prefix;
+
+		res.send(await command.LongDescription(prefix));
+	});
+
 	return Router;
 })();
