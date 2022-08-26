@@ -174,7 +174,7 @@ export default {
 						const { response } = error;
 						if (response && response.body) {
 							const { body } = response;
-							console.error('Error on 7TV GQL:', body);
+							console.error('Error on 7TV GQL:', { body, code: response.statusCode });
 						}
 						return error;
 					},
@@ -205,6 +205,10 @@ export default {
 			})
 			.json();
 
+		if (data.errors) {
+			throw data.errors[0].message;
+		}
+
 		return data.data;
 	},
 	SearchEmoteByName: async (
@@ -233,8 +237,9 @@ export default {
 			.json();
 
 		if (data.errors) {
-			return Promise.reject(data.errors[0].message);
-		} else return data.data;
+			throw data.errors[0].message;
+		}
+		return data.data;
 	},
 	GetEmoteByID: async (id: string): Promise<EmoteSet> => {
 		const data: Base<{ emote: EmoteSet }> = await api
@@ -253,7 +258,7 @@ export default {
 			})
 			.json();
 
-		if (data.errors) return Promise.reject(data.errors);
+		if (data.errors) throw data.errors[0].message;
 		else return data.data.emote;
 	},
 	CurrentEnabledEmotes: async (emote_set: string): Promise<EmoteSet[]> => {
@@ -278,8 +283,9 @@ export default {
 			.json();
 
 		if (data.errors) {
-			return Promise.reject(data.errors);
-		} else return data.data.emoteSet.emotes;
+			throw data.errors[0].message;
+		}
+		return data.data.emoteSet.emotes;
 	},
 	getEditors: async (id: string): Promise<UserEditor> => {
 		const data: Base<UserEditor> = await api
@@ -304,6 +310,10 @@ export default {
 			})
 			.json();
 
+		if (data.errors) {
+			throw data.errors[0].message;
+		}
+
 		return data.data;
 	},
 	getDefaultEmoteSet: async (id: string): Promise<{ emote_set_id: string }> => {
@@ -326,6 +336,10 @@ export default {
 				}),
 			})
 			.json();
+
+		if (data.errors) {
+			throw data.errors[0].message;
+		}
 
 		return (
 			data.data.user.connections.find((x) => x.platform === ConnectionPlatform.TWITCH) || {
@@ -362,7 +376,7 @@ export default {
 			.json();
 
 		if (data.errors) {
-			return Promise.reject(data.errors[0].message);
+			throw data.errors[0].message;
 		}
 		return data.data;
 	},
@@ -403,6 +417,10 @@ export default {
 			})
 			.json();
 
+		if (data.errors) {
+			throw data.errors[0].message;
+		}
+
 		return data.data.user;
 	},
 	GetRoles: async (): Promise<{ id: string; name: string }[]> => {
@@ -418,6 +436,10 @@ export default {
 				}),
 			})
 			.json();
+
+		if (data.errors) {
+			throw data.errors[0].message;
+		}
 
 		return data.data.roles;
 	},
@@ -448,7 +470,7 @@ export default {
 			.json();
 
 		if (data.errors) {
-			return Promise.reject(data.errors[0].message);
+			throw data.errors[0].message;
 		}
 		return data.data;
 	},
