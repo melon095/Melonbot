@@ -54,4 +54,12 @@ export default class extends CommandModel {
 			].join(' | '),
 		);
 	};
+	LongDescription = async (prefix: string) => [
+		`Display information about a 7TV user.`,
+		'',
+		`**Usage**: ${prefix}7tvu <username>`,
+		`**Example**: ${prefix}7tvu @melon095`,
+		'',
+		"Displays info such as the user's username, 7TV ID, roles, creation date, and emote slots.",
+	];
 }

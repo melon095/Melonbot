@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Display&display=swap');
+
+header {
+	top: 20px;
+	bottom: 20px;
+	right: 20px;
+	left: 20px;
+	display: flex;
+	vertical-align: top;
+	column-gap: 20px;
+	border-style: solid;
+	border: 2px solid #666666;
+	box-sizing: border-box;
+	padding: 20px;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+a.dropdown-item {
+	padding: 0 5px;
+	transition: all 0.5s;
+}
+
+a.dropdown-item:not(:last-child) {
+	margin-bottom: 0.7em;
+}

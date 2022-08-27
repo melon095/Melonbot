@@ -35,4 +35,16 @@ export default class extends CommandModel {
 			);
 		}
 	};
+	LongDescription = async (prefix: string) => [
+		`Starts a new trivia in the channel.`,
+		`Usage: ${prefix}trivia`,
+		'',
+		`Don't like some of the categories? Use the exclude and include parameters to filter them out.`,
+		`Usage: ${prefix}trivia --exclude=[category1,category2]`,
+		`**Note**: Don't use spaces between the commas and the category names.`,
+		'',
+		'You can also skip the current question with the skip parameter.',
+		`Usage: ${prefix}trivia skip`,
+		'However only the one who started the trivia can skip the question.',
+	];
 }

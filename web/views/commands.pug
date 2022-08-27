@@ -1,6 +1,7 @@
 doctype html
 html 
     head 
+        include ./header.pug
         title= title
 
         style 
@@ -8,17 +9,17 @@ html
             include /css/commands.css
 
     body 
-        include header.pug
+        block header
+
         table(class='basic-table') 
             tr(class='TableHeader')
-                th(scope="col") ID
                 th(scope="col") Name
                 th(scope="col") Description
                 th(scope="col") Perm
             
             for command in commands
                 tr(key=command.id id='basic-row')
-                    th(scope='row')= command.id
-                    td= command.name
+                    td
+                        a(href=`/bot/commands/${command.name}` class="link-primary") !{command.name}
                     td= command.description
                     td= command.perm
