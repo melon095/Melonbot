@@ -6,6 +6,12 @@ import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import { CommandModel } from '../Models/Command.js';
 import { freemem, totalmem } from 'node:os';
 
+const cleanCommand = (command: string) =>
+	shell
+		.execSync(command)
+		.toString()
+		.replace(/\r?\n|\r/g, '');
+
 export default class extends CommandModel {
 	Name = 'ping';
 	Ping = true;
@@ -18,25 +24,16 @@ export default class extends CommandModel {
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	Code = async (ctx: TCommandContext) => {
-		const commitCount = shell
-			.execSync('git rev-list --all --count')
-			.toString()
-			.replace(/\r?\n|\r/g, '');
-		const commitSha = shell
-			.execSync('git rev-parse --short HEAD')
-			.toString()
-			.replace(/\r?\n|\r/g, '');
-		const branch = shell
-			.execSync('git rev-parse --abbrev-ref HEAD')
-			.toString()
-			.replace(/\r?\n|\r/g, '');
+		const commitCount = cleanCommand('git rev-list --all --count');
+		const commitSha = cleanCommand('git rev-parse --short HEAD');
+		const branch = cleanCommand('git rev-parse --abbrev-ref HEAD');
 
-		const latency = await Bot.Redis.SGet('Latency');
+		const latency = (await Bot.Redis.SGet('Latency')) || 'N/A';
 		const devBot = Bot.Config.Development ? ' Development Bot' : ' ';
 
 		this.Resolve(
 			[
-				`pong`,
+				`Pong!`,
 				`Uptime ${tools.humanizeDuration(process.uptime())}`,
 				`${commitCount} ${branch.toString()}@${commitSha}`,
 				`Delay ${latency}S`,
