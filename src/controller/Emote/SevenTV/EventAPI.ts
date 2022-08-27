@@ -210,7 +210,7 @@ function Push() {
 	setInterval(() => {
 		for (const identifier of Bot.Twitch.Emotes.SevenTVEvent.List) {
 			if (EMOTES[identifier.Channel] === undefined) continue;
-			if (!EMOTES[identifier.Channel][identifier.EmoteSet].length) continue;
+			if (!EMOTES[identifier.Channel][identifier.EmoteSet]?.length) continue;
 
 			const emotes_to_send = EMOTES[identifier.Channel][identifier.EmoteSet];
 			newArrayIdentifier(identifier);
