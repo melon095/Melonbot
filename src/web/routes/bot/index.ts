@@ -6,7 +6,6 @@ export default (async function () {
 
 	const subroutes = [
 		['commands', 'commands.js'],
-		['invite', 'invite.js'],
 		['channels', 'channels.js'],
 	];
 

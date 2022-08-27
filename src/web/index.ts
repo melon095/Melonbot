@@ -20,8 +20,8 @@ const header: HeaderItem[] = [
 		name: 'Bot',
 		items: [
 			{ name: 'Commands', url: 'bot/commands' },
-			{ name: 'Channels', url: 'bot/channels' },
-			{ name: 'Suggestions', url: 'bot/suggestions' },
+			// { name: 'Channels', url: 'bot/channels' },
+			// { name: 'Suggestions', url: 'bot/suggestions' },
 		],
 	},
 ];
@@ -65,8 +65,10 @@ const header: HeaderItem[] = [
 		res.send('User-agent: *\nDisallow: /');
 	});
 
+	const username = Bot.Config.BotUsername;
+
 	app.get('/', (_, res) => {
-		res.render('index', { title: 'Index' });
+		res.render('index', { title: 'Index', bot: { name: username } });
 	});
 
 	for (const middleware of middlewares) {
