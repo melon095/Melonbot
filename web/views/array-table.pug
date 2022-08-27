@@ -1,0 +1,24 @@
+doctype html
+html
+    head
+        include ./header.pug
+        title= title
+        style
+            include /css/html.css
+
+    body
+        block header
+        
+        // Generic table.
+
+        div(class="p-3")
+            table(class="table table-dark table-striped table-bordered c-white")
+                thead
+                    tr
+                        each key in head
+                            th #{key}
+            
+                for row in table
+                    tr
+                        each key in head
+                            td(field=key class="col c-white") !{row[key]}

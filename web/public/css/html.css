@@ -4,7 +4,7 @@ body {
 }
 
 .c-white {
-	color: #bfbfbf !important;
+	color: var(--bs-light) !important;
 }
 
 body {

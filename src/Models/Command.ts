@@ -4,7 +4,7 @@ import { TArgs, TCommandContext, TExecuteFunction } from '../Typings/types';
 import { EPermissionLevel, ECommandFlags } from '../Typings/enums.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 
-type LongDescriptionFunction = (prefix: string) => Promise<string>;
+type LongDescriptionFunction = (prefix: string) => Promise<string[]>;
 
 export abstract class CommandModel {
 	/**
@@ -62,6 +62,11 @@ export abstract class CommandModel {
 	 */
 	public abstract readonly Code: TExecuteFunction;
 
+	/**
+	 * Big description on how to use the command.
+	 * Supports markdown
+	 * @url /bot/commands/:commandName
+	 */
 	public readonly LongDescription?: LongDescriptionFunction;
 
 	protected Promolve: IPromolve<string>;
