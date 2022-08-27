@@ -79,4 +79,14 @@ export default class extends CommandModel {
 
 		this.Resolve(`'${emotes.items[0].name}' - https://7tv.app/emotes/${emotes.items[0].id}`);
 	};
+	LongDescription = async (prefix: string) => [
+		`Searches up to 100 7TV emotes.`,
+		`**Usage**: ${prefix}7tv <search term>`,
+		`**Example**: ${prefix}7tv Apu`,
+		`**Example**: ${prefix}7tv Apu --exact`,
+		'',
+		'Will return the first 5 emotes it can find',
+		'If you want to see more, use the index parameter',
+		`**Example**: ${prefix}7tv Apu --index=1`,
+	];
 }

@@ -57,4 +57,11 @@ export default class extends CommandModel {
 			});
 		return;
 	};
+	LongDescription = async (prefix: string) => [
+		`Remove a 7TV emote from your emote set.`,
+		`Usage: ${prefix}remove <emote name>`,
+		'',
+		'**Required 7TV Permissions:**',
+		'Manage Emotes',
+	];
 }
