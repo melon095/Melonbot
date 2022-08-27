@@ -455,7 +455,9 @@ export class Channel {
 		if (this.Mode === 'Moderator') return;
 		this.Mode = 'Moderator';
 		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('Moderator') ?? 1250;
-		Bot.SQL.Query`UPDATE channels SET bot_permission = ${3} WHERE user_id = ${this.Id}`;
+		Bot.SQL.Query`UPDATE channels SET bot_permission = ${3} WHERE user_id = ${
+			this.Id
+		}`.execute();
 		this.ModerationModule = new ModerationModule(this);
 		this.joinEventSub();
 		console.info("Channel '" + this.Name + "' is now set as Moderator.");
@@ -465,7 +467,9 @@ export class Channel {
 		if (this.Mode === 'VIP') return;
 		this.Mode = 'VIP';
 		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('VIP') ?? 1250;
-		Bot.SQL.Query`UPDATE channels SET bot_permission = ${2} WHERE user_id = ${this.Id}`;
+		Bot.SQL.Query`UPDATE channels SET bot_permission = ${2} WHERE user_id = ${
+			this.Id
+		}`.execute();
 		this.ModerationModule = null;
 		this.joinEventSub();
 		console.info("Channel '" + this.Name + "' is now set as VIP.");
@@ -476,7 +480,9 @@ export class Channel {
 		if (this.Mode === 'Write') return;
 		this.Mode = 'Write';
 		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('Write') ?? 1250;
-		Bot.SQL.Query`UPDATE channels SET bot_permission = ${1} WHERE user_id = ${this.Id}`;
+		Bot.SQL.Query`UPDATE channels SET bot_permission = ${1} WHERE user_id = ${
+			this.Id
+		}`.execute();
 		this.ModerationModule = null;
 		this.leaveEventsub();
 		console.info("Channel '" + this.Name + "' is now set as Norman.");

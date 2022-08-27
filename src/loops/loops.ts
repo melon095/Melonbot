@@ -27,13 +27,13 @@ export function __loops() {
 								},
 							})
 							.then((response) => response.data.data)
-							.then(async (response: never[]) => {
+							.then((response: never[]) => {
 								const live = response.length > 0;
 
-								await Bot.SQL.Query`
+								Bot.SQL.Query`
                                     UPDATE channels 
                                     SET live = ${live} 
-                                    WHERE name = ${channel.Name}`;
+                                    WHERE name = ${channel.Name}`.execute();
 
 								try {
 									channel.UpdateLive();
@@ -171,10 +171,10 @@ export function __loops() {
 			console.log(
 				`${channel?.name} new 7TV emote set ${channel?.seventv_emote_set} --> ${default_emote_sets}`,
 			);
-			await Bot.SQL.Query`
+			Bot.SQL.Query`
                 UPDATE channels 
                 SET seventv_emote_set = ${default_emote_sets} 
-                WHERE name = ${channel?.name}`;
+                WHERE name = ${channel?.name}`.execute();
 		}
 	}, ONE_MINUTE);
 
