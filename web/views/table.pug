@@ -1,0 +1,25 @@
+doctype html
+html
+    head
+        include ./header.pug
+        title= title
+        style
+            include /css/html.css
+
+    body
+        block header
+        
+        // Generic table.
+
+        div(class="p-3")
+            table(class="table table-dark table-striped table-bordered c-white")
+                - if (typeof head !== 'undefined') {
+                    h5(class="table-header text-center c-white") !{head}
+                - }
+            
+                for value, key in table
+                    tr
+                        td.key(class="col c-white")
+                            b(class="c-white text-left") #{key}
+                        td(class="c-white text-left").value.
+                            !{value}

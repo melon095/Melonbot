@@ -71,4 +71,14 @@ export default class extends CommandModel {
 				.catch((err: string) => this.Resolve(errorPrompt(err)));
 		}
 	};
+	LongDescription = async (prefix: string) => {
+		return `
+            This command allows the broadcaster to add and remove users as 7TV editors
+
+            **Usage** ${prefix}editor <username>
+            Would add the user as an editor
+
+            However if the user is already an editor, this command will remove them
+        `;
+	};
 }

@@ -62,7 +62,7 @@ export abstract class CommandModel {
 	 */
 	public abstract readonly Code: TExecuteFunction;
 
-	public readonly LongDescription: LongDescriptionFunction = async () => '<br>N/A';
+	public readonly LongDescription?: LongDescriptionFunction;
 
 	protected Promolve: IPromolve<string>;
 

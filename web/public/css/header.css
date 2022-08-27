@@ -1,5 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Display&display=swap');
 
+* {
+}
+
 header {
 	top: 20px;
 	bottom: 20px;
@@ -12,6 +15,15 @@ header {
 	border-color: #ff5349;
 	box-sizing: border-box;
 	padding: 20px;
+	color: #8c8c8c !important;
+}
+
+ul {
+	color: #8c8c8c !important;
+}
+
+nav {
+	color: #8c8c8c !important;
 }
 
 a.dropdown-item {

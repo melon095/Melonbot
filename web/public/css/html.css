@@ -1,10 +1,10 @@
 html,
-body,
-div.index-container,
-h4,
-p {
+body {
 	background-color: #1a1a1a !important;
-	color: #bfbfbf;
+}
+
+.c-white {
+	color: #bfbfbf !important;
 }
 
 body {

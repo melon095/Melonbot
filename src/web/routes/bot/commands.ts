@@ -1,5 +1,6 @@
 import { NCommandFunctions } from './../../../tools/tools.js';
 import { Database } from './../../../Typings/types.js';
+import MarkdownIt from 'markdown-it';
 
 export default (async function () {
 	const Express = await import('express');
@@ -36,15 +37,47 @@ export default (async function () {
 	});
 
 	Router.get('/:name', async (req, res) => {
-		const name = req.params.name;
-		const command = await Bot.Commands.get(name);
-		if (!command) {
+		const Name = req.params.name;
+		const Command = await Bot.Commands.get(Name);
+		if (!Command) {
 			return res.status(404).render('error', { safeError: 'That command does not exist' });
 		}
 
 		const prefix = Bot.Config.Prefix;
 
-		res.send(await command.LongDescription(prefix));
+		const LongDescription = (await Command.LongDescription?.(prefix)) || 'No description';
+
+		// The reason we have to replace pre code is because this parser decides
+		// that there should be whitespace behind every line
+		// can't have that, looks like shite.
+		const LongDescriptionHTML = new MarkdownIt({ breaks: true })
+			.render(LongDescription)
+			.replace('<pre><code>', '')
+			.split('\n')
+			.map((line) => line.trim())
+			.join('\n')
+			.replace(/^/, '<pre><code>');
+
+		const Alias = Command.Aliases.length ? Command.Aliases.join(', ') : 'None';
+
+		const Table = {
+			Name: Command.Name,
+			Aliases: Alias,
+			Description: Command.Description,
+			Cooldown: `${Command.Cooldown} Seconds`,
+			Permission: NCommandFunctions.DatabaseToMode(Command.Permission),
+			'Long Description': LongDescriptionHTML,
+		};
+
+		const Header = `${prefix} ${Command.Name}`;
+
+		res.render('table', {
+			table: Table,
+			head: Header,
+			title: `Command Description - ${Name}`,
+		});
+
+		// res.send(await command.LongDescription(prefix));
 	});
 
 	return Router;
