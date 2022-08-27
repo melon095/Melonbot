@@ -16,4 +16,9 @@ export default class extends CommandModel
     Code = async (ctx: TCommandContext) => {
         this.Resolve("This text would show up in chat!");
     };
+    LongDescription = async (prefix: string) => [
+        `This is a long description`,
+        `I am used on the website`
+        `I support **markdown**`
+    ]
 }
