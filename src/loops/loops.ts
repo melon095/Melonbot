@@ -115,7 +115,7 @@ import type { Database } from './../Typings/types';
 		const bot_id = Bot.Config.SevenTV.user_id;
 
 		const channels = await Bot.SQL.Query<Database.channels[]>`
-                SELECT name, seventv_emote_set 
+                SELECT name, seventv_emote_set, user_id
                 FROM channels`;
 
 		if (!channels.length) return;
@@ -180,6 +180,11 @@ import type { Database } from './../Typings/types';
                 UPDATE channels 
                 SET seventv_emote_set = ${default_emote_sets} 
                 WHERE name = ${channel?.name}`.execute();
+
+			const c = Bot.Twitch.Controller.TwitchChannelSpecific({ ID: channel.user_id });
+
+			c?.joinEventSub({ Channel: channel.name, EmoteSet: default_emote_sets });
+			c?.leaveEventsub({ Channel: channel.name, EmoteSet: channel.seventv_emote_set || '' });
 		}
 	}, ONE_MINUTE);
 
