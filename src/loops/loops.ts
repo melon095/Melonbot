@@ -1,17 +1,20 @@
-import axios from 'axios';
 import type { Database } from './../Typings/types';
-import { token } from './../tools/tools.js';
-import gql from './../SevenTVGQL.js';
 
-const STREAM_INFO_API = (stream: string) =>
-	`https://api.twitch.tv/helix/streams?user_login=${stream}`;
-const VIEWER_LIST_API = (stream: string) => `https://tmi.twitch.tv/group/user/${stream}/chatters`;
+(async () => {
+	const axios = await (await import('axios')).default;
+	const { token } = await import('./../tools/tools.js');
+	const gql = await (await import('./../SevenTVGQL.js')).default;
 
-const TWENTY_SECONDS = 20 * 1000;
-const ONE_MINUTE = 60 * 1000;
-const ONE_HOUR = 1000 * 60 * 60;
+	const STREAM_INFO_API = (stream: string) =>
+		`https://api.twitch.tv/helix/streams?user_login=${stream}`;
+	const VIEWER_LIST_API = (stream: string) =>
+		`https://tmi.twitch.tv/group/user/${stream}/chatters`;
 
-export function __loops() {
+	const TWENTY_SECONDS = 20 * 1000;
+	const ONE_MINUTE = 60 * 1000;
+	const ONE_HOUR = 1000 * 60 * 60;
+	const FIVE_MINUTES = 1000 * 60 * 5;
+
 	// Every 20 seconds check if a streamer is live.
 	setInterval(async () => {
 		try {
@@ -122,6 +125,8 @@ export function __loops() {
 		const editor_of = sets.user.editor_of;
 
 		for (const user of editor_of) {
+			// const user = editor_of[channel]
+
 			// Get their emote-sets
 			const user_sets = await gql.getUserEmoteSets(user.id);
 			if (user_sets === null) continue;
@@ -174,7 +179,7 @@ export function __loops() {
 			Bot.SQL.Query`
                 UPDATE channels 
                 SET seventv_emote_set = ${default_emote_sets} 
-                WHERE name = ${channel?.name}`;
+                WHERE name = ${channel?.name}`.execute();
 		}
 	}, ONE_MINUTE);
 
@@ -188,4 +193,40 @@ export function __loops() {
 
 		await Bot.Redis.SSet('seventv:roles', JSON.stringify(roles));
 	}, ONE_HOUR);
-}
+
+	/**
+	 * Keep track of channels 7TV Emote Set.
+	 *
+	 * Cheap way of doing it.
+	 */
+	setInterval(async () => {
+		const channels = await Bot.SQL.Query<Database.channels[]>`
+                SELECT name, seventv_emote_set, user_id
+                FROM channels`;
+
+		for (const channel of channels) {
+			const user = await gql.GetUserByUsername(channel.name).catch(() => undefined);
+			if (!user) continue;
+
+			const emote_set = await gql.getDefaultEmoteSet(user.id);
+			if (emote_set === null) continue;
+
+			const id = emote_set.emote_set_id;
+
+			if (id !== channel.seventv_emote_set) {
+				console.log(
+					`${channel.name} new 7TV emote set ${channel.seventv_emote_set} --> ${id}`,
+				);
+				Bot.SQL.Query`
+                    UPDATE channels 
+                    SET seventv_emote_set = ${id} 
+                    WHERE name = ${channel.name}`.execute();
+
+				Bot.Twitch.Controller.TwitchChannelSpecific({ ID: channel.user_id })?.joinEventSub({
+					Channel: channel.name,
+					EmoteSet: id,
+				});
+			}
+		}
+	}, FIVE_MINUTES);
+})();

@@ -367,7 +367,15 @@ export default {
 		return data.data;
 	},
 	V2GetUser: async (username: string): Promise<V2User> => {
-		return await got.get(`https://api.7tv.app/v2/users/${username}`).json();
+		const user = await got.get(`https://api.7tv.app/v2/users/${username}`, {
+			throwHttpErrors: false,
+		});
+
+		if (user.statusCode === 404) {
+			return Promise.reject('User not found');
+		}
+
+		return JSON.parse(user.body);
 	},
 	GetUserByUsername: async function (username: string): Promise<V3User> {
 		const id = await Bot.Redis.SGet(`seventv:id:${username}`).then(async (id) => {

@@ -1,7 +1,6 @@
 import tmi, { ChatUserstate } from 'tmi.js';
 import * as tools from './tools/tools.js';
 import fs from 'node:fs';
-import { __loops } from './loops/loops.js';
 import { Channel } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
@@ -64,9 +63,7 @@ export default class Twitch {
 
 		this._setupRedisCallbacks();
 
-		(async () => {
-			__loops();
-		})();
+		import('./loops/loops.js');
 	}
 
 	static async Init() {
