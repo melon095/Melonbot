@@ -1,10 +1,9 @@
 doctype html
 html
     head
+        include ./header.pug
+    
         title= "Not found"
-        meta(charset="utf-8")
-        meta(name="viewport" content="width=device-width, initial-scale=1")
-        meta(http-equiv="X-UA-Compatible" content="IE=edge")
         style 
             include /css/html.css
         
@@ -14,12 +13,12 @@ html
             }
 
     body
-        include header.pug
+        block header
         
         img(src="https://cdn.7tv.app/emote/60e5d610a69fc8d27f2737b7/4x")
-        .underImage
+        .underImage(class="c-white")
             p
-                span(id="bigFourOFour") 404
+                span(id="bigFourOFour") 404 
                 b
                     span(id="url")
                 div.

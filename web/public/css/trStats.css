@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Display&display=swap');
+
+.BotStats {
+	color: var(--bs-light) !important;
+}
+
+.BotStats p {
+	text-align: right;
+}
+
+.BotStats ul {
+	font-family: 'Noto Sans Display', sans-serif;
+	float: right;
+	direction: rtl;
+}
+
+.BotStats li:not(:last-child) {
+	margin-bottom: 10px;
+}
+
+#stats span {
+	text-align: right;
+	white-space: nowrap;
+	margin-left: 5px;
+}

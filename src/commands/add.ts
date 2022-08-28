@@ -47,9 +47,11 @@ export default class extends CommandModel {
 			filters.exact_match = true;
 		}
 
+		const specific = parseInt(ctx.input[1]);
+
 		emote = await gql
 			.SearchEmoteByName(ctx.input[0], filters)
-			.then((res) => res.emotes.items[0])
+			.then((res) => (specific ? res.emotes.items[specific] : res.emotes.items[0]))
 			.catch(() => {
 				return null;
 			});
@@ -96,4 +98,24 @@ export default class extends CommandModel {
 
 		return;
 	};
+	LongDescription = async (prefix: string) => [
+		`Add a 7TV emote to your emote set.`,
+		`**Usage**: ${prefix}add <emote>`,
+		`**Example**: ${prefix}add FloppaL`,
+		`**Example**: ${prefix}add FloppaL --alias=xqcL`,
+
+		`You can also add emotes by ID or URL.`,
+		`**Example**: ${prefix}add 60aeab8df6a2c3b332d21139`,
+		`**Example**: ${prefix}add https://7tv.app/emotes/60aeab8df6a2c3b332d21139`,
+
+		`If you want to add an emote that has a similar name to another emote, you can use the --exact flag.`,
+		`**Example**: ${prefix}add FloppaL --exact`,
+		``,
+		`Want the second emote in the list? Add a number after the emote name.`,
+		`**Example**: ${prefix}add FloppaL 1`,
+		'Index is 0 based, so 0 is the first emote in the list.',
+		'',
+		'**Required 7TV Permissions**',
+		'Modify Emotes',
+	];
 }

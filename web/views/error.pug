@@ -2,15 +2,19 @@ doctype html
 html
     head
         title= "Error"
+        
+        include ./header.pug
 
         style
             include /css/html.css
             include /css/error.css
 
     body
-        include header.pug
-        div(class='error')
+        block header
+        div(class='error c-white')
             h1(class='error-title') Error
             p(class='error-message') An error occured while processing your request.
-            p(class='error-message') Please try again later.
             p(class='error-message') Error Message: #{safeError}
+            hr
+            a(href='/')
+                button(class='btn btn-dark') Return to Homepage

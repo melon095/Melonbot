@@ -177,7 +177,7 @@ ALTER TABLE ONLY bot.tokens
 ALTER TABLE ONLY bot.banphrases
     ADD CONSTRAINT idx_banphrase_foreign FOREIGN KEY (channel) REFERENCES bot.channels(name) ON UPDATE CASCADE ON DELETE CASCADE;
 
-alter table stats
+alter table bot.stats
     add constraint idx_foreign_stats_name
         foreign key (name) references channels(name)
             on update cascade on delete cascade;

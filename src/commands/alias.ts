@@ -65,4 +65,14 @@ export default class extends CommandModel {
 			});
 		return;
 	};
+	LongDescription = async (prefix: string) => [
+		`This command allows you to set the alias of an emote.`,
+		`If you don't give it a name, it will remove the alias.`,
+		'',
+		`**Usage**: ${prefix}alias <emote> [alias]`,
+		`**Example**: ${prefix}alias FloppaL xqcL`,
+		'',
+		'**Required 7TV Flags**',
+		'Modify Emotes',
+	];
 }

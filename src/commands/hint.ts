@@ -19,4 +19,8 @@ export default class extends CommandModel {
 
 		this.Resolve(`(Trivia) Hints(${xd.length[0]}/${xd.length[1]}) ${xd.copy}`);
 	};
+	LongDescription = async (prefix: string) => [
+		`Get a hint for the current trivia question.`,
+		`Usage: ${prefix}hint`,
+	];
 }

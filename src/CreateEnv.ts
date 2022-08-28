@@ -66,6 +66,10 @@ export const Setup = {
 		await redis.Connect();
 
 		Bot.Redis = redis;
+		Bot.Commands = new CommandsHandler();
+		await Bot.Commands.initialize().catch(() => {
+			process.exit();
+		});
 
 		return;
 	},
@@ -83,10 +87,6 @@ export const Setup = {
 				SevenTVEvent: new SevenTVEvent(),
 			},
 		};
-		Bot.Commands = new CommandsHandler();
-		Bot.Commands.initialize().catch(() => {
-			process.exit();
-		});
 		Bot.Twitch.Controller.InitPromise.then(async () => {
 			// Run once connected to twitch
 			const twitch = Bot.Twitch.Controller;

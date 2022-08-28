@@ -36,7 +36,7 @@ import type { Database } from './../Typings/types';
 								Bot.SQL.Query`
                                     UPDATE channels 
                                     SET live = ${live} 
-                                    WHERE name = ${channel.Name}`;
+                                    WHERE name = ${channel.Name}`.execute();
 
 								try {
 									channel.UpdateLive();

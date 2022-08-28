@@ -14,10 +14,10 @@ export default class extends CommandModel {
 	Params = [];
 	Flags = [ECommandFlags.NO_BANPHRASE];
 	Code = async (ctx: TCommandContext) => {
+		const website = Bot.Config.Website.WebUrl;
+
 		if (ctx.input.length <= 0)
-			return this.Resolve(
-				`You can find all the commands here, ${Bot.Config.Website.WebUrl}/bot/commands !`,
-			);
+			return this.Resolve(`You can find all the commands here, ${website}/bot/commands !`);
 
 		const name = ctx.input[0];
 
@@ -30,9 +30,9 @@ export default class extends CommandModel {
 		const { Name, Description, Cooldown, Permission, Aliases } = command;
 
 		return this.Resolve(
-			`${Name}: Description: ${Description}. Cooldown: ${Cooldown}s. Permission: ${NCommandFunctions.DatabaseToMode(
+			`${Name}: Description: ${Description} Cooldown: ${Cooldown}s. Permission: ${NCommandFunctions.DatabaseToMode(
 				Permission,
-			)}. Aliases: ${Aliases.join(' | ')}`,
+			)} ${website}/bot/commands/${Name}`,
 		);
 	};
 }

@@ -175,7 +175,7 @@ export const token: Token = {
                                     SET 
                                         access_token = ${data.access_token}, 
                                         refresh_token = ${data.refresh_token} 
-                                    WHERE id = ${id}`;
+                                    WHERE id = ${id}`.execute();
 
 								return data.access_token;
 							})
