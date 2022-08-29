@@ -273,6 +273,7 @@ export class Channel {
 				const Result: CommandExecutionResult = {
 					user_id: ctx.user['user-id']!,
 					username: ctx.user.username!,
+					channel: this.Id,
 					success: true,
 					result: data,
 					args: ctx.input,
@@ -289,6 +290,7 @@ export class Channel {
 				const Result: CommandExecutionResult = {
 					user_id: ctx.user['user-id']!,
 					username: ctx.user.username!,
+					channel: this.Id,
 					success: false,
 					result: JSON.stringify(error),
 					args: ctx.input,
@@ -605,6 +607,8 @@ export class Channel {
 export interface CommandExecutionResult {
 	user_id: string;
 	username: string;
+
+	channel: string;
 
 	success: boolean;
 

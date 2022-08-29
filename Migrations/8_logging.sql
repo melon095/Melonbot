@@ -4,12 +4,14 @@ CREATE TABLE logs."commands_execution" (
     "id" SERIAL NOT NULL,
 	"user_id" VARCHAR(255) NOT NULL,
 	"username" VARCHAR(255) NOT NULL,
+    "channel" VARCHAR(255) NOT NULL,
 	"success" BOOLEAN NOT NULL,
 	"command" TEXT NOT NULL,
 	"args" TEXT[] NOT NULL,
 	"result" TEXT NOT NULL,
 	CONSTRAINT "commands_id_PRIMARY" PRIMARY KEY ("id"),
-	CONSTRAINT "commands_id_UNIQUE" UNIQUE ("id")
+	CONSTRAINT "commands_id_UNIQUE" UNIQUE ("id"),
+    CONSTRAINT "commands_channel_FOREIGN" FOREIGN KEY ("channel") REFERENCES "channels" ("user_id")
 );
 
 CREATE TABLE logs."web_request" (
