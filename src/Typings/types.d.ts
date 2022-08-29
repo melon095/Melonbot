@@ -196,4 +196,27 @@ export declare namespace Database {
 	export type migration = {
 		version: number;
 	};
+
+	export namespace logs {
+		export type commands_execution = {
+			id: number;
+			user_id: string;
+			username: string;
+			success: boolean;
+			command: string;
+			args: string[];
+			result: string;
+		};
+
+		export type web_request = {
+			id: number;
+			method: string;
+			endpoint: string;
+			request_ip: string;
+			headers?: string;
+			query?: string;
+			body?: string;
+			timestamp: Date;
+		};
+	}
 }

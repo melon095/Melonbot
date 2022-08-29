@@ -71,6 +71,24 @@ const header: HeaderItem[] = [
 		res.render('index', { title: 'Index', bot: { name: username } });
 	});
 
+	// Log web request
+	app.all('*', async (req, _res, next) => {
+		const data: WebRequestLog = {
+			endpoint: req.baseUrl + req.url,
+			method: req.method,
+			request_ip: `${req.header('X-Forwarded-For')} (${req.socket.remoteAddress})`,
+			headers: JSON.stringify(req.headers) || null,
+			body: JSON.stringify(req.body) || null,
+			query: JSON.stringify(req.query) || null,
+		};
+
+		Bot.SQL.Query`
+            INSERT INTO logs.web_request ${Bot.SQL.Get(data)}
+        `.execute();
+
+		next();
+	});
+
 	for (const middleware of middlewares) {
 		app.use(await tools.Import(dirname, `middlewares/${middleware}.js`));
 	}
@@ -83,3 +101,12 @@ const header: HeaderItem[] = [
 
 	app.listen(port, () => console.info('Listening...'));
 })();
+
+type WebRequestLog = {
+	method: string;
+	endpoint: string;
+	request_ip: string;
+	headers: string | null;
+	query: string | null;
+	body: string | null;
+};
