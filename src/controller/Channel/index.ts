@@ -238,10 +238,11 @@ export class Channel {
 								break;
 							}
 						}
-						delete copy[idx];
+						copy.splice(idx, 1);
 					}
 				}
 			}
+
 			const ArgsParseResult = {
 				input: copy,
 				params: values,
@@ -268,11 +269,33 @@ export class Channel {
 					SkipBanphrase: command.Flags.includes(ECommandFlags.NO_BANPHRASE),
 					NoEmoteAtStart: command.Flags.includes(ECommandFlags.NO_EMOTE_PREPEND),
 				});
+
+				const Result: CommandExecutionResult = {
+					user_id: ctx.user['user-id']!,
+					username: ctx.user.username!,
+					success: true,
+					result: data,
+					args: ctx.input,
+					command: command.Name,
+				};
+
+				this.logCommandExecution(Result);
 			});
 
 			result.catch((error) => {
 				Bot.HandleErrors('command/run/catch', error);
 				this.say('PoroSad Command Failed...');
+
+				const Result: CommandExecutionResult = {
+					user_id: ctx.user['user-id']!,
+					username: ctx.user.username!,
+					success: false,
+					result: JSON.stringify(error),
+					args: ctx.input,
+					command: command.Name,
+				};
+
+				this.logCommandExecution(Result);
 			});
 
 			Bot.SQL
@@ -524,6 +547,12 @@ export class Channel {
 		}
 	}
 
+	async logCommandExecution(result: CommandExecutionResult): Promise<void> {
+		await Bot.SQL.Query`
+            INSERT INTO logs.commands_execution ${Bot.SQL.Get(result)}
+        `;
+	}
+
 	private async InitiateTrivia(): Promise<void> {
 		this.Trivia = new TriviaController();
 
@@ -571,4 +600,15 @@ export class Channel {
 			userPermission;
 		return command.Permission <= userPermission ? true : false;
 	}
+}
+
+export interface CommandExecutionResult {
+	user_id: string;
+	username: string;
+
+	success: boolean;
+
+	command: string;
+	args: string[];
+	result: string;
 }
