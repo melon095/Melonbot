@@ -238,10 +238,11 @@ export class Channel {
 								break;
 							}
 						}
-						delete copy[idx];
+						copy.splice(idx, 1);
 					}
 				}
 			}
+
 			const ArgsParseResult = {
 				input: copy,
 				params: values,
