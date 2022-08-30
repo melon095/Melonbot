@@ -4,7 +4,6 @@ import { exit } from 'node:process';
 import { resolve } from 'node:path';
 import { EPermissionLevel } from './../../Typings/enums.js';
 import { Import } from './../../tools/tools.js';
-import { Database } from '../../Typings/types.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare type Class = new (...args: any[]) => CommandModel;

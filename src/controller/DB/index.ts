@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import postgres from 'postgres';
-import { Database } from 'Typings/types.js';
 import fs from 'node:fs';
 import { resolve } from 'node:path';
 

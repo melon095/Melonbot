@@ -36,5 +36,18 @@ declare global {
 		HandleErrors: (Category: string, Err: Error, ...args: string[]) => void;
 		ID: string;
 	};
+	declare namespace Database {
+		export type banphrases = import('./Typings/models/bot/index').banphrases;
+		export type channels = import('./Typings/models/bot/index').channels;
+		export type commands = import('./Typings/models/bot/index').commands;
+		export type error_logs = import('./Typings/models/bot/index').error_logs;
+		export type migration = import('./Typings/models/bot/index').migration;
+		export type suggestions = import('./Typings/models/bot/index').suggestions;
+		export type tokens = import('./Typings/models/bot/index').tokens;
+		export type trivia = import('./Typings/models/bot/index').trivia;
+		export type commands_execution = import('./Typings/models/logs/index').commands_execution;
+		export type web_requests = import('./Typings/models/logs/index').web_request;
+	}
 }
+
 export {};

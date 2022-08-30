@@ -1,6 +1,5 @@
 import MWebSocket from '../../../Models/Websocket.js';
 import WebSocket from 'ws';
-import { Database } from './../../../Typings/types.js';
 import { Channel } from './../../../controller/Channel/index.js';
 
 // type SevenTVPayload = {

@@ -5,7 +5,6 @@ import { Channel } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import EventSubTriggers from './triggers/eventsub/index.js';
-import { Database } from './Typings/types.js';
 
 interface IUserInformation {
 	data: [

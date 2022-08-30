@@ -1,5 +1,3 @@
-import type { Database } from './../Typings/types';
-
 (async () => {
 	const axios = await (await import('axios')).default;
 	const { token } = await import('./../tools/tools.js');
@@ -235,3 +233,5 @@ import type { Database } from './../Typings/types';
 		}
 	}, FIVE_MINUTES);
 })();
+
+export {};

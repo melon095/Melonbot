@@ -1,5 +1,5 @@
 import axios, { AxiosRequestConfig } from 'axios';
-import { Database, PhraseType } from './../../Typings/types';
+import { PhraseType } from './../../Typings/types';
 import * as regex from '../../tools/regex.js';
 
 // export const BanParams = [

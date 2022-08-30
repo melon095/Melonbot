@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Database, TCommandContext } from './../Typings/types';
+import { TCommandContext } from './../Typings/types';
 import { EPermissionLevel, ECommandFlags } from './../Typings/enums.js';
 import { CommandModel } from '../Models/Command.js';
 import { Channel } from './../controller/Channel/index.js';
