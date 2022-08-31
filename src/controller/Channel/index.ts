@@ -1,5 +1,4 @@
 import {
-	Database,
 	NChannel,
 	TCommandContext,
 	TUserCooldown,

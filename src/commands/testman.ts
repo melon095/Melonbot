@@ -1,4 +1,4 @@
-import { Database, TCommandContext } from './../Typings/types';
+import { TCommandContext } from './../Typings/types';
 import { EPermissionLevel, ECommandFlags } from './../Typings/enums.js';
 import { CommandModel } from '../Models/Command.js';
 import vm from 'node:vm';

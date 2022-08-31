@@ -1,5 +1,4 @@
 import { NCommandFunctions } from './../../../tools/tools.js';
-import { Database } from './../../../Typings/types.js';
 
 export default (async function () {
 	const Express = await import('express');

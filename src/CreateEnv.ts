@@ -11,7 +11,7 @@ Bot.Config.SQL = {};
 
 import { SQLController } from './controller/DB/index.js';
 import Twitch from './Twitch.js';
-import { TConfigFile, Database } from './Typings/types';
+import { TConfigFile } from './Typings/types';
 import { exit } from 'node:process';
 import { CommandsHandler } from './controller/Commands/Handler.js';
 import { SevenTVEvent } from './controller/Emote/SevenTV/EventAPI.js';

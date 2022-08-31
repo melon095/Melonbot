@@ -13,7 +13,7 @@
 		/* Language and Environment */
 		"target": "ES6" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
 		"lib": [
-            "ES2021",
+			"ES2021",
 			"ES6",
 			"DOM.Iterable",
 			"ES5",
@@ -108,6 +108,6 @@
 		// "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
 		"skipLibCheck": true /* Skip type checking all .d.ts files. */
 	},
-	"include": ["**/*.d.ts", "**/*.ts"],
+	"include": ["src/**/*.d.ts", "src/**/*.ts"],
 	"exclude": ["node_modules", ".vscode", "src/__tests__/**/*.test.ts"]
 }

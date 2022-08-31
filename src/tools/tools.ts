@@ -1,6 +1,6 @@
 import axios from 'axios';
 import humanize from 'humanize-duration';
-import { NChannel, Database, Token, TTokenFunction, NCommand } from './../Typings/types';
+import { NChannel, Token, TTokenFunction, NCommand } from './../Typings/types';
 import { ChatUserstate } from 'tmi.js';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -152,7 +152,7 @@ export const token: Token = {
                                     FROM tokens 
                                     WHERE id = ${id}`;
 
-						if (!refresh_token) return;
+						if (!refresh_token || !refresh_token.refresh_token) return;
 
 						const params: URLSearchParams = new URLSearchParams();
 						params.append('grant_type', 'refresh_token');

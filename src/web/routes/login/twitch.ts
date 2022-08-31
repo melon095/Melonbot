@@ -1,4 +1,3 @@
-import { Database } from '../../../Typings/types.js';
 import Got from '../../../tools/Got.js';
 
 const TWITCH_USER_TOKEN = (code: string) =>

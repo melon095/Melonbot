@@ -1,4 +1,4 @@
-import { TCommandContext, Database } from './../Typings/types';
+import { TCommandContext } from './../Typings/types';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import { CommandModel } from '../Models/Command.js';
 import gql, { ListItemAction } from './../SevenTVGQL.js';
