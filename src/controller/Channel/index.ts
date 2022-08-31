@@ -8,6 +8,7 @@ import { CommandModel, TCommandContext, TParamsContext } from '../../Models/Comm
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
 import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
+import User from './../User/index.js';
 
 /**
  * Encapsulated data for every channel.
@@ -159,24 +160,20 @@ export class Channel {
 		this.Trivia.tryAnswer(user, input.join(' '));
 	}
 
+	/**
+	 * @param user The user
+	 * @param input The input
+	 * @param extras Extra Twitch data related to the user.
+	 * @returns
+	 */
 	async tryCommand(
-		user: DankTwitch.PrivmsgMessage,
-		_command: string,
+		user: User,
 		input: string[],
+		commandName: string,
+		extras: DankTwitch.PrivmsgMessage,
 	): Promise<void> {
 		try {
-			/*
-                Checks if mode is read, allows the owner to use commands there.
-                Or if the command is in the filter.
-            */
-			if (
-				(this.Mode === 'Read' && user.senderUserID !== Bot.Config.OwnerUserID) ||
-				this.Filter.includes(input[1])
-			) {
-				return Promise.resolve();
-			}
-
-			const command = await Bot.Commands.get(_command);
+			const command = await Bot.Commands.get(commandName);
 
 			if (typeof command === 'undefined') return;
 
@@ -186,7 +183,7 @@ export class Channel {
 
 			const current = Date.now();
 
-			const timeout = this.GetCooldown(Number(user.senderUserID));
+			const timeout = this.getCooldown(user.ID);
 			if (typeof timeout === 'object') {
 				// User has done commands before, find the specific value for current command.
 				const cr = timeout.find((time) => time.Command === command.Name);
@@ -195,13 +192,13 @@ export class Channel {
 			}
 
 			// First time running command this instance or not on cooldown, so we set their cooldown.
-			this.SetCooldown(Number(user.senderUserID), {
+			this.setCooldown(user.ID, {
 				Command: command.Name,
 				TimeExecute: current + command.Cooldown * 1000,
 				Cooldown: Bot.Config.Development ? 0 : command.Cooldown,
 			});
 
-			if (!this.permissionCheck(command, user)) {
+			if (!this.permissionCheck(command, user, extras)) {
 				return;
 			}
 
@@ -216,6 +213,7 @@ export class Channel {
 				input: ArgsParseResult.input,
 				data: {
 					Params: ArgsParseResult.values,
+					User: extras,
 				},
 			};
 
@@ -224,8 +222,8 @@ export class Channel {
 
 				.then((data) => {
 					const CommandLogResult: CommandExecutionResult = {
-						user_id: ctx.user.senderUserID,
-						username: ctx.user.senderUsername,
+						user_id: user.TwitchUID,
+						username: user.Name,
 						channel: this.Id,
 						success: data.Success,
 						result: data.Result ?? '',
@@ -237,7 +235,7 @@ export class Channel {
 
 					if (!data.Result || !data.Result.length) return;
 
-					if (command.Ping) data.Result = `@${user.displayName}, ${data.Result}`;
+					if (command.Ping) data.Result = `@${user.Name}, ${data.Result}`;
 
 					if (!data.Success) data.Result = `❗ ${data.Result}`;
 
@@ -256,8 +254,8 @@ export class Channel {
 					});
 
 					const Result: CommandExecutionResult = {
-						user_id: ctx.user.senderUserID,
-						username: ctx.user.senderUsername,
+						user_id: user.TwitchUID,
+						username: user.Name,
 						channel: this.Id,
 						success: false,
 						result: JSON.stringify(error),
@@ -373,18 +371,19 @@ export class Channel {
 		} else this.InitiateTrivia();
 	}
 
-	static async Join(username: string, user_id: string) {
+	static async Join(user: User) {
 		const queries = [];
 
-		await Bot.SQL.Query`INSERT INTO channels (name, user_id) VALUES (${username}, ${user_id})`;
+		await Bot.SQL
+			.Query`INSERT INTO channels (name, user_id) VALUES (${user.Name}, ${user.TwitchUID})`;
 
-		queries.push(Bot.SQL.Query`INSERT INTO stats (name) VALUES (${username})`);
+		queries.push(Bot.SQL.Query`INSERT INTO stats (name) VALUES (${user.Name})`);
 
-		queries.push(Bot.SQL.Query`INSERT INTO banphrases VALUES (${username}, ${'[]'})`);
+		queries.push(Bot.SQL.Query`INSERT INTO banphrases VALUES (${user.Name}, ${'[]'})`);
 
 		const triviaValues: Database.trivia = {
-			channel: username,
-			user_id: user_id,
+			channel: user.Name,
+			user_id: user.TwitchUID,
 			cooldown: 60000,
 			filter: { exclude: [], include: [] },
 			leaderboard: [],
@@ -401,8 +400,9 @@ export class Channel {
 		});
 
 		try {
-			await Bot.Twitch.Controller.client.join(username);
-			const channel = await Bot.Twitch.Controller.AddChannelList(username!, user_id);
+			await Bot.Twitch.Controller.client.join(user.Name);
+			const channel = await Bot.Twitch.Controller.AddChannelList(user);
+
 			channel.say('ApuApustaja 👋 Hi');
 			// await Helix.EventSub.Create('channel.moderator.add', '1', {
 			// 	broadcaster_user_id: ctx.user.id,
@@ -500,11 +500,11 @@ export class Channel {
 		this.Live = _live;
 	}
 
-	GetCooldown(id: number): TUserCooldown[] {
+	private getCooldown(id: number): TUserCooldown[] {
 		return this.UserCooldowns[id];
 	}
 
-	SetCooldown(id: number, val: TUserCooldown): void {
+	private setCooldown(id: number, val: TUserCooldown): void {
 		if (!this.UserCooldowns[id]) {
 			this.UserCooldowns[id] = [val];
 			return;
@@ -563,19 +563,22 @@ export class Channel {
 		});
 	}
 
-	private permissionCheck(command: CommandModel, user: DankTwitch.PrivmsgMessage): boolean {
-		const { badges } = user;
+	private permissionCheck(
+		command: CommandModel,
+		user: User,
+		privmsg: DankTwitch.PrivmsgMessage,
+	): boolean {
+		const { badges } = privmsg;
 
 		let userPermission = EPermissionLevel.VIEWER;
 		userPermission = (badges.hasVIP && EPermissionLevel.VIP) || userPermission;
+
 		userPermission = (badges.hasModerator && EPermissionLevel.MOD) || userPermission;
+
 		userPermission =
-			(this.Id === user.senderUserID && EPermissionLevel.BROADCAST) || userPermission;
-		userPermission =
-			(Bot.Twitch.Controller.admins.find((name) => name === user.senderUsername) !==
-				undefined &&
-				EPermissionLevel.ADMIN) ||
-			userPermission;
+			(this.Id === user.TwitchUID && EPermissionLevel.BROADCAST) || userPermission;
+
+		userPermission = (user.Role === 'admin' && EPermissionLevel.ADMIN) || userPermission;
 		return command.Permission <= userPermission ? true : false;
 	}
 }

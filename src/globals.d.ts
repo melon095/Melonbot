@@ -1,9 +1,12 @@
 /* eslint-disable no-var */
 import Twitch from './Twitch.js';
+
 import { SQLController } from './controller/DB/index.js';
 import { CommandsHandler } from './controller/Commands/Handler.js';
 import { TConfigFile, TStaticDataConfig } from './Typings/types';
 import { SevenTVEvent } from './controller/Emote/SevenTV/EventAPI.js';
+import User from './controller/User/index.js';
+
 import { RedisSingleton } from './Singletons/Redis/index.js';
 import { RedisEvents } from './Singletons/Redis/Redis.Events.js';
 
@@ -32,6 +35,7 @@ declare global {
 				SevenTVEvent: SevenTVEvent;
 			};
 		};
+		User: typeof User;
 		Commands: CommandsHandler;
 		HandleErrors: (Category: string, Err: Error, ...args: string[]) => void;
 		ID: string;
@@ -45,6 +49,8 @@ declare global {
 		export type suggestions = import('./Typings/models/bot/index').suggestions;
 		export type tokens = import('./Typings/models/bot/index').tokens;
 		export type trivia = import('./Typings/models/bot/index').trivia;
+		export type users = import('./Typings/models/bot/index').users;
+		export type UserRole = import('./Typings/models/bot/index').UserRole;
 		export type commands_execution = import('./Typings/models/logs/index').commands_execution;
 		export type web_requests = import('./Typings/models/logs/index').web_request;
 	}

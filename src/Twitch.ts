@@ -5,6 +5,7 @@ import { Channel } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import EventSubTriggers from './triggers/eventsub/index.js';
+import User from './controller/User/index.js';
 
 interface IUserInformation {
 	data: [
@@ -31,7 +32,6 @@ interface IWhisperUser {
 
 export default class Twitch {
 	public client: DankTwitch.ChatClient;
-	public admins!: string[];
 	public owner!: string;
 
 	public channels: Channel[] = [];
@@ -51,7 +51,6 @@ export default class Twitch {
 				secure: true,
 			},
 		});
-
 		this.client.on('ready', () => {
 			console.log('Twitch client ready');
 			this.initFlags[0] = true;
@@ -80,8 +79,6 @@ export default class Twitch {
 		});
 
 		this.client.connect();
-
-		this.admins = JSON.parse(fs.readFileSync('./admins.json', { encoding: 'utf-8' }));
 
 		this._setupRedisCallbacks();
 
@@ -122,10 +119,10 @@ export default class Twitch {
 		this.InitReady.resolve(true);
 	}
 
-	async AddChannelList(channel: string, user_id: string): Promise<Channel> {
-		const c = await Channel.WithEventsub(channel, user_id, 'Write', false);
+	async AddChannelList(user: User): Promise<Channel> {
+		const c = await Channel.WithEventsub(user.Name, user.TwitchUID, 'Write', false);
 		this.channels.push(c);
-		return this.TwitchChannelSpecific({ ID: user_id })!;
+		return c;
 	}
 
 	RemoveChannelList(channel: string): void {
@@ -243,30 +240,38 @@ export default class Twitch {
 		if (!channel) return;
 
 		try {
+			const user = await Bot.User.Get(senderUserID, senderUsername);
+
 			// Update bot's mode if they have changed.
 			if (senderUserID === Bot.Config.BotUsername) {
 				channel.UpdateAll(msg);
 				return;
 			}
 
-			const [command, ...input] = messageText
+			const [commandName, ...input] = messageText
 				.replace(Bot.Config.Prefix, '')
 				.split(/\s+/)
 				.filter(Boolean);
 
-			channel.tryTrivia(senderUsername, [command, ...input]);
+			channel.tryTrivia(senderUsername, [commandName, ...input]);
 
 			if (!messageText.toLocaleLowerCase().startsWith(Bot.Config.Prefix)) {
 				return;
 			}
+			/*
+                Checks if mode is read, allows the owner to use commands there.
+                Or if the command is in the filter.
+            */
+			if (
+				(channel.Mode === 'Read' && user.TwitchUID !== Bot.Config.OwnerUserID) ||
+				channel.Filter.includes(input[1])
+			) {
+				return;
+			}
 
-			channel.tryCommand(msg, command, input);
+			channel.tryCommand(user, input, commandName, msg);
 		} catch (error) {
-			Bot.HandleErrors('Twitch/MessageHandler', new Error(error as never));
-			channel.say('BrokeBack command failed', {
-				SkipBanphrase: true,
-				NoEmoteAtStart: true,
-			});
+			Bot.HandleErrors('Twitch/MessageHandler', error as Error);
 		}
 	}
 }

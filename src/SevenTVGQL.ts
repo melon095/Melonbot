@@ -506,11 +506,11 @@ export default {
 			};
 		}
 
-		if (ctx.channel.Id !== ctx.user.senderUserID) {
+		if (ctx.channel.Id !== ctx.user.TwitchUID) {
 			const cant_use = await Bot.Redis.SetMembers(
 				`seventv:${emote_set_id.seventv_emote_set}:editors`,
 			).then((res) => {
-				if (!res.includes(ctx.user.senderUsername)) {
+				if (!res.includes(ctx.user.Name)) {
 					return 'USER';
 				} else if (!res.includes(Bot.Config.BotUsername)) {
 					return 'BOT';

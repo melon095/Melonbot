@@ -28,7 +28,7 @@ export default class extends CommandModel {
 		if (isSkip) {
 			return {
 				Success: true,
-				Result: ctx.channel.Trivia.trySkip(ctx.user.senderUsername),
+				Result: ctx.channel.Trivia.trySkip(ctx.user.Name),
 			};
 		}
 
@@ -37,8 +37,7 @@ export default class extends CommandModel {
 			Result: await ctx.channel.Trivia?.start(
 				ctx.data.Params['exclude'] as string,
 				ctx.data.Params['include'] as string,
-				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-				ctx.user.senderUsername,
+				ctx.user.Name,
 			),
 		};
 	};

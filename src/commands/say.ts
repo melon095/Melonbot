@@ -12,6 +12,6 @@ export default class extends CommandModel {
 	Params = [];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		return { Success: true, Result: `${ctx.input.join(' ')}` };
+		return { Success: true, Result: ctx.input.join(' ') };
 	};
 }

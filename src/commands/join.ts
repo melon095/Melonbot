@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import { Channel } from './../controller/Channel/index.js';
@@ -24,7 +23,7 @@ export default class extends CommandModel {
 		const [name] = await Bot.SQL.Query<Database.channels[]>`
                 SELECT name 
                 FROM channels 
-                WHERE user_id = ${ctx.user.senderUserID}`;
+                WHERE user_id = ${ctx.user.TwitchUID}`;
 
 		if (name) {
 			return {
@@ -33,7 +32,7 @@ export default class extends CommandModel {
 			};
 		}
 
-		return await Channel.Join(ctx.user.senderUsername, ctx.user.senderUserID)
+		return await Channel.Join(ctx.user)
 			.then(() => {
 				return {
 					Success: true,

@@ -1,5 +1,6 @@
 import { EPermissionLevel, ECommandFlags } from '../Typings/enums.js';
 import { Channel } from 'controller/Channel';
+import User from './../controller/User/index.js';
 import DankTwitch from '@kararty/dank-twitch-irc';
 
 export type LongDescriptionFunction = (prefix: string) => Promise<string[]>;
@@ -8,7 +9,7 @@ export type TExecuteFunction = (arg0: TCommandContext) => Promise<CommandResult>
 
 export type TCommandContext = {
 	channel: Channel;
-	user: DankTwitch.PrivmsgMessage;
+	user: User;
 	input: string[];
 	data: TContextData;
 };
@@ -23,7 +24,14 @@ export type TParamsContext = {
 };
 
 export type TContextData = {
+	/**
+	 * Channel parameters
+	 */
 	Params: TParamsContext;
+	/**
+	 * Extra data that twitch sends with the user.
+	 */
+	User: object;
 };
 
 export type CommandResult = {

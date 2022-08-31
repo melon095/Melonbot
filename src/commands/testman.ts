@@ -50,7 +50,16 @@ export default class extends CommandModel {
 				};
 			}
 
-			return await Channel.Join(username as string, id as string)
+			const user = await Bot.User.Get(username as string, id as string);
+
+			if (!user) {
+				return {
+					Success: false,
+					Result: 'I have never seen this user before.',
+				};
+			}
+
+			return await Channel.Join(user)
 				.then(() => {
 					return {
 						Success: true,
