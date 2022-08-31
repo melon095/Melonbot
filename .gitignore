@@ -1,5 +1,4 @@
 build
-logs
 node_modules
 stats
 config.json
