@@ -415,7 +415,7 @@ export class Channel {
 			await Bot.Twitch.Controller.client.join(username);
 			const channel = await Bot.Twitch.Controller.AddChannelList(username!, user_id);
 
-      channel.say('ApuApustaja 👋 Hi');
+			channel.say('ApuApustaja 👋 Hi');
 			// await Helix.EventSub.Create('channel.moderator.add', '1', {
 			// 	broadcaster_user_id: ctx.user.id,
 			// });
@@ -580,9 +580,9 @@ export class Channel {
 
 		let userPermission = EPermissionLevel.VIEWER;
 		userPermission = (badges.hasVIP && EPermissionLevel.VIP) || userPermission;
-    
+
 		userPermission = (badges.hasModerator && EPermissionLevel.MOD) || userPermission;
-    
+
 		userPermission =
 			(this.Id === user.senderUserID && EPermissionLevel.BROADCAST) || userPermission;
 
