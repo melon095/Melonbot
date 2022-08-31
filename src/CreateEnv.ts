@@ -98,7 +98,7 @@ export const Setup = {
 
 			const self = await Channel.CreateBot();
 
-			await twitch.client.join('#' + Bot.Config.BotUsername);
+			await twitch.client.join(Bot.Config.BotUsername);
 			twitch.channels.push(self);
 
 			// Join all channels
@@ -110,7 +110,7 @@ export const Setup = {
 				for (const channel of channelList) {
 					console.log(`#Twitch Joining ${channel.name}`);
 					await twitch.client
-						.join('#' + channel.name)
+						.join(channel.name)
 						.catch((err: string) => console.error(err));
 					twitch.channels.push(
 						await Channel.WithEventsub(

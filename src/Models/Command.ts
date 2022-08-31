@@ -1,6 +1,7 @@
 import { EPermissionLevel, ECommandFlags } from '../Typings/enums.js';
 import { Channel } from 'controller/Channel';
 import User from './../controller/User/index.js';
+import DankTwitch from '@kararty/dank-twitch-irc';
 
 export type LongDescriptionFunction = (prefix: string) => Promise<string[]>;
 

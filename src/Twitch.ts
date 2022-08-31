@@ -1,4 +1,4 @@
-import tmi, { ChatUserstate } from 'tmi.js';
+import DankTwitch from '@kararty/dank-twitch-irc';
 import * as tools from './tools/tools.js';
 import fs from 'node:fs';
 import { Channel } from './controller/Channel/index.js';
@@ -31,7 +31,7 @@ interface IWhisperUser {
 }
 
 export default class Twitch {
-	public client!: tmi.Client;
+	public client: DankTwitch.ChatClient;
 	public owner!: string;
 
 	public channels: Channel[] = [];
@@ -42,22 +42,43 @@ export default class Twitch {
 	private constructor() {
 		this.InitFulfill();
 
-		this.client = new tmi.client({
-			options: {
-				debug: Bot.Config.Development, // Use this to console.log chat messages
-				joinInterval: Bot.Config.Verified ? 300 : 2000,
-			},
-			identity: {
-				username: Bot.Config.BotUsername,
-				password: Bot.Config.Twitch.OAuth,
-			},
+		this.client = new DankTwitch.ChatClient({
+			username: Bot.Config.BotUsername,
+			password: Bot.Config.Twitch.OAuth,
+			rateLimits: Bot.Config.Verified ? 'verifiedBot' : 'default',
 			connection: {
-				reconnect: true,
-				maxReconnectAttempts: 5,
-				reconnectInterval: 1000,
+				type: 'websocket',
 				secure: true,
 			},
 		});
+		this.client.on('ready', () => {
+			console.log('Twitch client ready');
+			this.initFlags[0] = true;
+		});
+
+		this.client.on('PRIVMSG', (msg) => this.MessageHandler(msg));
+
+		this.client.on('error', (error) => {
+			console.log({ error });
+
+			if (
+				error instanceof DankTwitch.SayError &&
+				error.cause instanceof DankTwitch.MessageError
+			) {
+				if (error.message.includes('Bad response message')) {
+					const _chl = this.TwitchChannelSpecific({
+						Name: error.failedChannelName,
+					});
+					if (_chl) {
+						_chl.AutomodMessage(
+							'A message that was about to be posted was blocked by automod',
+						);
+					}
+				}
+			}
+		});
+
+		this.client.connect();
 
 		this._setupRedisCallbacks();
 
@@ -68,36 +89,6 @@ export default class Twitch {
 		const t = new Twitch();
 
 		await t.SetOwner();
-
-		t.owner = '';
-		try {
-			await t.client.connect();
-		} catch (err) {
-			console.log('Failed to connect to Twitch', err);
-			process.exit(1);
-		}
-
-		t.client.on('connected', async (addr: string, port: number) => {
-			console.log(`* Connected to ${addr}:${port}`);
-			t.initFlags[0] = true;
-		});
-
-		t.client.on('message', (a, b, c, d) => t.MessageHandler(a, b, c, d));
-
-		t.client.on('pong', async (l) => {
-			console.log(`Twitch Latency : ${l}`);
-			await Bot.Redis.SSet('Latency', String(l));
-		});
-
-		t.client.on('automod', (channel, userstate, message) => {
-			console.log({ channel, userstate, message });
-			const _chl = t.TwitchChannelSpecific({
-				Name: channel.replace('#', ''),
-			});
-			if (_chl) {
-				_chl.AutomodMessage(message, userstate);
-			}
-		});
 
 		return t;
 	}
@@ -170,8 +161,6 @@ export default class Twitch {
 	}
 
 	// Whisper a user, if the bot is allowed to (Verified)
-	// If not verified we find a channel where the user exists.
-	// Favor the user's own channel.
 	async Whisper(User: IWhisperUser, Message: string): Promise<void> {
 		const a = () => `@${User.Username}, New message! 📬 👉 ${Message}`;
 		if (!Bot.Config.Verified) {
@@ -242,15 +231,10 @@ export default class Twitch {
 		}
 	}
 
-	private async MessageHandler(
-		internal_channel: string,
-		user: ChatUserstate,
-		message: string,
-		self: boolean,
-	) {
-		internal_channel = internal_channel.slice(1);
+	private async MessageHandler(msg: DankTwitch.PrivmsgMessage) {
+		const { channelName, messageText, senderUserID, senderUsername } = msg;
 
-		const channel = this.channels.find((chl) => chl.LowercaseName === internal_channel);
+		const channel = this.channels.find((chl) => chl.LowercaseName === channelName);
 
 		// This would never happen, but typescript rules..
 		if (!channel) return;
@@ -259,19 +243,19 @@ export default class Twitch {
 			const realUser = await Bot.User.Get(user['user-id']!, user.username!);
 
 			// Update bot's mode if they have changed.
-			if (self || user['username'] === Bot.Config.BotUsername) {
-				channel.UpdateAll(user);
+			if (senderUserID === Bot.Config.BotUsername) {
+				channel.UpdateAll(msg);
 				return;
 			}
 
-			const [command, ...input] = message
+			const [command, ...input] = messageText
 				.replace(Bot.Config.Prefix, '')
 				.split(/\s+/)
 				.filter(Boolean);
 
-			channel.tryTrivia(user, [command, ...input]);
+			channel.tryTrivia(senderUsername, [command, ...input]);
 
-			if (!message.toLocaleLowerCase().startsWith(Bot.Config.Prefix)) {
+			if (!messageText.toLocaleLowerCase().startsWith(Bot.Config.Prefix)) {
 				return;
 			}
 

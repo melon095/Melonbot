@@ -26,10 +26,9 @@ export default class extends CommandModel {
 		const isSkip = ctx.input[0] && ['skip', 'stop'].includes(ctx.input[0].toLowerCase());
 
 		if (isSkip) {
-			ctx.channel.Trivia.trySkip(ctx.user.Name);
 			return {
 				Success: true,
-				Result: '',
+				Result: ctx.channel.Trivia.trySkip(ctx.user.senderUsername),
 			};
 		}
 

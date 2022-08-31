@@ -3,8 +3,8 @@ import { EPermissionLevel, ECommandFlags } from './../../Typings/enums.js';
 import { Banphrase } from './../Banphrase/index.js';
 import * as tools from './../../tools/tools.js';
 import { MessageScheduler } from './../../tools/MessageScheduler.js';
-import { ChatUserstate } from 'tmi.js';
-import { CommandModel, TCommandContext } from '../../Models/Command.js';
+import DankTwitch from '@kararty/dank-twitch-irc';
+import { CommandModel, TCommandContext, TParamsContext } from '../../Models/Command.js';
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
 import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
@@ -149,8 +149,13 @@ export class Channel {
 		this.LastMessage = msg;
 	}
 
-	async tryTrivia(user: ChatUserstate, input: string[]): Promise<void> {
-		if (!this.Trivia || !this.Trivia.initiated) return Promise.resolve();
+	/**
+	 * @param user Username
+	 * @param input Input
+	 * @returns
+	 */
+	async tryTrivia(user: string, input: string[]): Promise<void> {
+		if (!this.Trivia || !this.Trivia.initiated) return;
 
 		this.Trivia.tryAnswer(user, input.join(' '));
 	}
@@ -285,12 +290,7 @@ export class Channel {
 	}
 
 	async VanishUser(username: string): Promise<void> {
-		await Bot.Twitch.Controller.client.timeout(
-			'#' + this.Name,
-			username,
-			1,
-			'Vanish Command Issued',
-		);
+		await Bot.Twitch.Controller.client.timeout(this.Name, username, 1, 'Vanish Command Issued');
 	}
 
 	async joinEventSub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
@@ -345,7 +345,7 @@ export class Channel {
 			this.Banphrase.Check(message)
 				.then((IsBanned) => {
 					if (!IsBanned.okay) {
-						Bot.Twitch.Controller.client.say('#' + this.Name, result);
+						Bot.Twitch.Controller.client.say(this.Name, result);
 					} else {
 						console.log({
 							What: 'Received bad word in channel',
@@ -365,7 +365,7 @@ export class Channel {
 					);
 				});
 		} else {
-			Bot.Twitch.Controller.client.say('#' + this.Name, result);
+			Bot.Twitch.Controller.client.say(this.Name, cleanMessage(result));
 		}
 	}
 
@@ -412,9 +412,10 @@ export class Channel {
 		});
 
 		try {
-			await Bot.Twitch.Controller.client.join('#' + user.Name);
-			const channel = await Bot.Twitch.Controller.AddChannelList(user);
-			channel.say('ApuApustaja 👋 Hi');
+			await Bot.Twitch.Controller.client.join(username);
+			const channel = await Bot.Twitch.Controller.AddChannelList(username!, user_id);
+
+      channel.say('ApuApustaja 👋 Hi');
 			// await Helix.EventSub.Create('channel.moderator.add', '1', {
 			// 	broadcaster_user_id: ctx.user.id,
 			// });
@@ -444,17 +445,19 @@ export class Channel {
 	}
 
 	// On self messages.
-	async UpdateAll(user: ChatUserstate): Promise<void> {
+	async UpdateAll(user: DankTwitch.PrivmsgMessage): Promise<void> {
+		const { badges } = user;
+
 		// Moderator
-		if (user.mod) {
+		if (badges.hasModerator || badges.hasBroadcaster) {
 			this.setMod();
 		}
 		// Vip
-		else if (user.badges?.vip?.length) {
+		else if (badges.hasVIP) {
 			this.setVip();
 		}
 		// Default user
-		else if (this.Mode !== 'Read' && !user.mod && !user.badges?.vip?.length) {
+		else if (this.Mode !== 'Read' && !badges.hasModerator && !badges.hasVIP) {
 			this.setNorman();
 		}
 	}
@@ -525,8 +528,8 @@ export class Channel {
 		} else this.UserCooldowns[id][idx] = val;
 	}
 
-	AutomodMessage(message: string, userstate: 'msg_rejected' | 'msg_rejected_mandatory'): void {
-		if (this.Queue.hasMessage && userstate === 'msg_rejected_mandatory') {
+	AutomodMessage(message: string): void {
+		if (this.Queue.hasMessage) {
 			this.say(message, { SkipBanphrase: true });
 			return;
 		}
@@ -572,13 +575,16 @@ export class Channel {
 		});
 	}
 
-	private permissionCheck(command: CommandModel, TwitchUser: ChatUserstate, User: User): boolean {
-		let userPermission = EPermissionLevel.VIEWER;
-		userPermission = (TwitchUser.badges?.vip && EPermissionLevel.VIP) || userPermission;
+	private permissionCheck(command: CommandModel, user: DankTwitch.PrivmsgMessage): boolean {
+		const { badges } = user;
 
+		let userPermission = EPermissionLevel.VIEWER;
+		userPermission = (badges.hasVIP && EPermissionLevel.VIP) || userPermission;
+    
+		userPermission = (badges.hasModerator && EPermissionLevel.MOD) || userPermission;
+    
 		userPermission =
-			((TwitchUser.mod || TwitchUser['user-type'] === 'mod') && EPermissionLevel.MOD) ||
-			userPermission;
+			(this.Id === user.senderUserID && EPermissionLevel.BROADCAST) || userPermission;
 
 		userPermission =
 			(this.Id === TwitchUser['user-id'] && EPermissionLevel.BROADCAST) || userPermission;
@@ -600,3 +606,5 @@ export interface CommandExecutionResult {
 	args: string[];
 	result: string;
 }
+
+const cleanMessage = (message: string): string => message.replace(/(\r\n|\n|\r)/gm, ' ');
