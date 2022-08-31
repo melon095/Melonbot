@@ -17,7 +17,7 @@ export default class extends CommandModel {
 		Bot.Twitch.Controller.RemoveChannelList(ctx.channel.Name);
 
 		setTimeout(() => {
-			Bot.Twitch.Controller.client.part('#' + ctx.channel.Name);
+			Bot.Twitch.Controller.client.part(ctx.channel.Name);
 		}, 10000); // Leave after 10 seconds.
 
 		return {

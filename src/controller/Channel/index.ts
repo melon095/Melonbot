@@ -3,7 +3,7 @@ import { EPermissionLevel, ECommandFlags } from './../../Typings/enums.js';
 import { Banphrase } from './../Banphrase/index.js';
 import * as tools from './../../tools/tools.js';
 import { MessageScheduler } from './../../tools/MessageScheduler.js';
-import { ChatUserstate } from 'tmi.js';
+import DankTwitch from '@kararty/dank-twitch-irc';
 import { CommandModel, TCommandContext, TParamsContext } from '../../Models/Command.js';
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
@@ -148,20 +148,29 @@ export class Channel {
 		this.LastMessage = msg;
 	}
 
-	async tryTrivia(user: ChatUserstate, input: string[]): Promise<void> {
-		if (!this.Trivia || !this.Trivia.initiated) return Promise.resolve();
+	/**
+	 * @param user Username
+	 * @param input Input
+	 * @returns
+	 */
+	async tryTrivia(user: string, input: string[]): Promise<void> {
+		if (!this.Trivia || !this.Trivia.initiated) return;
 
 		this.Trivia.tryAnswer(user, input.join(' '));
 	}
 
-	async tryCommand(user: ChatUserstate, _command: string, input: string[]): Promise<void> {
+	async tryCommand(
+		user: DankTwitch.PrivmsgMessage,
+		_command: string,
+		input: string[],
+	): Promise<void> {
 		try {
 			/*
                 Checks if mode is read, allows the owner to use commands there.
                 Or if the command is in the filter.
             */
 			if (
-				(this.Mode === 'Read' && user['user-id'] !== Bot.Config.OwnerUserID) ||
+				(this.Mode === 'Read' && user.senderUserID !== Bot.Config.OwnerUserID) ||
 				this.Filter.includes(input[1])
 			) {
 				return Promise.resolve();
@@ -177,7 +186,7 @@ export class Channel {
 
 			const current = Date.now();
 
-			const timeout = this.GetCooldown(Number(user['user-id']));
+			const timeout = this.GetCooldown(Number(user.senderUserID));
 			if (typeof timeout === 'object') {
 				// User has done commands before, find the specific value for current command.
 				const cr = timeout.find((time) => time.Command === command.Name);
@@ -186,7 +195,7 @@ export class Channel {
 			}
 
 			// First time running command this instance or not on cooldown, so we set their cooldown.
-			this.SetCooldown(Number(user['user-id']), {
+			this.SetCooldown(Number(user.senderUserID), {
 				Command: command.Name,
 				TimeExecute: current + command.Cooldown * 1000,
 				Cooldown: Bot.Config.Development ? 0 : command.Cooldown,
@@ -215,8 +224,8 @@ export class Channel {
 
 				.then((data) => {
 					const CommandLogResult: CommandExecutionResult = {
-						user_id: ctx.user['user-id']!,
-						username: ctx.user.username!,
+						user_id: ctx.user.senderUserID,
+						username: ctx.user.senderUsername,
 						channel: this.Id,
 						success: data.Success,
 						result: data.Result ?? '',
@@ -228,7 +237,7 @@ export class Channel {
 
 					if (!data.Result || !data.Result.length) return;
 
-					if (command.Ping) data.Result = `@${user['display-name']}, ${data.Result}`;
+					if (command.Ping) data.Result = `@${user.displayName}, ${data.Result}`;
 
 					if (!data.Success) data.Result = `❗ ${data.Result}`;
 
@@ -247,8 +256,8 @@ export class Channel {
 					});
 
 					const Result: CommandExecutionResult = {
-						user_id: ctx.user['user-id']!,
-						username: ctx.user.username!,
+						user_id: ctx.user.senderUserID,
+						username: ctx.user.senderUsername,
 						channel: this.Id,
 						success: false,
 						result: JSON.stringify(error),
@@ -271,12 +280,7 @@ export class Channel {
 	}
 
 	async VanishUser(username: string): Promise<void> {
-		await Bot.Twitch.Controller.client.timeout(
-			'#' + this.Name,
-			username,
-			1,
-			'Vanish Command Issued',
-		);
+		await Bot.Twitch.Controller.client.timeout(this.Name, username, 1, 'Vanish Command Issued');
 	}
 
 	async joinEventSub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
@@ -331,7 +335,7 @@ export class Channel {
 			this.Banphrase.Check(message)
 				.then((IsBanned) => {
 					if (!IsBanned.okay) {
-						Bot.Twitch.Controller.client.say('#' + this.Name, result);
+						Bot.Twitch.Controller.client.say(this.Name, result);
 					} else {
 						console.log({
 							What: 'Received bad word in channel',
@@ -351,7 +355,7 @@ export class Channel {
 					);
 				});
 		} else {
-			Bot.Twitch.Controller.client.say('#' + this.Name, result);
+			Bot.Twitch.Controller.client.say(this.Name, cleanMessage(result));
 		}
 	}
 
@@ -397,7 +401,7 @@ export class Channel {
 		});
 
 		try {
-			await Bot.Twitch.Controller.client.join('#' + username);
+			await Bot.Twitch.Controller.client.join(username);
 			const channel = await Bot.Twitch.Controller.AddChannelList(username!, user_id);
 			channel.say('ApuApustaja 👋 Hi');
 			// await Helix.EventSub.Create('channel.moderator.add', '1', {
@@ -429,17 +433,19 @@ export class Channel {
 	}
 
 	// On self messages.
-	async UpdateAll(user: ChatUserstate): Promise<void> {
+	async UpdateAll(user: DankTwitch.PrivmsgMessage): Promise<void> {
+		const { badges } = user;
+
 		// Moderator
-		if (user.mod) {
+		if (badges.hasModerator || badges.hasBroadcaster) {
 			this.setMod();
 		}
 		// Vip
-		else if (user.badges?.vip?.length) {
+		else if (badges.hasVIP) {
 			this.setVip();
 		}
 		// Default user
-		else if (this.Mode !== 'Read' && !user.mod && !user.badges?.vip?.length) {
+		else if (this.Mode !== 'Read' && !badges.hasModerator && !badges.hasVIP) {
 			this.setNorman();
 		}
 	}
@@ -510,8 +516,8 @@ export class Channel {
 		} else this.UserCooldowns[id][idx] = val;
 	}
 
-	AutomodMessage(message: string, userstate: 'msg_rejected' | 'msg_rejected_mandatory'): void {
-		if (this.Queue.hasMessage && userstate === 'msg_rejected_mandatory') {
+	AutomodMessage(message: string): void {
+		if (this.Queue.hasMessage) {
 			this.say(message, { SkipBanphrase: true });
 			return;
 		}
@@ -557,15 +563,17 @@ export class Channel {
 		});
 	}
 
-	private permissionCheck(command: CommandModel, user: ChatUserstate): boolean {
+	private permissionCheck(command: CommandModel, user: DankTwitch.PrivmsgMessage): boolean {
+		const { badges } = user;
+
 		let userPermission = EPermissionLevel.VIEWER;
-		userPermission = (user.badges?.vip && EPermissionLevel.VIP) || userPermission;
+		userPermission = (badges.hasVIP && EPermissionLevel.VIP) || userPermission;
+		userPermission = (badges.hasModerator && EPermissionLevel.MOD) || userPermission;
 		userPermission =
-			((user.mod || user['user-type'] === 'mod') && EPermissionLevel.MOD) || userPermission;
+			(this.Id === user.senderUserID && EPermissionLevel.BROADCAST) || userPermission;
 		userPermission =
-			(this.Id === user['user-id'] && EPermissionLevel.BROADCAST) || userPermission;
-		userPermission =
-			(Bot.Twitch.Controller.admins.find((name) => name === user.username) !== undefined &&
+			(Bot.Twitch.Controller.admins.find((name) => name === user.senderUsername) !==
+				undefined &&
 				EPermissionLevel.ADMIN) ||
 			userPermission;
 		return command.Permission <= userPermission ? true : false;
@@ -584,3 +592,5 @@ export interface CommandExecutionResult {
 	args: string[];
 	result: string;
 }
+
+const cleanMessage = (message: string): string => message.replace(/(\r\n|\n|\r)/gm, ' ');

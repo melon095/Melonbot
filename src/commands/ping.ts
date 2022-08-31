@@ -26,7 +26,6 @@ export default class extends CommandModel {
 		const commitSha = cleanCommand('git rev-parse --short HEAD');
 		const branch = cleanCommand('git rev-parse --abbrev-ref HEAD');
 
-		const latency = (await Bot.Redis.SGet('Latency')) || 'N/A';
 		const devBot = Bot.Config.Development ? ' Development Bot' : ' ';
 
 		return {
@@ -35,7 +34,6 @@ export default class extends CommandModel {
 				`Pong!`,
 				`Uptime ${tools.humanizeDuration(process.uptime())}`,
 				`${commitCount} ${branch.toString()}@${commitSha}`,
-				`Delay ${latency}S`,
 				devBot,
 			]
 				.filter(Boolean)

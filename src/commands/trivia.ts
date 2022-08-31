@@ -26,10 +26,9 @@ export default class extends CommandModel {
 		const isSkip = ctx.input[0] && ['skip', 'stop'].includes(ctx.input[0].toLowerCase());
 
 		if (isSkip) {
-			ctx.channel.Trivia.trySkip(ctx.user.username!);
 			return {
 				Success: true,
-				Result: '',
+				Result: ctx.channel.Trivia.trySkip(ctx.user.senderUsername),
 			};
 		}
 
@@ -39,7 +38,7 @@ export default class extends CommandModel {
 				ctx.data.Params['exclude'] as string,
 				ctx.data.Params['include'] as string,
 				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-				ctx.user.username!,
+				ctx.user.senderUsername,
 			),
 		};
 	};

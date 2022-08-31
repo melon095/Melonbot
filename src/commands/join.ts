@@ -24,7 +24,7 @@ export default class extends CommandModel {
 		const [name] = await Bot.SQL.Query<Database.channels[]>`
                 SELECT name 
                 FROM channels 
-                WHERE user_id = ${ctx.user['user-id']!}`;
+                WHERE user_id = ${ctx.user.senderUserID}`;
 
 		if (name) {
 			return {
@@ -33,7 +33,7 @@ export default class extends CommandModel {
 			};
 		}
 
-		return await Channel.Join(ctx.user.username!, ctx.user['user-id']!)
+		return await Channel.Join(ctx.user.senderUsername, ctx.user.senderUserID)
 			.then(() => {
 				return {
 					Success: true,

@@ -20,7 +20,7 @@ export default class extends CommandModel {
 	Params = [];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		const name = ctx.input[0] || ctx.user.username!;
+		const name = ctx.input[0] || ctx.user.senderUsername;
 		const user = await gql
 			.GetUserByUsername(name.replace('@', ''))
 			.then((u) => u)
