@@ -1,8 +1,7 @@
-import { TCommandContext } from './../Typings/types';
-import { EPermissionLevel, ECommandFlags } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
+
 import vm from 'node:vm';
-import Helix from './../Helix/index.js';
 import { Channel } from './../controller/Channel/index.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,36 +39,45 @@ export default class extends CommandModel {
 		{ name: 'id', type: 'string' },
 	];
 	Flags = [ECommandFlags.NO_BANPHRASE, ECommandFlags.NO_EMOTE_PREPEND];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		if (ctx.input[0] === 'bot' && ctx.input[1] === 'join') {
 			const { username, id } = ctx.data.Params;
 
 			if (!username || !id) {
-				this.Resolve('Missing username and or id parameter.');
-				return;
+				return {
+					Success: false,
+					Result: 'You need to specify a username and an id',
+				};
 			}
 
-			await Channel.Join(username as string, id as string)
+			return await Channel.Join(username as string, id as string)
 				.then(() => {
-					this.Resolve('Done...');
+					return {
+						Success: true,
+						Result: 'Done...',
+					};
 				})
 				.catch(() => {
-					this.Resolve('Failed...');
+					return {
+						Success: false,
+						Result: 'Something went wrong',
+					};
 				});
-			return;
 		}
 
 		const script = `(async () => {"use strict"; \n${ctx.input.join(' ')}\n})()`;
 
-		try {
-			const res = await Execute(script, ctx);
-			if (typeof res !== 'undefined') {
-				this.Resolve(JSON.stringify(res, null, 4));
-			} else {
-				this.Resolve('Done!');
-			}
-		} catch (e) {
-			this.Reject(new Error(e as string));
+		const res = await Execute(script, ctx);
+		if (typeof res !== 'undefined') {
+			return {
+				Success: true,
+				Result: JSON.stringify(res, null, 4),
+			};
+		} else {
+			return {
+				Success: true,
+				Result: 'No result',
+			};
 		}
 	};
 }

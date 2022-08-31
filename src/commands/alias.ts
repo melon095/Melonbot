@@ -1,6 +1,5 @@
-import { TCommandContext } from './../Typings/types';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
 import gql, { ListItemAction } from './../SevenTVGQL.js';
 import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
 
@@ -14,16 +13,20 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const okay = await gql.isAllowedToModify(ctx);
 		if (!okay.okay) {
-			this.Resolve(okay.message);
-			return;
+			return {
+				Success: false,
+				Result: okay.message,
+			};
 		}
 
 		if (ctx.input[0] === undefined) {
-			this.Resolve('Give me something to alias :)');
-			return;
+			return {
+				Success: false,
+				Result: 'GIve me something to alias :)',
+			};
 		}
 
 		const src = (await gql.CurrentEnabledEmotes(okay.emote_set!)).find(
@@ -31,23 +34,17 @@ export default class extends CommandModel {
 		);
 
 		if (!src) {
-			this.Resolve("Can't find that emote :(");
-			return;
+			return {
+				Success: false,
+				Result: "Can't find that emote :(",
+			};
 		}
 
 		const dst = ctx.input[1] || '';
 
-		await gql
+		return await gql
 			.ModifyEmoteSet(okay.emote_set!, ListItemAction.UPDATE, src.id, dst)
 			.then((emotes) => {
-				if (dst === '') {
-					const newEmote = emotes.emoteSet.emotes.find((emote) => emote.id === src.id);
-
-					this.Resolve(`I reset the alias from ${src.name} to ${newEmote?.name}`);
-				} else {
-					this.Resolve(`I set the alias of ${src.name} to ${dst}`);
-				}
-
 				const identifier: SevenTVChannelIdentifier = {
 					Channel: ctx.channel.Name,
 					EmoteSet: okay.emote_set!,
@@ -58,12 +55,28 @@ export default class extends CommandModel {
 					src?.name || '',
 					'REMOVE',
 				);
+
+				if (dst === '') {
+					const newEmote = emotes.emoteSet.emotes.find((emote) => emote.id === src.id);
+
+					return {
+						Success: true,
+						Result: `I reset the alias from ${src.name} to ${newEmote?.name}`,
+					};
+				} else {
+					return {
+						Success: true,
+						Result: `I set the alias from ${src.name} to ${dst}`,
+					};
+				}
 			})
 			.catch((err) => {
 				console.error(`7TV - Failed to alias emote - ${err}`);
-				this.Resolve(`Failed to alias emote - ${err}`);
+				return {
+					Success: false,
+					Result: `Failed to alias emote - ${err}`,
+				};
 			});
-		return;
 	};
 	LongDescription = async (prefix: string) => [
 		`This command allows you to set the alias of an emote.`,

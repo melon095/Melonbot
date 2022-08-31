@@ -1,6 +1,5 @@
-import { TCommandContext } from './../Typings/types';
-import { EPermissionLevel } from './../Typings/enums.js'
-import { CommandModel } from '../Models/Command.js';
+import { EPermissionLevel } from '../Typings/enums.js';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 
 export default class extends CommandModel
 {
@@ -13,8 +12,11 @@ export default class extends CommandModel
     Cooldown = 5;
     Params = [];
     Flags = [];
-    Code = async (ctx: TCommandContext) => {
-        this.Resolve("This text would show up in chat!");
+    Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+        return {
+            Success: true,
+            Result: "This would be the result of the command."
+        }
     };
     LongDescription = async (prefix: string) => [
         `This is a long description`,

@@ -1,6 +1,5 @@
-import { TCommandContext } from './../Typings/types';
-import { EPermissionLevel } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import gql, { UserEditorPermissions } from '../SevenTVGQL.js';
 
 const isAlreadyEditor = async (owner: string, editor: string) => {
@@ -19,23 +18,29 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const name = ctx.input[0];
 		if (!name) {
-			this.Resolve('Please provide a username');
-			return;
+			return {
+				Success: false,
+				Result: 'Please provide a username :(',
+			};
 		}
 
 		const owner = await gql.isAllowedToModify(ctx);
 		if (!owner.okay) {
-			this.Resolve(owner.message);
-			return;
+			return {
+				Success: false,
+				Result: owner.message,
+			};
 		}
 
-		const user = await gql
-			.GetUserByUsername(name.replace('@', ''))
-			.catch(() => this.Resolve('User not found'));
-		if (!user) return;
+		const user = await gql.GetUserByUsername(name.replace('@', '')).catch(() => null);
+		if (!user)
+			return {
+				Success: false,
+				Result: 'User not found',
+			};
 
 		const resultPrompt = (type: 'Added' | 'Removed', name: string) =>
 			`${type} ${name} as an editor :)`;
@@ -51,24 +56,43 @@ export default class extends CommandModel {
 
 		const isEditor = await isAlreadyEditor(owner.user_id!, user.username);
 		if (isEditor) {
-			await gql
-				.ModifyUserEditorPermissions(owner.user_id!, user.id, UserEditorPermissions.NONE)
-				.then(async () => {
-					await Bot.Redis.SetRemove(`seventv:${owner.emote_set!}:editors`, [
-						user.username,
-					]);
-					this.Resolve(resultPrompt('Removed', user.username));
-				})
-				.catch((err: string) => this.Resolve(errorPrompt(err)));
-			return;
+			try {
+				await gql.ModifyUserEditorPermissions(
+					owner.user_id!,
+					user.id,
+					UserEditorPermissions.NONE,
+				);
+			} catch (error) {
+				return {
+					Success: false,
+					Result: errorPrompt(String(error)),
+				};
+			}
+			await Bot.Redis.SetRemove(`seventv:${owner.emote_set!}:editors`, [user.username]);
+
+			return {
+				Success: false,
+				Result: resultPrompt('Removed', user.username),
+			};
 		} else {
-			await gql
-				.ModifyUserEditorPermissions(owner.user_id!, user.id, UserEditorPermissions.DEFAULT)
-				.then(async () => {
-					await Bot.Redis.SetAdd(`seventv:${owner.emote_set!}:editors`, [user.username]);
-					this.Resolve(resultPrompt('Added', name));
-				})
-				.catch((err: string) => this.Resolve(errorPrompt(err)));
+			try {
+				await gql.ModifyUserEditorPermissions(
+					owner.user_id!,
+					user.id,
+					UserEditorPermissions.DEFAULT,
+				);
+			} catch (error) {
+				return {
+					Success: false,
+					Result: errorPrompt(String(error)),
+				};
+			}
+
+			await Bot.Redis.SetAdd(`seventv:${owner.emote_set!}:editors`, [user.username]);
+			return {
+				Success: true,
+				Result: resultPrompt('Added', user.username),
+			};
 		}
 	};
 	LongDescription = async (prefix: string) => [

@@ -1,6 +1,5 @@
-import { TCommandContext } from './../Typings/types';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
 import gql, { EmoteSearchFilter, ListItemAction } from './../SevenTVGQL.js';
 import { ObjectID } from 'bson';
 import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
@@ -24,11 +23,13 @@ export default class extends CommandModel {
 		},
 	];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const okay = await gql.isAllowedToModify(ctx);
 		if (!okay.okay) {
-			this.Resolve(okay.message);
-			return;
+			return {
+				Success: false,
+				Result: okay.message,
+			};
 		}
 
 		const valid = [
@@ -71,15 +72,17 @@ export default class extends CommandModel {
 				});
 		}
 		if (emote === null) {
-			this.Resolve('No emote found with the given query. :/');
-			return;
+			return {
+				Success: false,
+				Result: 'Could not find emote',
+			};
 		}
 
 		const name = (ctx.data.Params.alias as string) || emote.name;
 
-		gql.ModifyEmoteSet(okay.emote_set!, ListItemAction.ADD, emote.id, name)
+		return await gql
+			.ModifyEmoteSet(okay.emote_set!, ListItemAction.ADD, emote.id, name)
 			.then(() => {
-				this.Resolve(`Added the emote => ${name}`);
 				const identifier: SevenTVChannelIdentifier = {
 					Channel: ctx.channel.Name,
 					EmoteSet: okay.emote_set!,
@@ -90,13 +93,19 @@ export default class extends CommandModel {
 					emote?.name || '',
 					'ADD',
 				);
+
+				return {
+					Success: true,
+					Result: `Added the emote => ${name}`,
+				};
 			})
 			.catch((err) => {
 				console.error(`7TV - Failed to add emote - ${err}`);
-				this.Resolve(`Failed to add. ${err}`);
+				return {
+					Success: false,
+					Result: `Failed to add ${err}`,
+				};
 			});
-
-		return;
 	};
 	LongDescription = async (prefix: string) => [
 		`Add a 7TV emote to your emote set.`,

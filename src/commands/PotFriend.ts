@@ -1,6 +1,6 @@
-import { TCommandContext } from './../Typings/types';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
+
 import got from './../tools/Got.js';
 
 const ADVICE_API = 'https://api.adviceslip.com/advice';
@@ -23,7 +23,7 @@ export default class extends CommandModel {
 	Params = [];
 	Flags = [];
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const MESSAGE = (advice: string) => `PotFriend advice: ${advice} PotFriend`;
 
 		const result = await got
@@ -43,11 +43,10 @@ export default class extends CommandModel {
 				return 'No more advice for today!';
 			});
 
-		try {
-			const message = MESSAGE(decodeURIComponent(result));
-			this.Resolve(message);
-		} catch (error) {
-			this.Reject(error as Error);
-		}
+		const message = MESSAGE(decodeURIComponent(result));
+		return {
+			Success: true,
+			Result: message,
+		};
 	};
 }

@@ -1,16 +1,10 @@
-import {
-	NChannel,
-	TCommandContext,
-	TUserCooldown,
-	ChannelTalkOptions,
-	TParamsContext,
-} from './../../Typings/types';
+import { NChannel, TUserCooldown, ChannelTalkOptions } from './../../Typings/types';
 import { EPermissionLevel, ECommandFlags } from './../../Typings/enums.js';
 import { Banphrase } from './../Banphrase/index.js';
 import * as tools from './../../tools/tools.js';
 import { MessageScheduler } from './../../tools/MessageScheduler.js';
 import { ChatUserstate } from 'tmi.js';
-import { CommandModel } from '../../Models/Command.js';
+import { CommandModel, TCommandContext, TParamsContext } from '../../Models/Command.js';
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
 import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
@@ -203,49 +197,8 @@ export class Channel {
 			}
 
 			const copy = [...input];
-			const values: TParamsContext = {};
 
-			// Setup default data to params.
-			for (const param of command.Params) {
-				switch (param.type) {
-					case 'string': {
-						values[param.name] = '';
-						break;
-					}
-
-					case 'boolean': {
-						values[param.name] = false;
-						break;
-					}
-				}
-			}
-
-			for (const [idx, word] of input.entries()) {
-				if (word.slice(0, 2) === '--') {
-					const paramType = command.Params.find((param) =>
-						word.slice(2, word.length).includes(param.name),
-					);
-					if (paramType !== undefined) {
-						switch (paramType.type) {
-							case 'string': {
-								const value = word.slice(word.indexOf('=') + 1, word.length);
-								values[word.slice(2, word.indexOf('=', 3))] = value.toString();
-								break;
-							}
-							case 'boolean': {
-								values[paramType.name] = true;
-								break;
-							}
-						}
-						copy.splice(idx, 1);
-					}
-				}
-			}
-
-			const ArgsParseResult = {
-				input: copy,
-				params: values,
-			};
+			const ArgsParseResult = CommandModel.ParseArguments(copy, command.Params);
 
 			// Create context.
 			const ctx: TCommandContext = {
@@ -253,54 +206,61 @@ export class Channel {
 				user: user,
 				input: ArgsParseResult.input,
 				data: {
-					Params: ArgsParseResult.params,
+					Params: ArgsParseResult.values,
 				},
 			};
 
-			const result = command.Execute(ctx);
+			command
+				.Execute(ctx)
 
-			result.then((data) => {
-				if (!data || data.length === 0) return;
+				.then((data) => {
+					const CommandLogResult: CommandExecutionResult = {
+						user_id: ctx.user['user-id']!,
+						username: ctx.user.username!,
+						channel: this.Id,
+						success: data.Success,
+						result: data.Result ?? '',
+						args: ctx.input,
+						command: command.Name,
+					};
 
-				if (command.Ping) data = `@${user['display-name']}, ${data}`;
+					this.logCommandExecution(CommandLogResult);
 
-				this.say(data, {
-					SkipBanphrase: command.Flags.includes(ECommandFlags.NO_BANPHRASE),
-					NoEmoteAtStart: command.Flags.includes(ECommandFlags.NO_EMOTE_PREPEND),
+					if (!data.Result || !data.Result.length) return;
+
+					if (command.Ping) data.Result = `@${user['display-name']}, ${data.Result}`;
+
+					if (!data.Success) data.Result = `❗ ${data.Result}`;
+
+					this.say(data.Result, {
+						SkipBanphrase: command.Flags.includes(ECommandFlags.NO_BANPHRASE),
+						NoEmoteAtStart:
+							data.Success || command.Flags.includes(ECommandFlags.NO_EMOTE_PREPEND),
+					});
+				})
+
+				.catch((error) => {
+					Bot.HandleErrors('command/run/catch', error);
+					this.say('PoroSad Command Failed...', {
+						NoEmoteAtStart: true,
+						SkipBanphrase: true,
+					});
+
+					const Result: CommandExecutionResult = {
+						user_id: ctx.user['user-id']!,
+						username: ctx.user.username!,
+						channel: this.Id,
+						success: false,
+						result: JSON.stringify(error),
+						args: ctx.input,
+						command: command.Name,
+					};
+
+					this.logCommandExecution(Result);
 				});
 
-				const Result: CommandExecutionResult = {
-					user_id: ctx.user['user-id']!,
-					username: ctx.user.username!,
-					channel: this.Id,
-					success: true,
-					result: data,
-					args: ctx.input,
-					command: command.Name,
-				};
-
-				this.logCommandExecution(Result);
-			});
-
-			result.catch((error) => {
-				Bot.HandleErrors('command/run/catch', error);
-				this.say('PoroSad Command Failed...');
-
-				const Result: CommandExecutionResult = {
-					user_id: ctx.user['user-id']!,
-					username: ctx.user.username!,
-					channel: this.Id,
-					success: false,
-					result: JSON.stringify(error),
-					args: ctx.input,
-					command: command.Name,
-				};
-
-				this.logCommandExecution(Result);
-			});
-
 			Bot.SQL
-				.Query`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`;
+				.Query`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`.execute();
 		} catch (e) {
 			Bot.HandleErrors('channel/tryCommand/catch', new Error(e as never));
 			this.say('BrokeBack command failed', {
@@ -308,6 +268,15 @@ export class Channel {
 				NoEmoteAtStart: true,
 			});
 		}
+	}
+
+	async VanishUser(username: string): Promise<void> {
+		await Bot.Twitch.Controller.client.timeout(
+			'#' + this.Name,
+			username,
+			1,
+			'Vanish Command Issued',
+		);
 	}
 
 	async joinEventSub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {

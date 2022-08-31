@@ -1,7 +1,6 @@
-import { TCommandContext } from '../Typings/types';
 import { ECommandFlags } from '../Typings/enums.js';
 import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
+import { CommandModel, CommandResult, TCommandContext } from '../Models/Command.js';
 import { differenceFormat } from './../tools/tools.js';
 import gql from '../SevenTVGQL.js';
 
@@ -20,12 +19,19 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const name = ctx.input[0] || ctx.user.username!;
 		const user = await gql
 			.GetUserByUsername(name.replace('@', ''))
-			.catch(() => this.Resolve('User not found'));
-		if (!user) return;
+			.then((u) => u)
+			.catch(() => null);
+
+		if (!user) {
+			return {
+				Success: false,
+				Result: `User ${name} not found.`,
+			};
+		}
 
 		const roles = await Bot.Redis.SGet(`seventv:roles`)
 			.then((res) => JSON.parse(res) as Roles[])
@@ -34,25 +40,31 @@ export default class extends CommandModel {
 
 		const roleString = roles.map((r) => r.name).join(', ');
 
-		const default_emote_set = await gql
-			.getDefaultEmoteSet(user.id)
-			.catch(() => this.Resolve('User is missing default emote set'));
-		if (!default_emote_set) return;
+		const default_emote_set = await gql.getDefaultEmoteSet(user.id).catch(() => null);
+		if (!default_emote_set) {
+			return {
+				Success: false,
+				Result: 'User is missing default emote set',
+			};
+		}
 
 		const emote_set = user.emote_sets.find((e) => e.id === default_emote_set.emote_set_id);
 
 		const slots = emote_set?.emotes.length || 0;
 		const max_slots = emote_set?.capacity || 0;
 
-		this.Resolve(
-			[
-				`Username: ${user.username}`,
-				`7TV ID: ${user.id}`,
-				`Roles: ${roleString}`,
-				`Created: ${differenceFormat(new Date(user.created_at).getTime())} ago`,
-				`Slots: ${slots} / ${max_slots.toString().replace(/\B(?=(\d{3})+(?!\d))/g, `_`)}`,
-			].join(' | '),
-		);
+		const Result = [
+			`Username: ${user.username}`,
+			`7TV ID: ${user.id}`,
+			`Roles: ${roleString}`,
+			`Created: ${differenceFormat(new Date(user.created_at).getTime())} ago`,
+			`Slots: ${slots} / ${max_slots.toString().replace(/\B(?=(\d{3})+(?!\d))/g, `_`)}`,
+		].join(' | ');
+
+		return {
+			Success: true,
+			Result,
+		};
 	};
 	LongDescription = async (prefix: string) => [
 		`Display information about a 7TV user.`,

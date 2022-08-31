@@ -1,6 +1,6 @@
-import { TCommandContext } from './../Typings/types';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
+
 import gql, { ListItemAction } from './../SevenTVGQL.js';
 import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
 
@@ -14,16 +14,20 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const okay = await gql.isAllowedToModify(ctx);
 		if (!okay.okay) {
-			this.Resolve(okay.message);
-			return;
+			return {
+				Success: false,
+				Result: okay.message,
+			};
 		}
 
 		if (ctx.input[0] === undefined) {
-			this.Resolve('Give me something to remove :)');
-			return;
+			return {
+				Success: false,
+				Result: 'Give me something to remove :)',
+			};
 		}
 
 		const emote = (await gql.CurrentEnabledEmotes(okay.emote_set!)).find(
@@ -31,31 +35,32 @@ export default class extends CommandModel {
 		);
 
 		if (!emote) {
-			this.Resolve('No emote found with the given name.');
-			return;
+			return {
+				Success: false,
+				Result: 'Could not find that emote',
+			};
 		}
 
-		await gql
-			.ModifyEmoteSet(okay.emote_set!, ListItemAction.REMOVE, emote.id)
-			.then(() => {
-				this.Resolve(`Removed the emote => ${emote.name}`);
+		try {
+			await gql.ModifyEmoteSet(okay.emote_set!, ListItemAction.REMOVE, emote.id);
+		} catch (error) {
+			console.error(`7TV - Failed to remove emote - ${error}`);
+			return {
+				Success: false,
+				Result: `Error removing the emote => ${emote.name}`,
+			};
+		}
+		const identifier: SevenTVChannelIdentifier = {
+			Channel: ctx.channel.Name,
+			EmoteSet: okay.emote_set!,
+		};
 
-				const identifier: SevenTVChannelIdentifier = {
-					Channel: ctx.channel.Name,
-					EmoteSet: okay.emote_set!,
-				};
+		Bot.Twitch.Emotes.SevenTVEvent.HideNotification(identifier, emote?.name || '', 'REMOVE');
 
-				Bot.Twitch.Emotes.SevenTVEvent.HideNotification(
-					identifier,
-					emote?.name || '',
-					'REMOVE',
-				);
-			})
-			.catch((err) => {
-				console.error(`7TV - Failed to remove emote - ${err}`);
-				this.Resolve(`Error removing the emote => ${emote.name}`);
-			});
-		return;
+		return {
+			Success: true,
+			Result: `Removed the emote => ${emote.name}`,
+		};
 	};
 	LongDescription = async (prefix: string) => [
 		`Remove a 7TV emote from your emote set.`,

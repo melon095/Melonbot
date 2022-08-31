@@ -1,6 +1,6 @@
-import { TCommandContext } from './../Typings/types';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
+
 import SevenTV from './../SevenTVGQL.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,11 +15,13 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const setting = ctx.input[0];
 		if (!setting) {
-			this.Resolve('No setting provided');
-			return;
+			return {
+				Success: false,
+				Result: 'No setting provided',
+			};
 		}
 
 		switch (setting) {
@@ -29,16 +31,20 @@ export default class extends CommandModel {
 					fs.readFileSync(path.join(process.cwd() + '/config.json'), 'utf-8'),
 				);
 				env.addConfig(config);
+				SevenTV.setup();
 				break;
 			}
 			default: {
-				this.Resolve('Invalid setting provided');
-				return;
+				return {
+					Success: false,
+					Result: 'Invalid setting',
+				};
 			}
 		}
-		SevenTV.setup();
 
-		this.Resolve('Done :)');
-		return;
+		return {
+			Success: true,
+			Result: 'Done :D',
+		};
 	};
 }

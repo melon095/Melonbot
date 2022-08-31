@@ -1,6 +1,5 @@
-import { TCommandContext } from './../Typings/types';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
 
 export default class extends CommandModel {
 	Name = 'leave';
@@ -13,7 +12,7 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		await Bot.SQL.Query`DELETE FROM channels WHERE user_id = ${ctx.channel.Id}`;
 		Bot.Twitch.Controller.RemoveChannelList(ctx.channel.Name);
 
@@ -21,6 +20,9 @@ export default class extends CommandModel {
 			Bot.Twitch.Controller.client.part('#' + ctx.channel.Name);
 		}, 10000); // Leave after 10 seconds.
 
-		this.Resolve(':( ok');
+		return {
+			Success: true,
+			Result: ':( Ok',
+		};
 	};
 }

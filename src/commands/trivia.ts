@@ -1,6 +1,5 @@
-import { TCommandContext } from './../Typings/types';
-import { EPermissionLevel, ECommandFlags } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 
 export default class extends CommandModel {
 	Name = 'trivia';
@@ -16,24 +15,33 @@ export default class extends CommandModel {
 		{ name: 'include', type: 'string' },
 	];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		if (ctx.channel.Trivia === null) {
-			return this.Resolve();
+			return {
+				Success: false,
+				Result: '',
+			};
 		}
 
-		if (ctx.input[0] && ['skip', 'stop'].includes(ctx.input[0].toLowerCase())) {
-			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-			this.Resolve(ctx.channel.Trivia?.trySkip(ctx.user.username!));
-		} else {
-			this.Resolve(
-				await ctx.channel.Trivia?.start(
-					ctx.data.Params['exclude'] as string,
-					ctx.data.Params['include'] as string,
-					// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-					ctx.user.username!,
-				),
-			);
+		const isSkip = ctx.input[0] && ['skip', 'stop'].includes(ctx.input[0].toLowerCase());
+
+		if (isSkip) {
+			ctx.channel.Trivia.trySkip(ctx.user.username!);
+			return {
+				Success: true,
+				Result: '',
+			};
 		}
+
+		return {
+			Success: true,
+			Result: await ctx.channel.Trivia?.start(
+				ctx.data.Params['exclude'] as string,
+				ctx.data.Params['include'] as string,
+				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+				ctx.user.username!,
+			),
+		};
 	};
 	LongDescription = async (prefix: string) => [
 		`Starts a new trivia in the channel.`,

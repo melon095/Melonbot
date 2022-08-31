@@ -1,5 +1,5 @@
 import got from 'got';
-import { TCommandContext } from './Typings/types.js';
+import { TCommandContext } from './Models/Command.js';
 
 const url = 'https://7tv.io/v3/gql';
 

@@ -1,10 +1,8 @@
 import shell from 'node:child_process';
 import * as tools from './../tools/tools.js';
 import process from 'node:process';
-import { TCommandContext } from './../Typings/types';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
-import { freemem, totalmem } from 'node:os';
 
 const cleanCommand = (command: string) =>
 	shell
@@ -23,7 +21,7 @@ export default class extends CommandModel {
 	Params = [];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const commitCount = cleanCommand('git rev-list --all --count');
 		const commitSha = cleanCommand('git rev-parse --short HEAD');
 		const branch = cleanCommand('git rev-parse --abbrev-ref HEAD');
@@ -31,8 +29,9 @@ export default class extends CommandModel {
 		const latency = (await Bot.Redis.SGet('Latency')) || 'N/A';
 		const devBot = Bot.Config.Development ? ' Development Bot' : ' ';
 
-		this.Resolve(
-			[
+		return {
+			Success: true,
+			Result: [
 				`Pong!`,
 				`Uptime ${tools.humanizeDuration(process.uptime())}`,
 				`${commitCount} ${branch.toString()}@${commitSha}`,
@@ -41,6 +40,6 @@ export default class extends CommandModel {
 			]
 				.filter(Boolean)
 				.join(' | '),
-		);
+		};
 	};
 }

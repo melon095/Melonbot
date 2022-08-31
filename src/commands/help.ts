@@ -1,6 +1,5 @@
-import { TCommandContext } from './../Typings/types';
-import { EPermissionLevel, ECommandFlags } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import { NCommandFunctions } from './../tools/tools.js';
 
 export default class extends CommandModel {
@@ -13,26 +12,34 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [ECommandFlags.NO_BANPHRASE];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const website = Bot.Config.Website.WebUrl;
 
-		if (ctx.input.length <= 0)
-			return this.Resolve(`You can find all the commands here, ${website}/bot/commands !`);
+		if (ctx.input.length <= 0) {
+			return {
+				Success: true,
+				Result: `You can find all the commands here, ${website}/bot/commands !`,
+			};
+		}
 
 		const name = ctx.input[0];
 
 		const command = await Bot.Commands.get(name);
 
 		if (command === undefined) {
-			return this.Resolve('Command does not exist PoroSad');
+			return {
+				Success: true,
+				Result: `The command ${name} doesn't exist :(`,
+			};
 		}
 
-		const { Name, Description, Cooldown, Permission, Aliases } = command;
+		const { Name, Description, Cooldown, Permission } = command;
 
-		return this.Resolve(
-			`${Name}: Description: ${Description} Cooldown: ${Cooldown}s. Permission: ${NCommandFunctions.DatabaseToMode(
+		return {
+			Success: true,
+			Result: `${Name}: Description: ${Description} Cooldown: ${Cooldown}s. Permission: ${NCommandFunctions.DatabaseToMode(
 				Permission,
 			)} ${website}/bot/commands/${Name}`,
-		);
+		};
 	};
 }

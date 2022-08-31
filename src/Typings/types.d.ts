@@ -1,6 +1,3 @@
-import { ChatUserstate } from 'tmi.js';
-import { Channel } from './../controller/Channel/index.js';
-
 export type PhraseType = {
 	type: 'REGEX' | 'PB1';
 	url: string;
@@ -17,15 +14,6 @@ export type ParamsReturnType = {
 	params: TParamsContext;
 };
 
-export type TExecuteFunction = (ctx: TCommandContext) => Promise<void>;
-
-export type TCommandContext = {
-	channel: Channel;
-	user: ChatUserstate;
-	input: string[];
-	data: TContextData;
-};
-
 export type TCommands = {
 	Name: string;
 	Ping: boolean;
@@ -37,19 +25,6 @@ export type TCommands = {
 	Aliases: string[];
 	Cooldown: number;
 	Params: TArgs[];
-};
-
-export type TArgs = {
-	name: string;
-	type: string; // [TODO]: Can't use string literal here.
-};
-
-export type TParamsContext = {
-	[key: string]: string | boolean;
-};
-
-export type TContextData = {
-	Params: TParamsContext;
 };
 
 export type TTokenFunction = {

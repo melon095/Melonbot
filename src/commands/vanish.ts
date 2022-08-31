@@ -1,6 +1,5 @@
-import { TCommandContext } from './../Typings/types';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
 
 export default class extends CommandModel {
 	Name = 'vanish';
@@ -13,15 +12,19 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [];
-	Code = async (ctx: TCommandContext) => {
-		if (ctx.channel.Mode !== 'Moderator') return this.Resolve();
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+		if (ctx.channel.Mode !== 'Moderator') {
+			return {
+				Success: true,
+				Result: '',
+			};
+		}
 		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		Bot.Twitch.Controller.client.timeout(
-			ctx.channel.Name,
-			ctx.user.username!,
-			1,
-			'Vanish command issued',
-		);
-		this.Resolve();
+		await ctx.channel.VanishUser(ctx.user.username!);
+
+		return {
+			Success: true,
+			Result: '',
+		};
 	};
 }

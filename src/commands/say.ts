@@ -1,6 +1,5 @@
-import { TCommandContext } from './../Typings/types';
-import { EPermissionLevel, ECommandFlags } from './../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 
 export default class extends CommandModel {
 	Name = 'say';
@@ -12,7 +11,7 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
-	Code = async (ctx: TCommandContext) => {
-		this.Resolve(ctx.input.join(' '));
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+		return { Success: true, Result: `${ctx.input.join(' ')}` };
 	};
 }

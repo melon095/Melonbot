@@ -1,6 +1,5 @@
-import { TCommandContext } from '../Typings/types';
 import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import gql, { EmoteSearchFilter } from '../SevenTVGQL.js';
 
 export default class extends CommandModel {
@@ -22,15 +21,19 @@ export default class extends CommandModel {
 		},
 	];
 	Flags = [];
-	Code = async (ctx: TCommandContext) => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		if (['add', 'remove'].includes(ctx.input[0])) {
-			this.Resolve('Use the remove / add command instead :)');
-			return;
+			return {
+				Success: true,
+				Result: 'Use the remove / add comamnd instead :)',
+			};
 		}
 
 		if (ctx.input[0] === undefined) {
-			this.Resolve('Please provide a search term.');
-			return;
+			return {
+				Success: false,
+				Result: 'Please provide a search term',
+			};
 		}
 
 		const filter: EmoteSearchFilter = {};
@@ -38,19 +41,23 @@ export default class extends CommandModel {
 			filter.exact_match = true;
 		}
 
-		const emotes = await gql
-			.SearchEmoteByName(ctx.input.join(' '), filter)
-			.then((res) => res.emotes)
-			.catch((err) => {
-				this.Resolve(`Error: ${err}`);
-				return;
-			});
-
-		if (emotes === undefined) return;
+		let emotes;
+		try {
+			emotes = await gql
+				.SearchEmoteByName(ctx.input.join(' '), filter)
+				.then((res) => res.emotes);
+		} catch (error) {
+			return {
+				Success: false,
+				Result: `7TV Error: ${error}`,
+			};
+		}
 
 		if (emotes.items.length === 0) {
-			this.Resolve('No emotes found.');
-			return;
+			return {
+				Success: false,
+				Result: 'No emotes found :(',
+			};
 		}
 
 		if (emotes.items.length > 1) {
@@ -64,20 +71,25 @@ export default class extends CommandModel {
 				chunks.push(emotes.items.slice(i, i + 5));
 			}
 
+			let message;
 			// send based off index
 			if (index < chunks.length) {
-				this.Resolve(
-					chunks[index]
-						.map((emote) => `${emote.name} - https://7tv.app/emotes/${emote.id}`)
-						.join(' '),
-				);
+				message = chunks[index]
+					.map((emote) => `${emote.name} - https://7tv.app/emotes/${emote.id}`)
+					.join(' ');
 			} else {
-				this.Resolve('Index out of range.');
+				message = `Index out of range (0-${chunks.length - 1})`;
 			}
-			return;
-		}
 
-		this.Resolve(`'${emotes.items[0].name}' - https://7tv.app/emotes/${emotes.items[0].id}`);
+			return {
+				Success: true,
+				Result: message,
+			};
+		}
+		return {
+			Success: true,
+			Result: `'${emotes.items[0].name}' - https://7tv.app/emotes/${emotes.items[0].id}`,
+		};
 	};
 	LongDescription = async (prefix: string) => [
 		`Searches up to 100 7TV emotes.`,
