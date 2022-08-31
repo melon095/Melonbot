@@ -6,10 +6,9 @@
 
 #### config.json
 
-1. Update [Admin List](admins.json) set your twitch username.
 2. `npm install`
 3. `npm run build`
-4. [Some more info](docs/setup.md))
+4. [Some more info](docs/setup.md)
 5. `npm run setup`
 6. `npm run start`
 

@@ -7,3 +7,4 @@ logs
 .vscode
 .github
 ecosystem.config.js
+Scripts/*
