@@ -1,7 +1,6 @@
 import axios from 'axios';
 import humanize from 'humanize-duration';
 import { NChannel, Token, TTokenFunction, NCommand } from './../Typings/types';
-import { ChatUserstate } from 'tmi.js';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -280,13 +279,6 @@ export async function ViewerList(id: string): Promise<string[]> {
 	const viewers = await Bot.Redis.SGet(`channel:${id}:viewers`);
 	if (!viewers) return [];
 	return JSON.parse(viewers);
-}
-
-export function isMod(user: ChatUserstate, channel: string): boolean {
-	const isMod = user.mod || user['user-type'] === 'mod';
-	const isBroadcaster = channel === user.username;
-	const isModUp = isMod || isBroadcaster;
-	return isModUp;
 }
 
 export const NChannelFunctions: NChannel.Functions = {

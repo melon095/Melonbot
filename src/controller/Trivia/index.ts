@@ -1,6 +1,5 @@
 import EventEmitter from 'node:events';
 import got from './../../tools/Got.js';
-import { ChatUserstate } from 'tmi.js';
 import similarity from 'string-similarity';
 
 type Res = {
@@ -94,7 +93,7 @@ export default class TriviaController extends EventEmitter {
 		return Promise.resolve('');
 	}
 
-	tryAnswer(user: ChatUserstate, attempt: string): void {
+	tryAnswer(user: string, attempt: string): void {
 		const result =
 			similarity.compareTwoStrings(attempt.toLowerCase(), this.answer.toLowerCase()) * 100;
 
@@ -167,8 +166,8 @@ export default class TriviaController extends EventEmitter {
 		this.id = Date.now();
 	}
 
-	private emitComplete(user: ChatUserstate, sim: number): void {
-		this.emit('complete', user.username, this.answer, sim);
+	private emitComplete(user: string, sim: number): void {
+		this.emit('complete', user, this.answer, sim);
 		this.initiated = false;
 	}
 

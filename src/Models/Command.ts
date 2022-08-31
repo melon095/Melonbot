@@ -1,6 +1,6 @@
 import { EPermissionLevel, ECommandFlags } from '../Typings/enums.js';
 import { Channel } from 'controller/Channel';
-import { ChatUserstate } from 'tmi.js';
+import DankTwitch from '@kararty/dank-twitch-irc';
 
 export type LongDescriptionFunction = (prefix: string) => Promise<string[]>;
 
@@ -8,7 +8,7 @@ export type TExecuteFunction = (arg0: TCommandContext) => Promise<CommandResult>
 
 export type TCommandContext = {
 	channel: Channel;
-	user: ChatUserstate;
+	user: DankTwitch.PrivmsgMessage;
 	input: string[];
 	data: TContextData;
 };
