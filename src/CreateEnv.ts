@@ -23,6 +23,7 @@ import { Channel } from './controller/Channel/index.js';
 import { NChannelFunctions, Sleep } from './tools/tools.js';
 import { RedisSingleton } from './Singletons/Redis/index.js';
 import * as tools from './tools/tools.js';
+import User from './controller/User/index.js';
 
 export const Setup = {
 	All: async (): Promise<void> => {
@@ -70,6 +71,8 @@ export const Setup = {
 		await Bot.Commands.initialize().catch(() => {
 			process.exit();
 		});
+
+		Bot.User = User;
 
 		return;
 	},

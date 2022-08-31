@@ -10,6 +10,7 @@ import stats from './stats';
 import suggestions from './suggestions';
 import tokens from './tokens';
 import trivia from './trivia';
+import users, { UserRole } from './users';
 
 export type {
 	banphrases,
@@ -21,4 +22,6 @@ export type {
 	suggestions,
 	tokens,
 	trivia,
+	users,
+	UserRole,
 };

@@ -19,8 +19,7 @@ export default class extends CommandModel {
 				Result: '',
 			};
 		}
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		await ctx.channel.VanishUser(ctx.user.username!);
+		await ctx.channel.VanishUser(ctx.user.Name);
 
 		return {
 			Success: true,
