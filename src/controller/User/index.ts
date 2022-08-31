@@ -57,7 +57,7 @@ export default class User {
         `;
 
 		const user = new User(newUser[0]);
-		User.Cache.set(TwitchID, user);
+		User.Cache.set(Name, user);
 		return user;
 	}
 }

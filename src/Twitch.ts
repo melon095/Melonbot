@@ -240,7 +240,7 @@ export default class Twitch {
 		if (!channel) return;
 
 		try {
-			const realUser = await Bot.User.Get(user['user-id']!, user.username!);
+			const user = await Bot.User.Get(senderUserID, senderUsername);
 
 			// Update bot's mode if they have changed.
 			if (senderUserID === Bot.Config.BotUsername) {
@@ -248,18 +248,28 @@ export default class Twitch {
 				return;
 			}
 
-			const [command, ...input] = messageText
+			const [commandName, ...input] = messageText
 				.replace(Bot.Config.Prefix, '')
 				.split(/\s+/)
 				.filter(Boolean);
 
-			channel.tryTrivia(senderUsername, [command, ...input]);
+			channel.tryTrivia(senderUsername, [commandName, ...input]);
 
 			if (!messageText.toLocaleLowerCase().startsWith(Bot.Config.Prefix)) {
 				return;
 			}
+			/*
+                Checks if mode is read, allows the owner to use commands there.
+                Or if the command is in the filter.
+            */
+			if (
+				(channel.Mode === 'Read' && user.TwitchUID !== Bot.Config.OwnerUserID) ||
+				channel.Filter.includes(input[1])
+			) {
+				return;
+			}
 
-			channel.tryCommand(realUser, command, input, user);
+			channel.tryCommand(user, input, commandName, msg);
 		} catch (error) {
 			Bot.HandleErrors('Twitch/MessageHandler', error as Error);
 		}

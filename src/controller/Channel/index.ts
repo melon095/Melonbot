@@ -162,30 +162,18 @@ export class Channel {
 
 	/**
 	 * @param user The user
-	 * @param _command The command
 	 * @param input The input
 	 * @param extras Extra Twitch data related to the user.
 	 * @returns
 	 */
 	async tryCommand(
 		user: User,
-		_command: string,
 		input: string[],
-		extras: ChatUserstate,
+		commandName: string,
+		extras: DankTwitch.PrivmsgMessage,
 	): Promise<void> {
 		try {
-			/*
-                Checks if mode is read, allows the owner to use commands there.
-                Or if the command is in the filter.
-            */
-			if (
-				(this.Mode === 'Read' && user.TwitchUID !== Bot.Config.OwnerUserID) ||
-				this.Filter.includes(input[1])
-			) {
-				return;
-			}
-
-			const command = await Bot.Commands.get(_command);
+			const command = await Bot.Commands.get(commandName);
 
 			if (typeof command === 'undefined') return;
 
@@ -195,7 +183,7 @@ export class Channel {
 
 			const current = Date.now();
 
-			const timeout = this.GetCooldown(user.ID);
+			const timeout = this.getCooldown(user.ID);
 			if (typeof timeout === 'object') {
 				// User has done commands before, find the specific value for current command.
 				const cr = timeout.find((time) => time.Command === command.Name);
@@ -204,13 +192,13 @@ export class Channel {
 			}
 
 			// First time running command this instance or not on cooldown, so we set their cooldown.
-			this.SetCooldown(user.ID, {
+			this.setCooldown(user.ID, {
 				Command: command.Name,
 				TimeExecute: current + command.Cooldown * 1000,
 				Cooldown: Bot.Config.Development ? 0 : command.Cooldown,
 			});
 
-			if (!this.permissionCheck(command, extras, user)) {
+			if (!this.permissionCheck(command, user, extras)) {
 				return;
 			}
 
@@ -412,8 +400,8 @@ export class Channel {
 		});
 
 		try {
-			await Bot.Twitch.Controller.client.join(username);
-			const channel = await Bot.Twitch.Controller.AddChannelList(username!, user_id);
+			await Bot.Twitch.Controller.client.join(user.Name);
+			const channel = await Bot.Twitch.Controller.AddChannelList(user);
 
 			channel.say('ApuApustaja 👋 Hi');
 			// await Helix.EventSub.Create('channel.moderator.add', '1', {
@@ -512,11 +500,11 @@ export class Channel {
 		this.Live = _live;
 	}
 
-	GetCooldown(id: number): TUserCooldown[] {
+	private getCooldown(id: number): TUserCooldown[] {
 		return this.UserCooldowns[id];
 	}
 
-	SetCooldown(id: number, val: TUserCooldown): void {
+	private setCooldown(id: number, val: TUserCooldown): void {
 		if (!this.UserCooldowns[id]) {
 			this.UserCooldowns[id] = [val];
 			return;
@@ -575,8 +563,12 @@ export class Channel {
 		});
 	}
 
-	private permissionCheck(command: CommandModel, user: DankTwitch.PrivmsgMessage): boolean {
-		const { badges } = user;
+	private permissionCheck(
+		command: CommandModel,
+		user: User,
+		privmsg: DankTwitch.PrivmsgMessage,
+	): boolean {
+		const { badges } = privmsg;
 
 		let userPermission = EPermissionLevel.VIEWER;
 		userPermission = (badges.hasVIP && EPermissionLevel.VIP) || userPermission;
@@ -584,12 +576,9 @@ export class Channel {
 		userPermission = (badges.hasModerator && EPermissionLevel.MOD) || userPermission;
 
 		userPermission =
-			(this.Id === user.senderUserID && EPermissionLevel.BROADCAST) || userPermission;
+			(this.Id === user.TwitchUID && EPermissionLevel.BROADCAST) || userPermission;
 
-		userPermission =
-			(this.Id === TwitchUser['user-id'] && EPermissionLevel.BROADCAST) || userPermission;
-
-		userPermission = (User.Role === 'admin' && EPermissionLevel.ADMIN) || userPermission;
+		userPermission = (user.Role === 'admin' && EPermissionLevel.ADMIN) || userPermission;
 		return command.Permission <= userPermission ? true : false;
 	}
 }

@@ -28,7 +28,7 @@ export default class extends CommandModel {
 		if (isSkip) {
 			return {
 				Success: true,
-				Result: ctx.channel.Trivia.trySkip(ctx.user.senderUsername),
+				Result: ctx.channel.Trivia.trySkip(ctx.user.Name),
 			};
 		}
 
