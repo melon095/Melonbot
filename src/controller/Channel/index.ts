@@ -4,7 +4,12 @@ import { Banphrase } from './../Banphrase/index.js';
 import * as tools from './../../tools/tools.js';
 import { MessageScheduler } from './../../tools/MessageScheduler.js';
 import DankTwitch from '@kararty/dank-twitch-irc';
-import { CommandModel, TCommandContext, TParamsContext } from '../../Models/Command.js';
+import {
+	CommandModel,
+	TCommandContext,
+	ParseArgumentsError,
+	ArgsParseResult,
+} from '../../Models/Command.js';
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
 import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
@@ -204,15 +209,26 @@ export class Channel {
 
 			const copy = [...input];
 
-			const ArgsParseResult = CommandModel.ParseArguments(copy, command.Params);
+			let argsResult: ArgsParseResult;
+			try {
+				argsResult = CommandModel.ParseArguments(copy, command.Params);
+			} catch (error) {
+				/// Indicates that the input is invalid
+				if (error instanceof ParseArgumentsError) {
+					this.say(`❗ ${user.Name}: ${error.message}`, { SkipBanphrase: true });
+					return;
+				} else {
+					throw error;
+				}
+			}
 
 			// Create context.
 			const ctx: TCommandContext = {
 				channel: this,
 				user: user,
-				input: ArgsParseResult.input,
+				input: argsResult.input,
 				data: {
-					Params: ArgsParseResult.values,
+					Params: argsResult.values,
 					User: extras,
 				},
 			};

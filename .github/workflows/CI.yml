@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: CI
 
 # This action works with pull requests and pushes
 on:
@@ -6,7 +6,7 @@ on:
     types: [opened, synchronize, reopened]
   push:
     branches:
-      - master
+      - main
 
 jobs:
   prettier:
@@ -25,3 +25,21 @@ jobs:
           # This part is also where you can pass other options, for example:
           commit_message: Formatted by Prettier in CI
           prettier_options: --config .prettierrc --write src/**/*.{ts,d.ts}
+
+  tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+    
+      - name: Jest
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+          cache-dependency-path: ./package-lock.json
+      - run: npm ci
+      - run: npm test
