@@ -26,6 +26,15 @@ jobs:
           commit_message: Formatted by Prettier in CI
           prettier_options: --config .prettierrc --write src/**/*.{ts,d.ts}
 
+  tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+    
       - name: Jest
         uses: actions/setup-node@v3
         with:

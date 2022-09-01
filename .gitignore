@@ -2,7 +2,7 @@ build
 node_modules
 stats
 config.json
-package-lock.json
+Scripts/GenerateDatabaseTypes/package-lock.json
 src/credentials/config.ts
 builds
 EventSub/bin
