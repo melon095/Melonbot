@@ -46,6 +46,18 @@ export type CommandResult = {
 	Result: string;
 };
 
+export class ParseArgumentsError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'ArgsParseError';
+	}
+}
+
+export interface ArgsParseResult {
+	input: string[];
+	values: TParamsContext;
+}
+
 export abstract class CommandModel {
 	/**
 	 * Name to invoke command
@@ -113,11 +125,8 @@ export abstract class CommandModel {
 		return this.Code(ctx);
 	}
 
-	static ParseArguments(
-		args: string[],
-		params: TArgs[],
-	): { input: string[]; values: TParamsContext } {
-		const copy = [...args];
+	static ParseArguments(args: string[], params: TArgs[]): ArgsParseResult {
+		let copy = [...args];
 		const values: TParamsContext = {};
 
 		// Setup default data to params.
@@ -135,25 +144,28 @@ export abstract class CommandModel {
 			}
 		}
 
-		for (const [idx, word] of args.entries()) {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		for (const [_, word] of args.entries()) {
 			if (word.slice(0, 2) === '--') {
-				const paramType = params.find((param) =>
-					word.slice(2, word.length).includes(param.name),
-				);
-				if (paramType !== undefined) {
-					switch (paramType.type) {
-						case 'string': {
-							const value = word.slice(word.indexOf('=') + 1, word.length);
-							values[word.slice(2, word.indexOf('=', 3))] = value.toString();
-							break;
-						}
-						case 'boolean': {
-							values[paramType.name] = true;
-							break;
-						}
+				const param = word.slice(2);
+
+				const paramType = params.find((i) => param.includes(i.name));
+
+				if (paramType === undefined)
+					throw new ParseArgumentsError(`Invalid argument: ${param}`);
+
+				switch (paramType.type) {
+					case 'string': {
+						const value = word.slice(word.indexOf('=') + 1, word.length);
+						values[word.slice(2, word.indexOf('=', 3))] = value.toString();
+						break;
 					}
-					copy.splice(idx, 1);
+					case 'boolean': {
+						values[paramType.name] = true;
+						break;
+					}
 				}
+				copy = copy.filter((i) => i !== word);
 			}
 		}
 
