@@ -12,7 +12,7 @@ import {
 } from '../../Models/Command.js';
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
-import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
+import { SevenTVChannelIdentifier, SevenTVEvent } from './../Emote/SevenTV/EventAPI';
 import User from './../User/index.js';
 
 /**
@@ -86,15 +86,23 @@ export class Channel {
 	 */
 	public Trivia: TriviaController | null;
 
-	static async WithEventsub(
-		Name: string,
-		Id: string,
-		Mode: NChannel.Mode,
-		Live: boolean,
-	): Promise<Channel> {
-		const channel = new this(Name, Id, Mode, Live);
-		await channel.joinEventSub();
+	static async WithEventsub(channel: Channel, emoteSetID?: string): Promise<Channel> {
+		let identifier: SevenTVChannelIdentifier | undefined = undefined;
+		if (emoteSetID) {
+			identifier = {
+				Channel: channel.Name,
+				EmoteSet: emoteSetID ?? undefined,
+			};
+		}
+
+		await channel.joinEventSub(identifier);
 		return channel;
+	}
+
+	static async New(user: User, Mode: NChannel.Mode, Live: boolean): Promise<Channel> {
+		const Channel = new this(user, Mode, Live);
+		await Channel.Initialize();
+		return Channel;
 	}
 
 	static async CreateBot(): Promise<Channel> {
@@ -103,20 +111,22 @@ export class Channel {
 			user_id: await Bot.Redis.SGet('SelfID'),
 		};
 
+		const user = await Bot.User.Get(Creds.user_id, Creds.name);
+
 		await Bot.SQL.Query`
             INSERT INTO channels (name, user_id, bot_permission) 
             VALUES (${Creds.name}, ${Creds.user_id}, ${3}) 
             ON CONFLICT (user_id) DO NOTHING;`;
 
-		return new this(Creds.name, Creds.user_id, 'Bot', false);
+		return new this(user, 'Bot', false).Initialize();
 	}
 
-	constructor(Name: string, Id: string, Mode: NChannel.Mode, Live: boolean) {
-		this.Name = Name;
-		this.Id = Id;
+	constructor(user: User, Mode: NChannel.Mode, Live: boolean) {
+		this.Name = user.Name;
+		this.Id = user.TwitchUID;
 		this.Mode = Mode;
 		this.Cooldown = tools.NChannelFunctions.ModeToCooldown(Mode) ?? 1250;
-		this.Banphrase = new Banphrase(Name);
+		this.Banphrase = new Banphrase(user);
 		this.Live = Live;
 		this.Queue = new MessageScheduler();
 		this.LastMessage = '';
@@ -134,6 +144,8 @@ export class Channel {
 
 		// Create callback for the message queue.
 		this.Queue.on('message', (a, b) => this.onQueue(a, b));
+
+		this.Initialize();
 	}
 
 	async say(
@@ -347,22 +359,22 @@ export class Channel {
 
 		if (!options.SkipBanphrase) {
 			this.Banphrase.Check(message)
-				.then((IsBanned) => {
-					if (!IsBanned.okay) {
+				.then(({ banned, reason }) => {
+					if (!banned) {
 						Bot.Twitch.Controller.client.say(this.Name, result);
 					} else {
 						console.log({
 							What: 'Received bad word in channel',
 							Channel: this.Name,
 							Message: message,
-							Reason: IsBanned.reason,
+							Reason: reason,
 						});
 
 						Bot.Twitch.Controller.client.say(this.Name, 'cmonBruh bad word.');
 					}
 				})
 				.catch((error) => {
-					Bot.HandleErrors('banphraseCheck', new Error(error as never));
+					Bot.HandleErrors('banphraseCheck', error as Error);
 					Bot.Twitch.Controller.client.say(
 						this.Name,
 						'PoroSad unable to verify message against banphrase api.',
@@ -596,6 +608,14 @@ export class Channel {
 
 		userPermission = (user.Role === 'admin' && EPermissionLevel.ADMIN) || userPermission;
 		return command.Permission <= userPermission ? true : false;
+	}
+
+	/**
+	 * Inits async channel modules
+	 */
+	private async Initialize(): Promise<this> {
+		await this.Banphrase.Initialize();
+		return this;
 	}
 }
 

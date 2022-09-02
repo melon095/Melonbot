@@ -66,6 +66,7 @@ const _createHeaders = async (): Promise<Record<string, string>> => {
 	};
 };
 
+// TODO: Scrap this
 const _request = async (method: Method, path: string, body?: object): Promise<any> => {
 	return new Promise(async (Resolve, Reject) => {
 		const headers = await _createHeaders();
@@ -75,7 +76,7 @@ const _request = async (method: Method, path: string, body?: object): Promise<an
 
 		let response: Response<string> | Error;
 
-		got(url, {
+		got('json')(url, {
 			method,
 			headers,
 			json: body,

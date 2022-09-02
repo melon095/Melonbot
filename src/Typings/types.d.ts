@@ -1,9 +1,3 @@
-export type PhraseType = {
-	type: 'REGEX' | 'PB1';
-	url: string;
-	regex: string;
-};
-
 export type ChannelTalkOptions = {
 	SkipBanphrase?: boolean = false;
 	NoEmoteAtStart?: boolean = false; // Don't add the 👤 at the start of the message.

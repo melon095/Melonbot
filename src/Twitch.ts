@@ -1,6 +1,5 @@
 import DankTwitch from '@kararty/dank-twitch-irc';
 import * as tools from './tools/tools.js';
-import fs from 'node:fs';
 import { Channel } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
@@ -119,8 +118,11 @@ export default class Twitch {
 		this.InitReady.resolve(true);
 	}
 
-	async AddChannelList(user: User): Promise<Channel> {
-		const c = await Channel.WithEventsub(user.Name, user.TwitchUID, 'Write', false);
+	async AddChannelList(user: User, eventsub = false): Promise<Channel> {
+		const c = await Channel.New(user, 'Write', false);
+		if (eventsub) {
+			await c.joinEventSub();
+		}
 		this.channels.push(c);
 		return c;
 	}
@@ -203,16 +205,13 @@ export default class Twitch {
 
 			const url = `https://api.twitch.tv/helix/users?id=${Bot.Config.OwnerUserID}&login=${Bot.Config.BotUsername}`;
 
-			const res = await got(url, {
+			const body: IUserInformation = await got('json')(url, {
 				method: 'GET',
 				headers: {
-					accepts: 'application/json',
 					Authorization: `Bearer ${(await tools.token.Bot()).token}`,
 					'Client-ID': Bot.Config.Twitch.ClientID,
 				},
-			});
-
-			const body: IUserInformation = JSON.parse(res.body);
+			}).json();
 
 			for (const user of body.data) {
 				if (user.id === Bot.Config.OwnerUserID) {
@@ -227,7 +226,7 @@ export default class Twitch {
 
 			this.initFlags[1] = true;
 		} catch (e) {
-			Bot.HandleErrors('Twitch/SetOwner', new Error(e as string));
+			Bot.HandleErrors('Twitch/SetOwner', e as Error);
 		}
 	}
 

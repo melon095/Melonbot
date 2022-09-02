@@ -35,15 +35,19 @@ export default (async function () {
 				return res.status(500).json({ error: '500' });
 			}
 
-			const authorize: TwitchOAuthRes = await Got.post(TWITCH_USER_TOKEN(code)).json();
+			const authorize: TwitchOAuthRes = await Got('json')
+				.post(TWITCH_USER_TOKEN(code))
+				.json();
 
 			// Get some more info about the user, like user id and login name.
-			const user: any = await Got.get('https://api.twitch.tv/helix/users', {
-				headers: {
-					Authorization: `Bearer ${authorize.access_token}`,
-					'Client-Id': Bot.Config.Twitch.ClientID,
-				},
-			}).json();
+			const user: any = await Got('json')
+				.get('https://api.twitch.tv/helix/users', {
+					headers: {
+						Authorization: `Bearer ${authorize.access_token}`,
+						'Client-Id': Bot.Config.Twitch.ClientID,
+					},
+				})
+				.json();
 
 			const userInfo = {
 				id: user.data[0].id,
