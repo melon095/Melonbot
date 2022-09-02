@@ -95,7 +95,7 @@ export class CommandsHandler {
 
 			return;
 		} catch (e) {
-			Bot.HandleErrors('CommandsHandler/initialize', e as never);
+			Bot.HandleErrors('CommandsHandler/initialize', e);
 			return Promise.reject();
 		}
 	}
@@ -111,7 +111,7 @@ export class CommandsHandler {
 			Import(resolve(process.cwd(), 'build/commands'), `${command.Name}.js`)
 				.then((c) => Resolve(new c()))
 				.catch((e) => {
-					Bot.HandleErrors('CommandsHandler/getCommands', new Error(e as string));
+					Bot.HandleErrors('CommandsHandler/getCommands', e);
 					Resolve(undefined);
 				});
 		});

@@ -285,7 +285,7 @@ export class Channel {
 			Bot.SQL
 				.Query`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`.execute();
 		} catch (e) {
-			Bot.HandleErrors('channel/tryCommand/catch', new Error(e as never));
+			Bot.HandleErrors('channel/tryCommand/catch', e);
 			this.say('BrokeBack command failed', {
 				SkipBanphrase: true,
 				NoEmoteAtStart: true,
@@ -305,7 +305,7 @@ export class Channel {
 					if (!e) return;
 					emoteSetID = e;
 				} catch (error) {
-					Bot.HandleErrors('channel/joinEventSub', error as Error);
+					Bot.HandleErrors('channel/joinEventSub', error);
 					return;
 				}
 			}
@@ -321,7 +321,7 @@ export class Channel {
 				if (!e) return;
 				emoteSetID = e;
 			} catch (error) {
-				Bot.HandleErrors('channel/leaveEventSub', error as Error);
+				Bot.HandleErrors('channel/leaveEventSub', error);
 				return;
 			}
 		}
@@ -362,7 +362,7 @@ export class Channel {
 					}
 				})
 				.catch((error) => {
-					Bot.HandleErrors('banphraseCheck', new Error(error as never));
+					Bot.HandleErrors('banphraseCheck', new Error(error));
 					Bot.Twitch.Controller.client.say(
 						this.Name,
 						'PoroSad unable to verify message against banphrase api.',
@@ -433,7 +433,7 @@ export class Channel {
 			// );
 			return;
 		} catch (err) {
-			Bot.HandleErrors('Join', err as Error);
+			Bot.HandleErrors('Join', err);
 			throw '';
 		}
 	}

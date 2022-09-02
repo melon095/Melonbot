@@ -71,7 +71,7 @@ export default (async function () {
 			res.end();
 			return;
 		} catch (error) {
-			Bot.HandleErrors('Web/Twitch/Login', error as Error);
+			Bot.HandleErrors('Web/Twitch/Login', error);
 			res.status(500).json({ error: '500' });
 			res.end();
 			return;

@@ -227,7 +227,7 @@ export default class Twitch {
 
 			this.initFlags[1] = true;
 		} catch (e) {
-			Bot.HandleErrors('Twitch/SetOwner', new Error(e as string));
+			Bot.HandleErrors('Twitch/SetOwner', e);
 		}
 	}
 

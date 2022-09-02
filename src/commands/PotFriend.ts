@@ -38,8 +38,8 @@ export default class extends CommandModel {
 
 				return slip.advice;
 			})
-			.catch((bad) => {
-				Bot.HandleErrors('command/PotFriend', new Error(bad as string));
+			.catch((error) => {
+				Bot.HandleErrors('command/PotFriend', error);
 				return 'No more advice for today!';
 			});
 

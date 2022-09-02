@@ -5,6 +5,8 @@ import { SQLController } from './controller/DB/index.js';
 import { CommandsHandler } from './controller/Commands/Handler.js';
 import { TConfigFile, TStaticDataConfig } from './Typings/types';
 import { SevenTVEvent } from './controller/Emote/SevenTV/EventAPI.js';
+import HandleErrors from './ErrorHandler.js';
+
 import User from './controller/User/index.js';
 
 import { RedisSingleton } from './Singletons/Redis/index.js';
@@ -37,7 +39,7 @@ declare global {
 		};
 		User: typeof User;
 		Commands: CommandsHandler;
-		HandleErrors: (Category: string, Err: Error, ...args: string[]) => void;
+		HandleErrors: typeof HandleErrors;
 		ID: string;
 	};
 	declare namespace Database {
