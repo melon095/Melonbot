@@ -50,7 +50,7 @@
 				}
 			}
 		} catch (error) {
-			Bot.HandleErrors('__loops/UpdateLiveStats', new Error(error as never));
+			Bot.HandleErrors('__loops/UpdateLiveStats', error);
 		}
 	}, TWENTY_SECONDS);
 
@@ -99,7 +99,7 @@
 					});
 			}
 		} catch (error) {
-			Bot.HandleErrors('__loops/ViewerList', new Error(error as never));
+			Bot.HandleErrors('__loops/ViewerList', error);
 		}
 	}, ONE_MINUTE);
 

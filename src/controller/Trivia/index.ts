@@ -82,7 +82,7 @@ export default class TriviaController extends EventEmitter {
 			})
 			.catch((res) => {
 				console.log(res);
-				Bot.HandleErrors('Trivia', new Error(res));
+				Bot.HandleErrors('Trivia', res);
 				this.emitFail();
 			});
 		return Promise.resolve('');
