@@ -50,7 +50,6 @@ declare global {
 		export type error_logs = import('./Typings/models/bot/index').error_logs;
 		export type migration = import('./Typings/models/bot/index').migration;
 		export type suggestions = import('./Typings/models/bot/index').suggestions;
-		export type tokens = import('./Typings/models/bot/index').tokens;
 		export type trivia = import('./Typings/models/bot/index').trivia;
 		export type users = import('./Typings/models/bot/index').users;
 		export type UserRole = import('./Typings/models/bot/index').UserRole;
