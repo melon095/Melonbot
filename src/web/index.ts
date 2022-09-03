@@ -50,28 +50,28 @@ export const Authenticator = new (class {
 	 * it will return the user object.
 	 * Will 302 to the main page if the token is invalid or the user doesn't exist.
 	 */
-	async Middleware(res: Texpress.Response, token: string) {
+	async Middleware(res: Texpress.Response, token: string): Promise<boolean> {
 		let data: JWTData;
 		try {
 			data = await this.VerifyJWT(token);
 		} catch (e) {
-			res.clearCookie('token');
-			res.redirect('/');
-			return;
+			res.clearCookie('token', { path: '/' }).redirect('/');
+			return false;
 		}
 
 		// Ask redis if the user exists
 		const jwt_user = await Bot.Redis.SGet(`session:${data.id}:${data.name}`);
 		if (!jwt_user) {
-			res.clearCookie('token');
-			res.redirect('/');
-			return;
+			res.clearCookie('token', { path: '/' }).redirect('/');
+			return false;
 		}
 
 		res.locals.user = {
 			name: data.name,
 			id: data.id,
 		};
+
+		return true;
 	}
 })();
 
@@ -167,7 +167,8 @@ const authedRoutes: HeaderItem[] = [
 
 		const authCookie = req.cookies['token'];
 		if (authCookie) {
-			await Authenticator.Middleware(res, authCookie);
+			const okay = await Authenticator.Middleware(res, authCookie);
+			if (!okay) return;
 		}
 
 		next();
