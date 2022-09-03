@@ -87,8 +87,7 @@ export type TConfigFile = {
 	BotUsername: string;
 	OwnerUserID: string;
 	Website: {
-		Enabled: boolean;
-		UseEventSub: boolean;
+		JWTSecret: string;
 		WebUrl: string;
 		Port: number;
 	};
@@ -101,3 +100,21 @@ export type TConfigFile = {
 export type TStaticDataConfig = {
 	messageEvasionCharacter: string;
 };
+
+export namespace Helix {
+	export interface Users {
+		data: {
+			id: string;
+			login: string;
+			display_name: string;
+			type: 'staff' | 'admin' | 'global_mod' | '';
+			broadcaster_type: 'partner' | 'affiliate' | '';
+			description: string;
+			profile_image_url: string;
+			offline_image_url: string;
+			view_count: number;
+			email?: string; // Requires user:read:email scope
+			created_at: string;
+		}[];
+	}
+}

@@ -6,20 +6,13 @@ import { channelsId } from './channels';
 export type tokensId = string & { ' __flavor'?: 'tokens' };
 
 export default interface tokens {
+	user_id: tokensId;
+	access_token: string;
+	refresh_token: string;
+	expires_at: Date;
+
 	/**
-	 * Index: idx_1745943_id
-	 * Primary key. Index: idx_1745943_primary
+	 * JWT Token for the user
 	 */
-	id: tokensId;
-
-	access_token: string | null;
-
-	/** Index: idx_1745943_fk_tokens_channels1_idx */
-	name: channelsId | null;
-
-	refresh_token: string | null;
-
-	scope: string | null;
-
-	expires_in: string;
+	session: string;
 }

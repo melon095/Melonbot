@@ -109,11 +109,12 @@ export class RedisSingleton extends EventEmitter {
 			.catch(() => '');
 	}
 
-	public async SSet(key: string, value: string): Promise<string> {
-		return await this._client
-			.SET(`${INTERNAL_LOAD_ID}${key}`, value)
-			.then((ok: string | null) => ok || '')
-			.catch(() => '');
+	public async SSet(key: string, value: string): Promise<(arg0: number) => Promise<void>> {
+		await this._client.SET(`${INTERNAL_LOAD_ID}${key}`, value);
+		// Quick access to .Expire
+		return async (time: number) => {
+			await this.Expire(key, time);
+		};
 	}
 
 	public async Expire(key: string, time: number): Promise<void> {

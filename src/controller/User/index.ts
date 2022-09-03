@@ -1,4 +1,18 @@
+import { JWTData } from 'web/index.js';
 import { UserRole } from './../../Typings/models/bot/index.js';
+
+export class GetSafeError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'GetSafeError';
+	}
+}
+
+export interface TwitchToken {
+	access_token: string;
+	refresh_token: string;
+	expires_in: number;
+}
 
 export default class User {
 	// Two hours
@@ -28,7 +42,11 @@ export default class User {
 		this.FirstSeen = user.first_seen;
 	}
 
-	static async Get(TwitchID: string, Name: string): Promise<User> {
+	static async Get(
+		TwitchID: string,
+		Name: string,
+		options = { throwOnNotFound: false },
+	): Promise<User> {
 		// Check if cached
 		const cacheUser = User.Cache.get(Name);
 
@@ -49,6 +67,10 @@ export default class User {
 			return user;
 		}
 
+		if (options.throwOnNotFound) {
+			throw new GetSafeError(`User ${Name} not found in database.`);
+		}
+
 		// Create new user
 		const newUser = await Bot.SQL.Query<Database.users[]>`
             INSERT INTO users (name, twitch_uid, role)
@@ -59,5 +81,24 @@ export default class User {
 		const user = new User(newUser[0]);
 		User.Cache.set(Name, user);
 		return user;
+	}
+
+	async SetToken(
+		token: TwitchToken,
+		JWTGenerator: (data: JWTData) => Promise<string>,
+	): Promise<string> {
+		const jwt = await JWTGenerator({
+			id: this.TwitchUID,
+			name: this.Name,
+			v: 1,
+		});
+
+		// Expire in 7 das, same as jwt does.
+		(await Bot.Redis.SSet(`session:${this.TwitchUID}:${this.Name}`, jwt))(60 * 60 * 24 * 7);
+
+		// Store TwitchToken aswell
+		await Bot.Redis.SSet(`token:${this.TwitchUID}:${this.Name}`, JSON.stringify(token));
+
+		return jwt;
 	}
 }

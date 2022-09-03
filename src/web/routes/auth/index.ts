@@ -12,16 +12,6 @@ export default (async function () {
 
 	const subroutes = [['twitch', 'twitch.js']];
 
-	Router.get('/', (req, res) =>
-		res.render('login', { title: 'Login', LoggedIn: req.query.loggedIn }),
-	);
-
-	Router.get('/redirect', (req, res) => {
-		res.redirect(
-			301,
-			REDIRECT_TWITCH_URL(Bot.Config.Twitch.ClientID, Bot.Config.Website.WebUrl),
-		);
-	});
 	for (const [route, file] of subroutes) {
 		Router.use(`/${route}`, await Import(getDirname(import.meta.url), file));
 	}

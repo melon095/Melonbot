@@ -1,6 +1,79 @@
 import path, { resolve } from 'node:path';
 import cors from 'cors';
 import * as tools from './../tools/tools.js';
+import jwt from 'jsonwebtoken';
+import type Texpress from 'express';
+
+const SECRET = Buffer.from(Bot.Config.Website.JWTSecret);
+const ISSUER = 'MELONBOT-OAUTH';
+
+export interface JWTData {
+	name: string;
+	id: string;
+	v: 1;
+}
+
+/**
+ * Class that handles authentication
+ */
+export const Authenticator = new (class {
+	async VerifyJWT(token: string): Promise<JWTData> {
+		const result = (await new Promise((Resolve, Reject) => {
+			jwt.verify(token, SECRET, { issuer: ISSUER }, (err, data) => {
+				if (err) Reject(err);
+				else Resolve(data as JWTData);
+			});
+		})) as JWTData;
+
+		return result as JWTData;
+	}
+
+	async SignJWT(data: JWTData): Promise<string> {
+		const result = (await new Promise((Resolve, Reject) => {
+			jwt.sign(
+				data,
+				SECRET,
+				{ issuer: ISSUER, algorithm: 'HS256', expiresIn: '7d' },
+				(err, token) => {
+					if (err) Reject(err);
+					else Resolve(token as string);
+				},
+			);
+		})) as string;
+
+		return result;
+	}
+
+	/**
+	 * Validates the JWT token.
+	 * If it is valid and matches a user in the database
+	 * it will return the user object.
+	 * Will 302 to the main page if the token is invalid or the user doesn't exist.
+	 */
+	async Middleware(res: Texpress.Response, token: string) {
+		let data: JWTData;
+		try {
+			data = await this.VerifyJWT(token);
+		} catch (e) {
+			res.clearCookie('token');
+			res.redirect('/');
+			return;
+		}
+
+		// Ask redis if the user exists
+		const jwt_user = await Bot.Redis.SGet(`session:${data.id}:${data.name}`);
+		if (!jwt_user) {
+			res.clearCookie('token');
+			res.redirect('/');
+			return;
+		}
+
+		res.locals.user = {
+			name: data.name,
+			id: data.id,
+		};
+	}
+})();
 
 type HeaderItem = {
 	name: string;
@@ -26,12 +99,20 @@ const header: HeaderItem[] = [
 	},
 ];
 
+const authedRoutes: HeaderItem[] = [
+	{
+		name: 'Dashboard',
+		url: 'user/dashboard',
+	},
+];
+
 (async function () {
 	const middlewares = ['logger'];
 
-	const subroutes = ['api', 'bot', 'login'];
+	const subroutes = ['api', 'auth', 'bot', 'user'];
 
 	const Express = await import('express');
+	const CookieParser = await import('cookie-parser');
 
 	const dirname = tools.getDirname(import.meta.url);
 	const Dirs = {
@@ -43,6 +124,7 @@ const header: HeaderItem[] = [
 
 	const app = Express.default();
 
+	app.use(CookieParser.default());
 	app.use(cors());
 	app.use(Express.json());
 	app.set('views', Dirs.Views);
@@ -58,6 +140,7 @@ const header: HeaderItem[] = [
 	);
 
 	app.locals.headeritems = header;
+	app.locals.authedRoutes = authedRoutes;
 
 	app.get('/robots.txt', (_, res) => {
 		// No, i don't think so.
@@ -67,12 +150,8 @@ const header: HeaderItem[] = [
 
 	const username = Bot.Config.BotUsername;
 
-	app.get('/', (_, res) => {
-		res.render('index', { title: 'Index', bot: { name: username } });
-	});
-
 	// Log web request
-	app.all('*', async (req, _res, next) => {
+	app.all('*', async (req, res, next) => {
 		const data: WebRequestLog = {
 			endpoint: req.baseUrl + req.url,
 			method: req.method,
@@ -86,7 +165,16 @@ const header: HeaderItem[] = [
             INSERT INTO logs.web_request ${Bot.SQL.Get(data)}
         `.execute();
 
+		const authCookie = req.cookies['token'];
+		if (authCookie) {
+			await Authenticator.Middleware(res, authCookie);
+		}
+
 		next();
+	});
+
+	app.get('/', (req, res) => {
+		res.render('index', { title: 'Index', bot: { name: username } });
 	});
 
 	for (const middleware of middlewares) {
