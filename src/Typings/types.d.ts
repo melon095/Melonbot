@@ -39,10 +39,6 @@ export type TUserCooldown = {
 
 export interface Token {
 	/**
-	 * @description Verify and get the broadcasters token, requires them logging in to the website beforehand!
-	 */
-	User(id: number): Promise<TTokenFunction>;
-	/**
 	 * @description Verify and then get the bots app token
 	 */
 	Bot(): Promise<TTokenFunction>;
