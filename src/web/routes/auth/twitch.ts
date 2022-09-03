@@ -16,7 +16,7 @@ const TWITCH_USER_TOKEN = (code: string) => {
 	return 'https://id.twitch.tv/oauth2/token?' + params.toString();
 };
 
-const SCOPE = encodeURIComponent(['user:read:email', 'channel:manage:broadcast'].join(' '));
+const SCOPE = ['user:read:email', 'channel:manage:broadcast'].join(' ');
 const CALLBACK_PARAMS = new URLSearchParams({
 	response_type: 'code',
 	client_id: Bot.Config.Twitch.ClientID,
