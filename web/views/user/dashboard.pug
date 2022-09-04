@@ -7,8 +7,18 @@ html
         style
             include /css/html.css
 
-        script(src="/js/settings.js" defer) 
+        style.
+            /* Moves with the flexbox */
+            #banphrase-button {
+                min-width: 50px;
+                max-width: 80px;
 
+                min-height: 40px;
+                max-height: 40px;
+            }
+
+        script(src="/js/settings.js" defer) 
+        
     body
         block header
 
@@ -37,14 +47,40 @@ html
                                         - else {
                                             div(class="p-2 flex-column") !{banphrase.pb1_url}
                                         - }
-                                    td(class="flex-column") 
+                                    td(class="flex-column")
                                         div(class="d-flex")
-                                            p(class="btn btn-danger flex-row ms-4 me-4" id="banphrase-delete" onClick="onDeleteClick(this)") Delete
-                                            p(class="btn btn-primary flex-row ms-4") Edit
-                                    //- td
-                                    //-     form(method="POST" action="/user/dashboard/banphrase/delete")
-                                    //-         input(type="hidden" name="banphrase" value=`${banphrase.Banphrase}`)
-                                    //-         input(type="hidden" name="scope" value=`${banphrase.Scope}`)
-                                    //-         input(type="hidden" name="action" value=`${banphrase.Action}`)
-                                    //-         button(type="submit" class="btn btn-danger") Delete
+                                            div(class="btn btn-danger flex-row ms-4 me-4 btn-block" id="banphrase-button" onClick="onDeleteClick(this)") Delete
+                                            div(class="btn btn-primary flex-row ms-4 btn-block" id="banphrase-button" onClick=`onEditClick(${banphrase.id})`) Edit
+
+                                tr(class="d-flex flex-row d-none" id="banphrase-edit-menu" data-id=`${banphrase.id}`)
+                                    form(class="d-flex flex-column" id="banphrase-edit-form" onsubmit=`onEditSubmit(event, ${banphrase.id}); return false; /* preventDefault */`)
+                                        td(class="flex-column flex-grow-1")
+                                            div(class="p-2 flex-column") Type
+                                                select(class="form-control" id="banphrase-edit-type" name="type" onchange=`newBanphraseTypeChange(this, ${banphrase.id})`)
+                                                    option(value="regex" selected=(banphrase.type === 'regex')) Regex
+                                                    option(value="pb1" selected=(banphrase.type === 'pb1')) PB1
+                                        td(class="flex-column flex-grow-1")
+                                            div(class="p-2 flex-column" class=(banphrase.type === 'pb1' ? 'd-none' : false) id="banphrase-edit-regex-container")
+                                                div(class="p-2 flex-column") Regex
+                                                    input(class="form-control" id="banphrase-edit-regex" type="text" name="regex" placeholder="Regex" value=`${banphrase.regex || '//'}`)
+                                            div(class="p-2 flex-column" class=(banphrase.type === 'regex' ? 'd-none' : false) id="banphrase-edit-pb1-container")
+                                                div(class="p-2 flex-column") PB1 URL
+                                                    input(class="form-control" id="banphrase-edit-pb1" type="text" name="pb1" placeholder="PB1 URL" value=`${banphrase.pb1_url || ''}`)
+                                        td(class="flex-column")
+                                            div(class="p-2 m-2 flex-column")
+                                                input(class="btn btn-primary" type="submit" value="Save")
+                        
                 div(class="p-2 flex-column" id="banphrase-add") Add a banphrase
+                    form(class="d-flex flex-column" id="banphrase-add-form" onsubmit='onAddSubmit(event); return false; /* preventDefault */')
+                        div(class="p-2 flex-column") Type
+                            select(class="form-control" id="banphrase-add-type" name="type" onchange=`onAddBanphraseChange(this)`)
+                                option(value="regex" selected) Regex
+                                option(value="pb1") PB1
+                        div(class="flex-column flex-grow-1 p-2" id="banphrase-add-regex-container")
+                            div(class="p-2 flex-column") Regex
+                                input(class="form-control" id="banphrase-add-regex" type="text" name="regex" placeholder="Regex" value='//')
+                        div(class="p-2 flex-column d-none" id="banphrase-add-pb1-container")
+                            div(class="p-2 flex-column") PB1 URL
+                                input(class="form-control" id="banphrase-add-pb1" type="text" name="pb1" placeholder="PB1 URL" value='')
+                        div(class="p-2 m-2 flex-column")
+                            input(class="btn btn-primary" type="submit" value="Save")
