@@ -6,6 +6,7 @@ export type banphrase_type = 'pb1' | 'regex';
 export type banphrasesId = string & { ' __flavor'?: 'banphrases' };
 
 export default interface banphrases {
+	id: number;
 	channel: string;
 	type: banphrase_type;
 	pb1_url?: string;

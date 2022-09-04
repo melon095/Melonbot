@@ -3,7 +3,8 @@ CREATE TYPE banphrase_type AS enum ('pb1', 'regex');
 DROP TABLE IF EXISTS banphrases;
 
 CREATE TABLE banphrases (
-    channel VARCHAR(255) NOT NULL PRIMARY KEY,
+    id SERIAL PRIMARY KEY NOT NULL INDEX,
+    channel VARCHAR(255) NOT NULL,
     type banphrase_type NOT NULL,
     pb1_url TEXT DEFAULT NULL,
     regex TEXT DEFAULT NULL,

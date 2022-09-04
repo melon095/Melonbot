@@ -1,6 +1,6 @@
 import axios from 'axios';
 import humanize from 'humanize-duration';
-import { NChannel, Token, TTokenFunction, NCommand } from './../Typings/types';
+import { NChannel, TTokenFunction, NCommand } from './../Typings/types';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -73,6 +73,7 @@ const createToken = async (): Promise<string | null> => {
 		'channel:manage:broadcast',
 		'moderation:read',
 		'whispers:read',
+		'whispers:edit',
 		'chat:read',
 		'chat:edit',
 		'channel:moderate',
@@ -92,8 +93,8 @@ const createToken = async (): Promise<string | null> => {
 		.then((res) => res.data)
 		.then((data) => {
 			return {
-				access: data.access_token,
-				expires: data.expires_in,
+				access: data?.access_token,
+				expires: data?.expires_in,
 			};
 		})
 		.catch((err) => {
@@ -103,12 +104,14 @@ const createToken = async (): Promise<string | null> => {
 
 	if (!newToken) return null;
 
-	await Bot.Redis.SSet('apptoken', newToken.access);
-	await Bot.Redis.Expire('apptoken', newToken.expires);
+	await (
+		await Bot.Redis.SSet('apptoken', newToken.access)
+	)(newToken.expires);
+
 	return newToken.access;
 };
 
-export const token: Token = {
+export const token = {
 	async Bot(): Promise<TTokenFunction> {
 		const apptoken = await Bot.Redis.SGet('apptoken');
 

@@ -2,7 +2,7 @@ import path, { resolve } from 'node:path';
 import cors from 'cors';
 import * as tools from './../tools/tools.js';
 import jwt from 'jsonwebtoken';
-import type Texpress from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
 const SECRET = Buffer.from(Bot.Config.Website.JWTSecret);
 const ISSUER = 'MELONBOT-OAUTH';
@@ -44,13 +44,21 @@ export const Authenticator = new (class {
 		return result;
 	}
 
+	DecryptJWT(token: string): JWTData | null {
+		const result = jwt.decode(token, { json: true }) as JWTData;
+
+		if (!result) return null;
+
+		return result;
+	}
+
 	/**
 	 * Validates the JWT token.
 	 * If it is valid and matches a user in the database
 	 * it will return the user object.
 	 * Will 302 to the main page if the token is invalid or the user doesn't exist.
 	 */
-	async Middleware(res: Texpress.Response, token: string): Promise<boolean> {
+	async Middleware(res: Response, token: string): Promise<boolean> {
 		let data: JWTData;
 		try {
 			data = await this.VerifyJWT(token);
@@ -131,13 +139,21 @@ const authedRoutes: HeaderItem[] = [
 	app.set('view engine', 'pug');
 	app.locals.basedir = Dirs.Public;
 
-	app.use(
-		Express.static(Dirs.Public, {
-			etag: true,
-			maxAge: '1 day',
-			lastModified: true,
-		}),
-	);
+	if (Bot.Config.Development) {
+		app.use(
+			Express.static(Dirs.Public, {
+				etag: false,
+			}),
+		);
+	} else {
+		app.use(
+			Express.static(Dirs.Public, {
+				etag: true,
+				maxAge: '1 day',
+				lastModified: true,
+			}),
+		);
+	}
 
 	app.locals.headeritems = header;
 	app.locals.authedRoutes = authedRoutes;

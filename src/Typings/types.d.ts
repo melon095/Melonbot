@@ -37,13 +37,6 @@ export type TUserCooldown = {
 	Cooldown: number;
 };
 
-export interface Token {
-	/**
-	 * @description Verify and then get the bots app token
-	 */
-	Bot(): Promise<TTokenFunction>;
-}
-
 export declare namespace NChannel {
 	export type Mode = 'Read' | 'Write' | 'VIP' | 'Moderator' | 'Bot';
 	export interface Functions {

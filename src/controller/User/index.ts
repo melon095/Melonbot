@@ -1,5 +1,7 @@
+import Got from './../../tools/Got.js';
 import { JWTData } from 'web/index.js';
 import { UserRole } from './../../Typings/models/bot/index.js';
+import Helix from './../../Helix/index.js';
 
 export class GetSafeError extends Error {
 	constructor(message: string) {
@@ -100,5 +102,32 @@ export default class User {
 		await Bot.Redis.SSet(`token:${this.TwitchUID}:${this.Name}`, JSON.stringify(token));
 
 		return jwt;
+	}
+
+	async GetProfilePicture(): Promise<string> {
+		const cached = await Bot.Redis.SGet(`profilepicture:${this.TwitchUID}`);
+		if (cached) {
+			return cached;
+		}
+
+		const user = await Helix.Users([this]);
+
+		const url = user.data[0].profile_image_url;
+
+		// Expire in 30 minutes
+		await (
+			await Bot.Redis.SSet(`profilepicture:${this.TwitchUID}`, url)
+		)(60 * 30);
+
+		return url;
+	}
+
+	async RemoveBanphrase(id: number): Promise<'ACK'> {
+		await Bot.SQL.Query<Database.banphrases[]>`
+            DELETE FROM banphrases
+            WHERE id = ${id}
+        `;
+
+		return 'ACK';
 	}
 }

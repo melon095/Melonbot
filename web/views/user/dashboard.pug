@@ -1,0 +1,50 @@
+doctype html
+html
+    head
+        include ./../header.pug
+
+        title= title
+        style
+            include /css/html.css
+
+        script(src="/js/settings.js" defer) 
+
+    body
+        block header
+
+        div(class="container p-2 c-white")
+            div(class="d-flex flex-column")
+                div(class="d-flex flex-row")
+                    div(class="d-flex flex-column flex-grow-1 w-100")
+                        div(class="p-2 flex-column") Name !{user.Name}
+                        div(class="p-2 flex-column") Twitch UID !{user.TwitchUID}
+                    div(class=" flex-lg-column-reverse")
+                        img(src=`${user.profilePicture}` class="rounded-circle float-end w-100" style="overflow:hidden;width:100%;height:auto;" alt="Twitch Profile Picture")
+                    
+            div(class="d-flex flex-column") Banphrases
+                div(class="p-2 flex-row") Edit your banphrases
+                    table(class="table c-white")
+                        thead
+                            tr
+                                th Banphrase
+                        tbody
+                            each banphrase in banphrases
+                                tr(class="d-flex flex-row" data-id=`${banphrase.id}` data-name=`${banphrase.name}`)
+                                    td(class="flex-column w-100" data-type=`${banphrase.type.toUpperCase()}`) !{banphrase.type.toUpperCase()}
+                                        - if (banphrase.type == "regex") {
+                                            div(class="p-2 flex-column") !{banphrase.regex}
+                                        - }
+                                        - else {
+                                            div(class="p-2 flex-column") !{banphrase.pb1_url}
+                                        - }
+                                    td(class="flex-column") 
+                                        div(class="d-flex")
+                                            p(class="btn btn-danger flex-row ms-4 me-4" id="banphrase-delete" onClick="onDeleteClick(this)") Delete
+                                            p(class="btn btn-primary flex-row ms-4") Edit
+                                    //- td
+                                    //-     form(method="POST" action="/user/dashboard/banphrase/delete")
+                                    //-         input(type="hidden" name="banphrase" value=`${banphrase.Banphrase}`)
+                                    //-         input(type="hidden" name="scope" value=`${banphrase.Scope}`)
+                                    //-         input(type="hidden" name="action" value=`${banphrase.Action}`)
+                                    //-         button(type="submit" class="btn btn-danger") Delete
+                div(class="p-2 flex-column" id="banphrase-add") Add a banphrase
