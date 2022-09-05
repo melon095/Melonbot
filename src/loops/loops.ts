@@ -1,58 +1,78 @@
 (async () => {
-	const axios = await (await import('axios')).default;
-	const { token } = await import('./../tools/tools.js');
-	const gql = await (await import('./../SevenTVGQL.js')).default;
+	const Got = (await import('./../tools/Got.js')).default;
+	const Helix = (await import('./../Helix/index.js')).default;
+	const gql = (await import('./../SevenTVGQL.js')).default;
 
-	const STREAM_INFO_API = (stream: string) =>
-		`https://api.twitch.tv/helix/streams?user_login=${stream}`;
 	const VIEWER_LIST_API = (stream: string) =>
 		`https://tmi.twitch.tv/group/user/${stream}/chatters`;
 
-	const TWENTY_SECONDS = 20 * 1000;
+	const THIRTY_SECONDS = 30 * 1000;
 	const ONE_MINUTE = 60 * 1000;
 	const ONE_HOUR = 1000 * 60 * 60;
 	const FIVE_MINUTES = 1000 * 60 * 5;
 
-	// Every 20 seconds check if a streamer is live.
+	// Every 30 seconds check if a streamer is live.
 	setInterval(async () => {
 		try {
-			const channels = Bot.Twitch.Controller.TwitchChannels;
-			for (const channel of channels) {
-				if (channel.Mode !== 'Bot') {
-					setTimeout(async () => {
-						await axios
-							.get(STREAM_INFO_API(channel.Name), {
-								headers: {
-									'client-id': Bot.Config.Twitch.ClientID,
-									Authorization: `Bearer ${(await token.Bot()).token}`,
-								},
-							})
-							.then((response) => response.data.data)
-							.then((response: never[]) => {
-								const live = response.length > 0;
+			const channels = Bot.Twitch.Controller.TwitchChannels.filter(
+				(c) => c.Mode !== 'Bot',
+			).map((c) => {
+				return { TwitchID: c.Id, Name: c.Name };
+			});
 
-								Bot.SQL.Query`
-                                    UPDATE channels 
-                                    SET live = ${live} 
-                                    WHERE name = ${channel.Name}`.execute();
+			const users = await Bot.User.GetMultiple(channels);
 
-								try {
-									channel.UpdateLive();
-								} catch (e) {
-									console.error(e);
-								}
-							})
-							.catch((error) => {
-								console.log(error);
-								return;
-							});
-					}, 500);
+			const streams = await Helix.Stream(users);
+
+			const live = streams.data;
+			const notLive = streams.notLive;
+
+			for (const stream of live) {
+				const user = users.find((u) => u.TwitchUID === stream.user_id);
+				if (!user) continue;
+
+				const channel = Bot.Twitch.Controller.TwitchChannels.find(
+					(c) => c.Id === user.TwitchUID,
+				);
+				if (!channel) continue;
+
+				Bot.SQL.Query`
+                UPDATE channels 
+                SET live = ${true} 
+                WHERE name = ${channel.Name}`.execute();
+
+				try {
+					channel.UpdateLive();
+				} catch (e) {
+					console.error(e);
+				}
+			}
+
+			for (const stream of notLive) {
+				const channel = Bot.Twitch.Controller.TwitchChannels.find(
+					(c) => c.Id === stream.TwitchUID,
+				);
+				if (!channel) continue;
+
+				Bot.SQL.Query`
+                UPDATE channels 
+                SET live = ${false} 
+                WHERE name = ${channel.Name}`.execute();
+
+				try {
+					channel.UpdateLive();
+				} catch (e) {
+					console.error(e);
 				}
 			}
 		} catch (error) {
 			Bot.HandleErrors('__loops/UpdateLiveStats', error);
 		}
-	}, TWENTY_SECONDS);
+	}, THIRTY_SECONDS);
+
+	interface ViewerResponse {
+		chatters: ViewerList;
+	}
 
 	type ViewerList = {
 		broadcaster: string[];
@@ -71,33 +91,23 @@
 			>`SELECT name, user_id FROM channels`;
 			if (!channels.length) return;
 
-			for (const { name, user_id } of channels) {
-				await axios
-					.get(VIEWER_LIST_API(name.toLowerCase()))
-					.then((response) => response.data.chatters)
-					.then(async (response: ViewerList) => {
-						let viewers = '';
+			const promises = channels.map(async (channel) => {
+				const response = (await Got('default')
+					.get(VIEWER_LIST_API(channel.name))
+					.json()) as ViewerResponse;
 
-						// eslint-disable-next-line @typescript-eslint/no-unused-vars
-						for (const [_, value] of Object.entries(response)) {
-							if (value.length > 0) {
-								viewers += `${value.toString()},`;
-							}
-						}
+				const chatters = response.chatters;
 
-						if (viewers.lastIndexOf(',') === viewers.length - 1) {
-							viewers = viewers.substring(0, viewers.length - 1);
-						}
+				const viewers: string[] = [];
 
-						await Bot.Redis.SSet(
-							`channel:${user_id}:viewers`,
-							JSON.stringify(viewers.split(',')),
-						);
-					})
-					.catch((error) => {
-						throw error;
-					});
-			}
+				for (const list of Object.values(chatters)) {
+					viewers.push(...list);
+				}
+
+				await Bot.Redis.SSet(`channel:${channel.user_id}:viewers`, JSON.stringify(viewers));
+			});
+
+			await Promise.all(promises);
 		} catch (error) {
 			Bot.HandleErrors('__loops/ViewerList', error);
 		}
