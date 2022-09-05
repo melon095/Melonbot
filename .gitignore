@@ -9,3 +9,6 @@ EventSub/bin
 EventSub/coverage.out
 EventSub/coverage.html
 EventSub/.evsub.secret.key
+.idea
+.backups
+logs

@@ -41,7 +41,7 @@ func NewServer(url string, cfg *config.Config) *Server {
 
 	redis := rds.New(cfg)
 		
-	apptoken, _ := redis.SGet(context.Background(), "AppToken")
+	apptoken, _ := redis.SGet(context.Background(), "apptoken")
 	
 	if apptoken == "" {
 		log.Warn("No app token found, run Melonbot to load it")
