@@ -64,7 +64,10 @@ export default class Twitch {
 				error instanceof DankTwitch.SayError &&
 				error.cause instanceof DankTwitch.MessageError
 			) {
-				if (error.message.includes('Bad response message')) {
+				if (
+					error.message.includes('Bad response message') &&
+					error.message.includes('@msg-id=msg_rejected_mandatory')
+				) {
 					const _chl = this.TwitchChannelSpecific({
 						Name: error.failedChannelName,
 					});
@@ -94,6 +97,7 @@ export default class Twitch {
 
 	private async _setupRedisCallbacks() {
 		Bot.Redis.Subscribe('EventSub');
+		Bot.Redis.Subscribe('banphrase');
 		Bot.Redis.on('channel.moderator.add', (Data) => {
 			new EventSubTriggers.AddMod(Data).Handle();
 		});
@@ -108,6 +112,12 @@ export default class Twitch {
 
 		Bot.Redis.on('channel.follow', (Data) => {
 			new EventSubTriggers.Follow(Data).Handle();
+		});
+		Bot.Redis.on('banphrase', (Data) => {
+			const channel = this.TwitchChannelSpecific({ ID: Data.channel });
+			if (!channel) return;
+
+			channel.Banphrase.Handle(Data);
 		});
 	}
 

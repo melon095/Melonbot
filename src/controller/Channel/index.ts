@@ -144,8 +144,6 @@ export class Channel {
 
 		// Create callback for the message queue.
 		this.Queue.on('message', (a, b) => this.onQueue(a, b));
-
-		this.Initialize();
 	}
 
 	async say(

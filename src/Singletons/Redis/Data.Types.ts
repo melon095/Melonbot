@@ -2,11 +2,12 @@ export type TPubRecType =
 	| 'connect'
 	| 'channel.moderator.add'
 	| 'channel.moderator.remove'
-	| 'channel.follow';
+	| 'channel.follow'
+	| 'banphrase';
 
 export interface IPubBase {
 	Type: TPubRecType;
-	Data: any; // IPubConnect and so on are stored inside Data property
+	Data: object; // IPubConnect and so on are stored inside Data property
 }
 
 export interface IPing {
@@ -31,4 +32,13 @@ export interface IPubModRemove extends IPubModAdd {}
 
 export interface IPubFollow extends IPubModAdd {
 	followed_at: string;
+}
+
+export interface IBanphrase extends IPubBase {
+	channel: string;
+	request: 'DELETE' | 'ADD' | 'UPDATE';
+	id: number;
+	type: 'pb1' | 'regex';
+	pb1_url?: string;
+	regex?: string;
 }
