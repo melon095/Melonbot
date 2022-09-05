@@ -21,9 +21,10 @@ func New(config *config.Config) *RedisProvider {
 	var rds RedisProvider
 
 	rds.client = redis.NewClient(&redis.Options{
-		Addr: config.Redis.Address,
-		Password: "", /* TODO allow change this */
-		DB: 0, /* TODO allow to change this */
+		Addr: config.EventSub.Redis.Address,
+		Username: config.EventSub.Redis.Username,
+		Password: config.EventSub.Redis.Password, 
+		DB: config.EventSub.Redis.Database,
  	})
 
 	rds.channelName = "Melonbot:EventSub"

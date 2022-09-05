@@ -9,7 +9,14 @@
 	},
 	"EventSub": {
 		"PublicUrl": "https://example.website.root",
-		"Secret": ""
+		"Secret": "",
+		"Redis": {
+			// This is required as go-redis doesn't support redis:// address
+			"Address": "localhost:6379",
+			"Username": "default",
+			"Password": "",
+			"DB": 0
+		}
 	},
 	"Redis": {
 		"Address": "redis://password@host:port"

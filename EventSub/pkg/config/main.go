@@ -21,10 +21,13 @@ type Config struct {
 	EventSub struct {
 		PublicUrl string `json:"PublicUrl"`
 		Secret string `json:"Secret"`
+		Redis struct {
+			Address string `json:"Address"`
+			Username string `json:"Username"`
+			Password string `json:"Password"`
+			Database int `json:"Database"`
+		} `json:"Redis"`
 	} `json:"EventSub"`
-	Redis struct {
-		Address string `json:"Address"`
-	} `json:"Redis"`
 }
 
 const (

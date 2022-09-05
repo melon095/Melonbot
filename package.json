@@ -9,7 +9,6 @@
 		"test:eventsub": "node Scripts/Build.Go.mjs test",
 		"start:bot": "npm run build:tsc && node --inspect build/bin/master.js",
 		"start:web": "node --inspect build/bin/web.js",
-		"start:eventsub": "node Scripts/Build.Go.mjs start",
 		"setup": "npm install && npm run build && node build/bin/setup.js",
 		"build:tsc": "tsc -p tsconfig.json",
 		"build:clean": "rimraf ./build",
