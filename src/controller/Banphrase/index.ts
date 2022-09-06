@@ -37,8 +37,6 @@ export class Banphrase {
 				regex: phrase.regex ? new RegExp(phrase.regex) : undefined,
 			});
 		}
-
-		console.log({ bans: this._bans });
 	}
 
 	async Update() {
@@ -47,8 +45,6 @@ export class Banphrase {
 	}
 
 	async Handle(data: IBanphrase): Promise<void> {
-		console.log({ data });
-
 		switch (data.request) {
 			case 'ADD': {
 				await Bot.SQL.Query`
