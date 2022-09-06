@@ -1,6 +1,7 @@
 import Got from './../../tools/Got.js';
 import * as regex from '../../tools/regex.js';
 import User from './../User/index.js';
+import { IBanphrase } from './../../Singletons/Redis/Data.Types.js';
 
 interface Bans {
 	type: Database.banphrase_type;
@@ -36,11 +37,50 @@ export class Banphrase {
 				regex: phrase.regex ? new RegExp(phrase.regex) : undefined,
 			});
 		}
+
+		console.log({ bans: this._bans });
 	}
 
 	async Update() {
 		this._bans = [];
 		await this.Initialize();
+	}
+
+	async Handle(data: IBanphrase): Promise<void> {
+		console.log({ data });
+
+		switch (data.request) {
+			case 'ADD': {
+				await Bot.SQL.Query`
+                    INSERT INTO banphrases (channel, type, pb1_url, regex)
+                    VALUES (${data.channel}, ${data.type}, ${data.pb1_url ?? null}, ${
+					data.regex ?? null
+				})`;
+
+				break;
+			}
+			case 'UPDATE': {
+				await Bot.SQL.Query`
+                    UPDATE banphrases
+                    SET 
+                        type = ${data.type}, 
+                        pb1_url = ${data.pb1_url ?? null}, 
+                        regex = ${data.regex ?? null} 
+                    WHERE id = ${data.id}
+                    `;
+				break;
+			}
+			case 'DELETE': {
+				await Bot.SQL.Query`
+                    DELETE FROM banphrases
+                    WHERE id = ${data.id}
+                `;
+
+				break;
+			}
+		}
+
+		await this.Update();
 	}
 
 	async Check(message: string): Promise<{ banned: boolean; reason?: string }> {
@@ -80,8 +120,9 @@ export class Banphrase {
 					break;
 				}
 			}
-			if (_chvl.every((i) => i === true))
+			if (_chvl.length && _chvl.every((i) => i === true)) {
 				return { banned: true, reason: 'Channel Banphrase' };
+			}
 		}
 
 		return { banned: _chvl.includes(true), reason: 'Channel Banphrase' };

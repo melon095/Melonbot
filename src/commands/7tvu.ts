@@ -2,7 +2,7 @@ import { ECommandFlags } from '../Typings/enums.js';
 import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, CommandResult, TCommandContext } from '../Models/Command.js';
 import { differenceFormat } from './../tools/tools.js';
-import gql from '../SevenTVGQL.js';
+import gql, { ConnectionPlatform } from '../SevenTVGQL.js';
 
 type Roles = {
 	id: string;
@@ -52,9 +52,12 @@ export default class extends CommandModel {
 
 		const slots = emote_set?.emotes.length || 0;
 		const max_slots = emote_set?.capacity || 0;
+		const { id } = user.connections.find((c) => c.platform === ConnectionPlatform.TWITCH) || {
+			id: null,
+		};
 
 		const Result = [
-			`Username: ${user.username}`,
+			`${user.username} (${id})`,
 			`7TV ID: ${user.id}`,
 			`Roles: ${roleString}`,
 			`Created: ${differenceFormat(new Date(user.created_at).getTime())} ago`,
@@ -72,6 +75,6 @@ export default class extends CommandModel {
 		`**Usage**: ${prefix}7tvu <username>`,
 		`**Example**: ${prefix}7tvu @melon095`,
 		'',
-		"Displays info such as the user's username, 7TV ID, roles, creation date, and emote slots.",
+		'Displays info such as the user id, username, 7TV ID, roles, creation date, and emote slots.',
 	];
 }

@@ -42,9 +42,13 @@ export default (async function () {
 			return;
 		}
 
-		const status = await user.RemoveBanphrase(banphrase[0].id);
+		await Bot.Redis.Publish('banphrase', 'banphrase', {
+			channel: user.TwitchUID,
+			request: 'DELETE',
+			id: parseInt(id),
+		});
 
-		res.status(200).json({ id, status });
+		res.status(200).json({ id, status: 'ACK' });
 	});
 
 	Router.put('/:id', async (req, res) => {
@@ -65,7 +69,31 @@ export default (async function () {
 			return;
 		}
 
-		res.status(200).json({ id, status: 'ACK', body });
+		const banphrase = await Bot.SQL.Query<Database.banphrases[]>`
+            SELECT * FROM banphrases
+            WHERE id = ${parseInt(id)}
+        `;
+
+		if (banphrase.length === 0) {
+			res.status(404).json({ error: 'Banphrase not found' });
+			return;
+		}
+
+		if (banphrase[0].channel !== user.TwitchUID) {
+			res.status(401).json({ error: 'Unauthorized' });
+			return;
+		}
+
+		await Bot.Redis.Publish('banphrase', 'banphrase', {
+			channel: user.TwitchUID,
+			request: 'UPDATE',
+			id: parseInt(id),
+			type: body.type,
+			pb1_url: body.pb1,
+			regex: body.regex,
+		});
+
+		res.status(200).json({ id, status: 'ACK' });
 	});
 
 	Router.post('/', async (req, res) => {
@@ -85,7 +113,15 @@ export default (async function () {
 			return;
 		}
 
-		res.status(200).json({ status: 'ACK', body });
+		await Bot.Redis.Publish('banphrase', 'banphrase', {
+			channel: user.TwitchUID,
+			request: 'ADD',
+			type: body.type,
+			pb1_url: body.pb1,
+			regex: body.regex,
+		});
+
+		res.status(200).json({ status: 'ACK' });
 	});
 
 	return Router;

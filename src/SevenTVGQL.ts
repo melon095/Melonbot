@@ -5,7 +5,7 @@ const url = 'https://7tv.io/v3/gql';
 
 let api = got.extend();
 
-enum ConnectionPlatform {
+export enum ConnectionPlatform {
 	TWITCH = 'TWITCH',
 	YOUTUBE = 'YOUTUBE',
 }
@@ -106,6 +106,10 @@ interface V3User {
 	created_at: string;
 	avatar_url: string;
 	roles: string[];
+	connections: {
+		id: string;
+		platform: ConnectionPlatform;
+	}[];
 	emote_sets: {
 		id: string;
 		emotes: {
@@ -409,6 +413,10 @@ export default {
                             username,
                             roles,
                             created_at,
+                            connections {
+                                id,
+                                platform
+                            }
                             emote_sets {
                                 id,
                                 emotes {
