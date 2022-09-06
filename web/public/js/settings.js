@@ -115,6 +115,15 @@ async function onEditSubmit(event, id) {
 		regex: event.target.regex.value,
 		pb1: event.target.pb1.value,
 	};
+	console.log({ data });
+
+	if (data.type === 'pb1') {
+		data.regex = null;
+	} else if (data.type === 'regex') {
+		data.pb1 = null;
+	}
+
+	console.log({ data });
 
 	const response = await fetch(`/api/v1/channel/banphrase/${id}`, {
 		method: 'PUT',
@@ -124,9 +133,15 @@ async function onEditSubmit(event, id) {
 		body: JSON.stringify(data),
 	});
 
+	/** @type { ACKBanphrase } */
 	const json = await response.json();
 
-	console.log({ json });
+	if (json.error) {
+		alert(json.error);
+		return;
+	}
+
+	alert(`Successfully updated ${data.type} "${data.pb1 || data.regex}"`);
 }
 
 /**
@@ -136,11 +151,18 @@ async function onEditSubmit(event, id) {
 async function onAddSubmit(event) {
 	const data = {
 		type: event.target.type.value,
+		/**
+		 * @type { string }
+		 */
 		regex: event.target.regex.value,
 		pb1: event.target.pb1.value,
 	};
 
-	console.log({ data });
+	if (data.type === 'pb1') {
+		delete data.regex;
+	} else if (data.type === 'regex') {
+		delete data.pb1;
+	}
 
 	const response = await fetch(`/api/v1/channel/banphrase`, {
 		method: 'POST',
@@ -150,9 +172,15 @@ async function onAddSubmit(event) {
 		body: JSON.stringify(data),
 	});
 
+	/** @type { ACKBanphrase } */
 	const json = await response.json();
 
-	console.log({ json });
+	if (json.error) {
+		alert(json.error);
+		return;
+	}
+
+	alert(`Successfully added ${data.type} "${data.regex || data.pb1}"`);
 }
 
 /**

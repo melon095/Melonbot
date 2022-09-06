@@ -62,7 +62,7 @@ html
                                         td(class="flex-column flex-grow-1")
                                             div(class="p-2 flex-column" class=(banphrase.type === 'pb1' ? 'd-none' : false) id="banphrase-edit-regex-container")
                                                 div(class="p-2 flex-column") Regex
-                                                    input(class="form-control" id="banphrase-edit-regex" type="text" name="regex" placeholder="Regex" value=`${banphrase.regex || '//'}`)
+                                                    input(class="form-control" id="banphrase-edit-regex" type="text" name="regex" placeholder="Regex" value=`${banphrase.regex}`)
                                             div(class="p-2 flex-column" class=(banphrase.type === 'regex' ? 'd-none' : false) id="banphrase-edit-pb1-container")
                                                 div(class="p-2 flex-column") PB1 URL
                                                     input(class="form-control" id="banphrase-edit-pb1" type="text" name="pb1" placeholder="PB1 URL" value=`${banphrase.pb1_url || ''}`)
@@ -78,7 +78,7 @@ html
                                 option(value="pb1") PB1
                         div(class="flex-column flex-grow-1 p-2" id="banphrase-add-regex-container")
                             div(class="p-2 flex-column") Regex
-                                input(class="form-control" id="banphrase-add-regex" type="text" name="regex" placeholder="Regex" value='//')
+                                input(class="form-control" id="banphrase-add-regex" type="text" name="regex" placeholder="//" value='')
                         div(class="p-2 flex-column d-none" id="banphrase-add-pb1-container")
                             div(class="p-2 flex-column") PB1 URL
                                 input(class="form-control" id="banphrase-add-pb1" type="text" name="pb1" placeholder="PB1 URL" value='')
