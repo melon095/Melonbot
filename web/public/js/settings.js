@@ -115,15 +115,12 @@ async function onEditSubmit(event, id) {
 		regex: event.target.regex.value,
 		pb1: event.target.pb1.value,
 	};
-	console.log({ data });
 
 	if (data.type === 'pb1') {
 		data.regex = null;
 	} else if (data.type === 'regex') {
 		data.pb1 = null;
 	}
-
-	console.log({ data });
 
 	const response = await fetch(`/api/v1/channel/banphrase/${id}`, {
 		method: 'PUT',
@@ -208,8 +205,6 @@ async function onSubmitSetting(event) {
 	for (const { name, value } of data) {
 		obj[name] = value;
 	}
-
-	console.log({ data, obj });
 
 	const response = await fetch(`/api/v1/channel/settings`, {
 		method: 'POST',

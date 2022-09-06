@@ -74,7 +74,7 @@ export const Authenticator = new (class {
 			return false;
 		}
 
-		res.locals.user = {
+		res.locals.authUser = {
 			name: data.name,
 			id: data.id,
 		};
