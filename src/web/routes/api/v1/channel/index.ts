@@ -46,6 +46,8 @@ export default (async function () {
 		await Bot.Redis.Publish('user-update', 'settings', {
 			id: user.TwitchUID,
 		});
+
+		res.status(200).json({ status: 'ACK' });
 	});
 
 	return Router;

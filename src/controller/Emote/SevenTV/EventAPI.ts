@@ -300,9 +300,6 @@ export class SevenTVEvent extends MWebSocket {
 			case Opcodes.EndOfStream: {
 				const d = data.d as SevenTVOpEndOfStream;
 				super.Log('Closing connection -- reconnecting: : ', d);
-				setTimeout(() => {
-					this.Reconnect();
-				}, 1000);
 				break;
 			}
 			default: {
@@ -439,15 +436,17 @@ export class SevenTVEvent extends MWebSocket {
 		if (this.isInList(channel)) {
 			this.waitConnect().then(() => {
 				if (this.ws) {
+					this.List = this.List.filter((a) => a !== channel);
+
 					this.ws.send(
 						createMessage(Opcodes.UnSubscribe, {
 							type: 'emote_set.update',
 							condition: { object_id: channel.EmoteSet },
 						}),
 					);
+
 					super.Log(`Parted`, { Channel: channel.Channel });
 				}
-				this.List = this.List.filter((a) => a !== channel);
 			});
 		}
 	}
