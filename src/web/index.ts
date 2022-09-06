@@ -112,6 +112,10 @@ const authedRoutes: HeaderItem[] = [
 		name: 'Dashboard',
 		url: 'user/dashboard',
 	},
+	{
+		name: 'Logout',
+		url: 'user/logout',
+	},
 ];
 
 (async function () {

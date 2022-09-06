@@ -119,6 +119,10 @@ export class RedisSingleton extends EventEmitter {
 		};
 	}
 
+	public async SDel(key: string): Promise<void> {
+		await this._client.DEL(`${INTERNAL_LOAD_ID}${key}`);
+	}
+
 	public async Expire(key: string, time: number): Promise<void> {
 		await this._client.EXPIRE(`${INTERNAL_LOAD_ID}${key}`, time);
 	}

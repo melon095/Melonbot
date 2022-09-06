@@ -24,5 +24,13 @@ export default (async function () {
 		});
 	});
 
+	Router.get('/logout', async (req, res) => {
+		const { id, name } = res.locals.authUser;
+		await Bot.Redis.SDel(`session:${id}:${name}`);
+		await Bot.Redis.SDel(`token:${id}:${name}`);
+
+		res.clearCookie('token', { path: '/' }).redirect('/');
+	});
+
 	return Router;
 })();
