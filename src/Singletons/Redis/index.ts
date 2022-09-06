@@ -1,15 +1,9 @@
-import redis, { createClient, RedisClientType } from 'redis';
-import { RandomNumber } from './../../tools/tools.js';
+import { createClient, RedisClientType } from 'redis';
 import { IPing, IPubBase, IPubConnect, IPubModAdd, TPubRecType } from './Data.Types.js';
 import { EventEmitter } from 'node:events';
+import { RedisEvents } from './Redis.Events';
 
 const INTERNAL_LOAD_ID = 'Melonbot:';
-
-interface IChanList {
-	Channel: string;
-	ID: string;
-	InterestedTypes: TPubRecType[];
-}
 
 export class RedisSingleton extends EventEmitter {
 	private static instance: RedisSingleton;
@@ -47,34 +41,22 @@ export class RedisSingleton extends EventEmitter {
 		Bot.HandleErrors('Redis', err);
 	}
 
-	private _emit<T extends IPubBase>(type: TPubRecType, data: IPubBase) {
+	private _emit<T>(type: TPubRecType, data: T) {
 		this.emit(type, data as T);
-	}
-
-	private _isValidType(input: string): input is TPubRecType {
-		const valid: TPubRecType[] = [];
-
-		valid.push('connect');
-		valid.push('channel.moderator.add');
-		valid.push('channel.moderator.remove');
-		valid.push('channel.follow');
-
-		return valid.includes(input as TPubRecType);
 	}
 
 	private _onSubMessage(Data: { Message: string; Channel: string }) {
 		try {
-			let parsed = JSON.parse(Data.Message) as IPubBase;
+			const parsed = JSON.parse(Data.Message) as IPubBase;
+			if (typeof parsed.Data === 'string') {
+				parsed.Data = JSON.parse(parsed.Data);
+			}
 
 			if (!('Type' in parsed)) {
 				throw new Error(`Unknown type from channel: ${Data.Channel}`);
 			}
 
-			if (this._isValidType(parsed.Type)) {
-				this._emit(parsed.Type, parsed.Data);
-			} else {
-				throw new Error(`Unknown channel ${Data.Channel}`);
-			}
+			this._emit(parsed.Type, parsed.Data);
 		} catch (err) {
 			this.OnError(err as Error);
 		}
@@ -95,6 +77,26 @@ export class RedisSingleton extends EventEmitter {
 		});
 	}
 
+	public async Publish(
+		channel: string,
+		type: keyof RedisEvents,
+		data: string | object,
+	): Promise<void> {
+		const toSend = {
+			Type: type,
+			Data: '',
+		};
+		if (typeof data === 'string') {
+			toSend.Data = data;
+		} else if (typeof data === 'object') {
+			toSend.Data = JSON.stringify(data);
+		} else {
+			throw new Error('Unknown data type');
+		}
+
+		await this._client.PUBLISH(`${INTERNAL_LOAD_ID}${channel}`, JSON.stringify(toSend));
+	}
+
 	public async Exist(key: string): Promise<boolean> {
 		return await this._client
 			.EXISTS(key)
@@ -109,11 +111,12 @@ export class RedisSingleton extends EventEmitter {
 			.catch(() => '');
 	}
 
-	public async SSet(key: string, value: string): Promise<string> {
-		return await this._client
-			.SET(`${INTERNAL_LOAD_ID}${key}`, value)
-			.then((ok: string | null) => ok || '')
-			.catch(() => '');
+	public async SSet(key: string, value: string): Promise<(arg0: number) => Promise<void>> {
+		await this._client.SET(`${INTERNAL_LOAD_ID}${key}`, value);
+		// Quick access to .Expire
+		return async (time: number) => {
+			await this.Expire(key, time);
+		};
 	}
 
 	public async Expire(key: string, time: number): Promise<void> {

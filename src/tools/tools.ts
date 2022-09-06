@@ -1,6 +1,6 @@
 import axios from 'axios';
 import humanize from 'humanize-duration';
-import { NChannel, Token, TTokenFunction, NCommand } from './../Typings/types';
+import { NChannel, TTokenFunction, NCommand } from './../Typings/types';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -73,6 +73,7 @@ const createToken = async (): Promise<string | null> => {
 		'channel:manage:broadcast',
 		'moderation:read',
 		'whispers:read',
+		'whispers:edit',
 		'chat:read',
 		'chat:edit',
 		'channel:moderate',
@@ -92,8 +93,8 @@ const createToken = async (): Promise<string | null> => {
 		.then((res) => res.data)
 		.then((data) => {
 			return {
-				access: data.access_token,
-				expires: data.expires_in,
+				access: data?.access_token,
+				expires: data?.expires_in,
 			};
 		})
 		.catch((err) => {
@@ -103,102 +104,14 @@ const createToken = async (): Promise<string | null> => {
 
 	if (!newToken) return null;
 
-	await Bot.Redis.SSet('apptoken', newToken.access);
-	await Bot.Redis.Expire('apptoken', newToken.expires);
+	await (
+		await Bot.Redis.SSet('apptoken', newToken.access)
+	)(newToken.expires);
+
 	return newToken.access;
 };
 
-export const token: Token = {
-	async User(id: number): Promise<TTokenFunction> {
-		const result: TTokenFunction = { status: 'OK', error: '', token: '' };
-		// Validate token [https://dev.twitch.tv/docs/authentication#validating-requests]
-		try {
-			const [access_token] = await Bot.SQL.Query<Database.tokens[]>`
-                        SELECT access_token 
-                        FROM tokens 
-                        WHERE id = ${id}`;
-
-			if (!access_token) {
-				return {
-					status: 'MESSAGE',
-					error: `Sorry, user is not in our database. Please login: [ ${Bot.Config.Website.WebUrl} ]`,
-					token: '',
-				};
-			}
-
-			const verifiedToken: string = await axios
-				.get(VALIDATE_WEBSITE, {
-					headers: {
-						Authorization: `Bearer ${access_token.access_token}`,
-					},
-				})
-				.then((data) => {
-					// Token works, no further action is required
-					// [TODO]: Use better logger. lol.
-					console.log(
-						`${id} has requested their access token and is alive for ${convertHMS(
-							data.data.expires_in,
-						)} hours`,
-					);
-					return access_token.access_token;
-				})
-				.catch(async (error) => {
-					if (error.response.data['message'] === 'invalid access token') {
-						// // https://discuss.dev.twitch.tv/t/status-400-missing-client-id-when-refreshing-user-token-with-granttype-refresh-token-on-postman-it-works/26371/2
-						// Refresh token
-						const [refresh_token] = await Bot.SQL.Query<Database.tokens[]>`
-                                    SELECT refresh_token 
-                                    FROM tokens 
-                                    WHERE id = ${id}`;
-
-						if (!refresh_token || !refresh_token.refresh_token) return;
-
-						const params: URLSearchParams = new URLSearchParams();
-						params.append('grant_type', 'refresh_token');
-						params.append('refresh_token', refresh_token.refresh_token);
-						params.append('client_id', Bot.Config.Twitch.ClientID);
-						params.append('client_secret', Bot.Config.Twitch.ClientSecret);
-
-						const token = await axios({
-							method: 'POST',
-							url: REFRESH_WEBSITE,
-							headers: {
-								'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-							},
-							data: params.toString(),
-						})
-							.then((data) => data.data)
-							.then((data) => {
-								Bot.SQL.Query`
-                                    UPDATE tokens 
-                                    SET 
-                                        access_token = ${data.access_token}, 
-                                        refresh_token = ${data.refresh_token} 
-                                    WHERE id = ${id}`.execute();
-
-								return data.access_token;
-							})
-							.catch((error) => {
-								if (error.data.message === 'Invalid refresh token')
-									throw `The broadcaster is required to login to [ ${Bot.Config.Website.WebUrl} ] again.`;
-								console.log(error);
-								throw error;
-							});
-						return token;
-					}
-				});
-			result.status = 'OK';
-			result.token = verifiedToken;
-		} catch (error) {
-			return {
-				status: 'ERROR',
-				token: '',
-				error: error as string,
-			};
-		}
-		return result;
-	},
-
+export const token = {
 	async Bot(): Promise<TTokenFunction> {
 		const apptoken = await Bot.Redis.SGet('apptoken');
 

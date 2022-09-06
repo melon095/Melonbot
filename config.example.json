@@ -27,6 +27,7 @@
 	"BotUsername": "", // Username of bot LOWERCASE!!
 	"OwnerUserID": "", // ID of the owner
 	"Website": {
+		"JWTSecret": "Scripts/Secret.EventSubKey.mjs",
 		"WebUrl": "", // Public facing IP/Domain to the website if enabled.
 		"Port": 3000
 	},

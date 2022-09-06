@@ -1,16 +1,14 @@
 // @generated
 // Automatically generated. Don't change this file manually.
 
-import type { PhraseType } from '../../types';
+export type banphrase_type = 'pb1' | 'regex';
 
 export type banphrasesId = string & { ' __flavor'?: 'banphrases' };
 
 export default interface banphrases {
-	/**
-	 * Index: idx_1745889_fk_banphrases_channels_idx
-	 * Primary key. Index: idx_1745889_primary
-	 */
-	channel: banphrasesId;
-
-	phrase: PhraseType[];
+	id: number;
+	channel: string;
+	type: banphrase_type;
+	pb1_url?: string;
+	regex?: string;
 }

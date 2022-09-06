@@ -20,8 +20,21 @@ append header
                                     ul(class="dropdown-menu border border-dark")
                                         each item in route.items
                                             a(class="dropdown-item" href=`/${item.url}`) !{item.name}
+                            
                             - }
                             - else {
                                 li(class="nav-item")
                                     a(class="btn nav-link" href=`/${route.url}`) !{route.name}
                             - }
+
+                div(class="navbar-nav")
+                    - if (user) {
+                        li(class="nav-item dropdown")
+                            a(class="btn nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" href="#") Hello !{user.name}
+                            ul(class="dropdown-menu border border-dark")
+                                each item in authedRoutes
+                                    a(class="dropdown-item" href=`/${item.url}`) !{item.name}
+                                
+                    - } else {
+                        a(class="nav-link" href="/auth/twitch/") Login to Twitch
+                    - }

@@ -1,6 +1,5 @@
 import DankTwitch from '@kararty/dank-twitch-irc';
 import * as tools from './tools/tools.js';
-import fs from 'node:fs';
 import { Channel } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
@@ -65,7 +64,10 @@ export default class Twitch {
 				error instanceof DankTwitch.SayError &&
 				error.cause instanceof DankTwitch.MessageError
 			) {
-				if (error.message.includes('Bad response message')) {
+				if (
+					error.message.includes('Bad response message') &&
+					error.message.includes('@msg-id=msg_rejected_mandatory')
+				) {
 					const _chl = this.TwitchChannelSpecific({
 						Name: error.failedChannelName,
 					});
@@ -95,6 +97,7 @@ export default class Twitch {
 
 	private async _setupRedisCallbacks() {
 		Bot.Redis.Subscribe('EventSub');
+		Bot.Redis.Subscribe('banphrase');
 		Bot.Redis.on('channel.moderator.add', (Data) => {
 			new EventSubTriggers.AddMod(Data).Handle();
 		});
@@ -110,6 +113,12 @@ export default class Twitch {
 		Bot.Redis.on('channel.follow', (Data) => {
 			new EventSubTriggers.Follow(Data).Handle();
 		});
+		Bot.Redis.on('banphrase', (Data) => {
+			const channel = this.TwitchChannelSpecific({ ID: Data.channel });
+			if (!channel) return;
+
+			channel.Banphrase.Handle(Data);
+		});
 	}
 
 	private async InitFulfill() {
@@ -119,8 +128,11 @@ export default class Twitch {
 		this.InitReady.resolve(true);
 	}
 
-	async AddChannelList(user: User): Promise<Channel> {
-		const c = await Channel.WithEventsub(user.Name, user.TwitchUID, 'Write', false);
+	async AddChannelList(user: User, eventsub = false): Promise<Channel> {
+		const c = await Channel.New(user, 'Write', false);
+		if (eventsub) {
+			await c.joinEventSub();
+		}
 		this.channels.push(c);
 		return c;
 	}
@@ -203,16 +215,13 @@ export default class Twitch {
 
 			const url = `https://api.twitch.tv/helix/users?id=${Bot.Config.OwnerUserID}&login=${Bot.Config.BotUsername}`;
 
-			const res = await got(url, {
+			const body: IUserInformation = await got('json')(url, {
 				method: 'GET',
 				headers: {
-					accepts: 'application/json',
 					Authorization: `Bearer ${(await tools.token.Bot()).token}`,
 					'Client-ID': Bot.Config.Twitch.ClientID,
 				},
-			});
-
-			const body: IUserInformation = JSON.parse(res.body);
+			}).json();
 
 			for (const user of body.data) {
 				if (user.id === Bot.Config.OwnerUserID) {

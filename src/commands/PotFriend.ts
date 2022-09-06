@@ -26,12 +26,8 @@ export default class extends CommandModel {
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const MESSAGE = (advice: string) => `PotFriend advice: ${advice} PotFriend`;
 
-		const result = await got
-			.get(ADVICE_API, {
-				headers: {
-					accept: 'application/json',
-				},
-			})
+		const result = await got('json')
+			.get(ADVICE_API)
 			.then((ok) => {
 				const json: IAdviceSlipObject = JSON.parse(ok.body);
 				const { slip } = json;

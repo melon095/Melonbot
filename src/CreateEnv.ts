@@ -112,14 +112,19 @@ export const Setup = {
 					await twitch.client
 						.join(channel.name)
 						.catch((err: string) => console.error(err));
-					twitch.channels.push(
-						await Channel.WithEventsub(
-							channel.name,
-							channel.user_id,
-							NChannelFunctions.DatabaseToMode(channel.bot_permission),
-							channel.live,
-						),
-					);
+
+					const mode = NChannelFunctions.DatabaseToMode(channel.bot_permission);
+					const user = await Bot.User.Get(channel.user_id, channel.name);
+
+					let newChannel = await Channel.New(user, mode, channel.live);
+					if (mode === 'VIP' || mode === 'Moderator') {
+						newChannel = await Channel.WithEventsub(
+							newChannel,
+							channel.seventv_emote_set ?? undefined,
+						);
+					}
+					twitch.channels.push(newChannel);
+
 					await Sleep(Bot.Config.Verified ? 0.025 : 1);
 				}
 			}

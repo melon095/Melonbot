@@ -1,9 +1,3 @@
-export type PhraseType = {
-	type: 'REGEX' | 'PB1';
-	url: string;
-	regex: string;
-};
-
 export type ChannelTalkOptions = {
 	SkipBanphrase?: boolean = false;
 	NoEmoteAtStart?: boolean = false; // Don't add the 👤 at the start of the message.
@@ -42,17 +36,6 @@ export type TUserCooldown = {
 	TimeExecute: number;
 	Cooldown: number;
 };
-
-export interface Token {
-	/**
-	 * @description Verify and get the broadcasters token, requires them logging in to the website beforehand!
-	 */
-	User(id: number): Promise<TTokenFunction>;
-	/**
-	 * @description Verify and then get the bots app token
-	 */
-	Bot(): Promise<TTokenFunction>;
-}
 
 export declare namespace NChannel {
 	export type Mode = 'Read' | 'Write' | 'VIP' | 'Moderator' | 'Bot';
@@ -93,8 +76,7 @@ export type TConfigFile = {
 	BotUsername: string;
 	OwnerUserID: string;
 	Website: {
-		Enabled: boolean;
-		UseEventSub: boolean;
+		JWTSecret: string;
 		WebUrl: string;
 		Port: number;
 	};
@@ -107,3 +89,21 @@ export type TConfigFile = {
 export type TStaticDataConfig = {
 	messageEvasionCharacter: string;
 };
+
+export namespace Helix {
+	export interface Users {
+		data: {
+			id: string;
+			login: string;
+			display_name: string;
+			type: 'staff' | 'admin' | 'global_mod' | '';
+			broadcaster_type: 'partner' | 'affiliate' | '';
+			description: string;
+			profile_image_url: string;
+			offline_image_url: string;
+			view_count: number;
+			email?: string; // Requires user:read:email scope
+			created_at: string;
+		}[];
+	}
+}

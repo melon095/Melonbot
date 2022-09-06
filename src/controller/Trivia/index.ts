@@ -57,12 +57,7 @@ export default class TriviaController extends EventEmitter {
 
 		console.log(`https://api.gazatu.xyz/trivia/questions?${uri.toString()}`);
 
-		got(`https://api.gazatu.xyz/trivia/questions?${uri.toString()}`, {
-			method: 'GET',
-			headers: {
-				accept: 'application/json',
-			},
-		})
+		got('json')(`https://api.gazatu.xyz/trivia/questions?${uri.toString()}`)
 			.then((res) => {
 				const json = JSON.parse(res.body);
 
