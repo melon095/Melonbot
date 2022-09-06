@@ -90,6 +90,16 @@ export default class User {
 		return user;
 	}
 
+	static async GetMultiple(Users: { TwitchID: string; Name: string }[]): Promise<User[]> {
+		const users = [];
+
+		for (const user of Users) {
+			users.push(await User.Get(user.TwitchID, user.Name));
+		}
+
+		return users;
+	}
+
 	async SetToken(
 		token: TwitchToken,
 		JWTGenerator: (data: JWTData) => Promise<string>,

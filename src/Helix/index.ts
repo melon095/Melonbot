@@ -202,4 +202,29 @@ export default {
 
 		return await _request('GET', 'users', { params: url });
 	},
+	Stream: async (users: User[]): Promise<{ data: Helix.Stream['data']; notLive: User[] }> => {
+		const chunks = [];
+
+		while (users.length > 0) {
+			chunks.push(users.splice(0, 100));
+		}
+
+		const promises = chunks.map(async (channels) => {
+			const url = new URLSearchParams();
+
+			channels.map((c) => url.append('user_id', c.TwitchUID));
+
+			const res = await _request<Helix.Stream>('GET', 'streams', { params: url });
+			const notLive = channels.filter(
+				(c) => !res.data.find((s) => s.user_id === c.TwitchUID),
+			);
+			return { 0: res, 1: notLive };
+		});
+
+		const results = await Promise.all(promises);
+		const data = results.map((r) => r[0].data).flat();
+		const notLive = results.map((r) => r[1]).flat();
+
+		return { data, notLive };
+	},
 };
