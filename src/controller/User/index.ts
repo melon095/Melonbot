@@ -16,6 +16,11 @@ export interface TwitchToken {
 	expires_in: number;
 }
 
+export interface UserSettings {
+	Eventsub: boolean;
+	// [key: string]: string | boolean;
+}
+
 export default class User {
 	// Two hours
 	static readonly cacheExpireTime = 1000 * 60 * 60 * 2;
@@ -128,6 +133,22 @@ export default class User {
             WHERE id = ${id}
         `;
 
+		return 'ACK';
+	}
+
+	async GetSettings(): Promise<UserSettings> {
+		const DefaultOptions: UserSettings = { Eventsub: false };
+
+		const Options = await Bot.Redis.SGet(`user:${this.TwitchUID}:options`).then((options) => {
+			if (!options) return DefaultOptions;
+			return JSON.parse(options);
+		});
+
+		return Options;
+	}
+
+	async SetSettings(options: UserSettings): Promise<'ACK'> {
+		await Bot.Redis.SSet(`user:${this.TwitchUID}:options`, JSON.stringify(options));
 		return 'ACK';
 	}
 }

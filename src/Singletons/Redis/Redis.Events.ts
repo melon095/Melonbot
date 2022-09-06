@@ -6,4 +6,5 @@ export interface RedisEvents {
 	'channel.moderator.remove': (Data: Events.IPubModAdd) => void;
 	'channel.follow': (Data: Events.IPubFollow) => void;
 	banphrase: (Data: Events.IBanphrase) => void;
+	settings: (data: Events.ISettings) => void;
 }

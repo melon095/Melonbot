@@ -1,28 +1,3 @@
-// type OnSaveFunc = (event: Event) => Promise<void>;
-// type OnEnableFunc = () => Promise<{}>;
-
-// /**
-//  * An event that is shown on the website
-//  * OnSave is fired when an event is saved on the client
-//  * The OnSave function should send a post request to the server
-//  * To /api/user/event/:name
-//  */
-// interface UserSettings {
-// 	Name: string;
-// 	Description: string;
-// 	OnEnable: OnEnableFunc;
-// 	OnSave: OnSaveFunc;
-// }
-
-// const Settings: readonly UserSettings[] = [
-// 	{
-// 		Name: 'Banphrases',
-// 		Description:
-// 			'Banphrases is a list of regex patterns that will be matched against all messages. If a match is found, the bot wont respond. Pb1 (Pajbot1) is also supported.',
-// 		OnSave: async (event: Event) => {},
-// 	},
-// ];
-
 export default (async function () {
 	const Express = await import('express');
 	const Router = Express.Router();
@@ -43,6 +18,7 @@ export default (async function () {
 			user: {
 				...user,
 				profilePicture,
+				Options: await user.GetSettings(),
 			},
 			banphrases,
 		});

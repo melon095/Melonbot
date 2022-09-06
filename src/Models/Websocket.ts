@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import WebSocket from 'ws';
+import { Sleep } from './../tools/tools.js';
 
 interface IWebsocket {
 	ws: WebSocket | null;
@@ -56,7 +57,11 @@ export default abstract class MWebSocket implements IWebsocket {
 
 	async Reconnect(): Promise<void> {
 		try {
-			if (!this.manualExit) await this.Connect().then(() => this.OnReconnect());
+			if (!this.manualExit) {
+				await Sleep(10);
+				await this.Connect().then(() => this.OnReconnect());
+			}
+
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (err: any) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,11 +80,11 @@ export default abstract class MWebSocket implements IWebsocket {
 					Resolve(this.IsOpen);
 				}
 				return;
-			}, 100);
+			}, 2000);
 
 			setTimeout(() => {
 				clearInterval(interval);
-			}, 5000);
+			}, 10000);
 		});
 	}
 

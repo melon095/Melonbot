@@ -119,6 +119,15 @@ export default class Twitch {
 
 			channel.Banphrase.Handle(Data);
 		});
+		Bot.Redis.on('settings', (Data) => {
+			const channel = this.TwitchChannelSpecific({ ID: Data.id });
+			if (!channel) return;
+
+			Bot.User.Get(channel.Id, channel.Name).then(async (user) => {
+				const settings = await user.GetSettings();
+				channel.ReflectNewSettings(settings);
+			});
+		});
 	}
 
 	private async InitFulfill() {

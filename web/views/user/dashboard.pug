@@ -18,6 +18,7 @@ html
             }
 
         script(src="/js/settings.js" defer) 
+
         
     body
         block header
@@ -30,6 +31,15 @@ html
                         div(class="p-2 flex-column") Twitch UID !{user.TwitchUID}
                     div(class=" flex-lg-column-reverse")
                         img(src=`${user.profilePicture}` class="rounded-circle float-end w-100" style="overflow:hidden;width:100%;height:auto;" alt="Twitch Profile Picture")
+
+            div(class="d-flex flex-column my-3") Settings
+                form(onsubmit="onSubmitSetting(event); return false;", id="settings-form")
+                    div(class="form-check form-switch")
+                        input(class="form-check-input" type="checkbox" role="switch" id="flexSwitchEventsub" name="Eventsub" checked=(user.Options.Eventsub))
+                        label(class="form-check-label" for="flexSwitchEventsub") Enable 7TV Eventsub notification
+                    div
+                        button(type="submit" class="btn btn-primary") Save
+                
                     
             div(class="d-flex flex-column") Banphrases
                 div(class="p-2 flex-row") Edit your banphrases

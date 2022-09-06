@@ -184,6 +184,59 @@ async function onAddSubmit(event) {
 }
 
 /**
+ * @param { Event } event
+ */
+async function onSubmitSetting(event) {
+	let data = [];
+	for (const target of event.target) {
+		if (target.type === 'checkbox') {
+			data.push({
+				name: target.name,
+				value: target.checked,
+			});
+		} else {
+			data.push({
+				name: target.name,
+				value: target.value,
+			});
+		}
+	}
+
+	data = data.filter(({ name }) => Boolean(name));
+
+	const obj = {};
+	for (const { name, value } of data) {
+		obj[name] = value;
+	}
+
+	console.log({ data, obj });
+
+	const response = await fetch(`/api/v1/channel/settings`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(obj),
+	});
+
+	/** @type { ACKSettings } */
+	const json = await response.json();
+
+	if (json.error) {
+		alert(json.error);
+		return;
+	}
+
+	alert('Successfully updated settings');
+}
+
+/**
+ * @typedef { object } ACKSettings
+ * @property { 'ACK' } status
+ * @property { string } [error]
+ */
+
+/**
  * @typedef { object } ACKBanphrase
  * @property { string } id
  * @property { 'ACK' } status

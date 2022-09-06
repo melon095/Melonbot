@@ -13,7 +13,7 @@ import {
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
 import { SevenTVChannelIdentifier, SevenTVEvent } from './../Emote/SevenTV/EventAPI';
-import User from './../User/index.js';
+import User, { UserSettings } from './../User/index.js';
 
 /**
  * Encapsulated data for every channel.
@@ -307,21 +307,26 @@ export class Channel {
 		await Bot.Twitch.Controller.client.timeout(this.Name, username, 1, 'Vanish Command Issued');
 	}
 
+	/**
+	 * Listen for 7TV eventsub messages
+	 * Will only be enabled if the channel has the setting checked
+	 */
 	async joinEventSub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
-		if (this.Mode === 'Moderator' || this.Mode === 'VIP') {
-			if (!emoteSetID) {
-				try {
-					const e = await this.getEmoteSetID();
-					if (!e) return;
-					emoteSetID = e;
-				} catch (error) {
-					Bot.HandleErrors('channel/joinEventSub', error);
-					return;
-				}
-			}
+		const settings = await (await this.User()).GetSettings();
+		if (!settings.Eventsub) return;
 
-			Bot.Twitch.Emotes.SevenTVEvent.addChannel(emoteSetID);
+		if (!emoteSetID) {
+			try {
+				const e = await this.getEmoteSetID();
+				if (!e) return;
+				emoteSetID = e;
+			} catch (error) {
+				Bot.HandleErrors('channel/joinEventSub', error);
+				return;
+			}
 		}
+
+		Bot.Twitch.Emotes.SevenTVEvent.addChannel(emoteSetID);
 	}
 
 	async leaveEventsub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
@@ -476,6 +481,10 @@ export class Channel {
 		}
 	}
 
+	async User(): Promise<User> {
+		return await Bot.User.Get(this.Id, this.Name);
+	}
+
 	setMod(): void {
 		if (this.Mode === 'Moderator') return;
 		this.Mode = 'Moderator';
@@ -484,7 +493,6 @@ export class Channel {
 			this.Id
 		}`.execute();
 		this.ModerationModule = new ModerationModule(this);
-		this.joinEventSub();
 		console.info("Channel '" + this.Name + "' is now set as Moderator.");
 	}
 
@@ -496,7 +504,6 @@ export class Channel {
 			this.Id
 		}`.execute();
 		this.ModerationModule = null;
-		this.joinEventSub();
 		console.info("Channel '" + this.Name + "' is now set as VIP.");
 	}
 
@@ -509,7 +516,6 @@ export class Channel {
 			this.Id
 		}`.execute();
 		this.ModerationModule = null;
-		this.leaveEventsub();
 		console.info("Channel '" + this.Name + "' is now set as Norman.");
 	}
 
@@ -553,6 +559,14 @@ export class Channel {
 		await Bot.SQL.Query`
             INSERT INTO logs.commands_execution ${Bot.SQL.Get(result)}
         `;
+	}
+
+	public async ReflectNewSettings(settings: UserSettings): Promise<void> {
+		if (settings.Eventsub) {
+			await this.joinEventSub();
+		} else if (!settings.Eventsub) {
+			await this.leaveEventsub();
+		}
 	}
 
 	private async InitiateTrivia(): Promise<void> {
