@@ -115,15 +115,12 @@ async function onEditSubmit(event, id) {
 		regex: event.target.regex.value,
 		pb1: event.target.pb1.value,
 	};
-	console.log({ data });
 
 	if (data.type === 'pb1') {
 		data.regex = null;
 	} else if (data.type === 'regex') {
 		data.pb1 = null;
 	}
-
-	console.log({ data });
 
 	const response = await fetch(`/api/v1/channel/banphrase/${id}`, {
 		method: 'PUT',
@@ -182,6 +179,57 @@ async function onAddSubmit(event) {
 
 	alert(`Successfully added ${data.type} "${data.regex || data.pb1}"`);
 }
+
+/**
+ * @param { Event } event
+ */
+async function onSubmitSetting(event) {
+	let data = [];
+	for (const target of event.target) {
+		if (target.type === 'checkbox') {
+			data.push({
+				name: target.name,
+				value: target.checked,
+			});
+		} else {
+			data.push({
+				name: target.name,
+				value: target.value,
+			});
+		}
+	}
+
+	data = data.filter(({ name }) => Boolean(name));
+
+	const obj = {};
+	for (const { name, value } of data) {
+		obj[name] = value;
+	}
+
+	const response = await fetch(`/api/v1/channel/settings`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(obj),
+	});
+
+	/** @type { ACKSettings } */
+	const json = await response.json();
+
+	if (json.error) {
+		alert(json.error);
+		return;
+	}
+
+	alert('Successfully updated settings');
+}
+
+/**
+ * @typedef { object } ACKSettings
+ * @property { 'ACK' } status
+ * @property { string } [error]
+ */
 
 /**
  * @typedef { object } ACKBanphrase

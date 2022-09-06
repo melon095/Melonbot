@@ -98,6 +98,7 @@ export default class Twitch {
 	private async _setupRedisCallbacks() {
 		Bot.Redis.Subscribe('EventSub');
 		Bot.Redis.Subscribe('banphrase');
+		Bot.Redis.Subscribe('user-update');
 		Bot.Redis.on('channel.moderator.add', (Data) => {
 			new EventSubTriggers.AddMod(Data).Handle();
 		});
@@ -118,6 +119,15 @@ export default class Twitch {
 			if (!channel) return;
 
 			channel.Banphrase.Handle(Data);
+		});
+		Bot.Redis.on('settings', (Data) => {
+			const channel = this.TwitchChannelSpecific({ ID: Data.id });
+			if (!channel) return;
+
+			Bot.User.Get(channel.Id, channel.Name).then(async (user) => {
+				const settings = await user.GetSettings();
+				channel.ReflectNewSettings(settings);
+			});
 		});
 	}
 

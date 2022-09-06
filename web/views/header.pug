@@ -28,9 +28,9 @@ append header
                             - }
 
                 div(class="navbar-nav")
-                    - if (user) {
+                    - if (authUser) {
                         li(class="nav-item dropdown")
-                            a(class="btn nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" href="#") Hello !{user.name}
+                            a(class="btn nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" href="#") Hello !{authUser.name}
                             ul(class="dropdown-menu border border-dark")
                                 each item in authedRoutes
                                     a(class="dropdown-item" href=`/${item.url}`) !{item.name}

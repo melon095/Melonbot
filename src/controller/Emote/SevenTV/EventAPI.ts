@@ -2,41 +2,6 @@ import MWebSocket from '../../../Models/Websocket.js';
 import WebSocket from 'ws';
 import { Channel } from './../../../controller/Channel/index.js';
 
-// type SevenTVPayload = {
-// 	channel: string;
-// 	emote_id: string;
-// 	name: string;
-// 	action: 'REMOVE' | 'ADD';
-// 	actor: string;
-// 	emote: null | SevenTVEmote;
-// };
-
-// type SevenTVEmote = {
-// 	name: string;
-// 	visibility: number;
-// 	mime: 'image/webp';
-// 	tags: string[];
-// 	width: number[];
-// 	height: number[];
-// 	animated: boolean;
-// 	urls: unknown; // Cba doing this one lol
-// 	owner: SevenTVEmoteOwner;
-// };
-
-// type SevenTVSuccess = 'join' | 'part';
-
-// type SevenTVEmoteOwner = {
-// 	id: string;
-// 	twitch_id: number;
-// 	display_name: string;
-// 	login: string;
-// };
-
-// type SevenTVMessage = {
-// 	action: 'ping' | 'success' | 'update';
-// 	payload: SevenTVSuccess | SevenTVPayload;
-// };
-
 // op -- 0
 // When an event gets fired
 // T relevant to type
@@ -300,9 +265,6 @@ export class SevenTVEvent extends MWebSocket {
 			case Opcodes.EndOfStream: {
 				const d = data.d as SevenTVOpEndOfStream;
 				super.Log('Closing connection -- reconnecting: : ', d);
-				setTimeout(() => {
-					this.Reconnect();
-				}, 1000);
 				break;
 			}
 			default: {
@@ -338,12 +300,15 @@ export class SevenTVEvent extends MWebSocket {
 					return;
 				}
 
-				if (typeof payload.pushed !== 'undefined') this.handleNewEmote(payload, _chl);
-				else if (typeof payload.pulled !== 'undefined')
+				if (typeof payload.pushed !== 'undefined') {
+					this.handleNewEmote(payload, _chl);
+				} else if (typeof payload.pulled !== 'undefined') {
 					this.handleRemovedEmote(payload, _chl);
-				else if (typeof payload.updated !== 'undefined')
+				} else if (typeof payload.updated !== 'undefined') {
 					this.handleUpdatedEmote(payload, _chl);
-				else super.Log(`Received bad data ${JSON.stringify(payload)}`);
+				} else {
+					super.Log(`Received bad data ${JSON.stringify(payload)}`);
+				}
 			}
 		}
 	}
@@ -351,7 +316,6 @@ export class SevenTVEvent extends MWebSocket {
 	private async handleNewEmote(data: SevenTVEmoteSetUpdate, channel: Channel) {
 		const emotes = data.pushed ?? [];
 
-		// it's an array, might send multiple updates at once in the future.
 		for (const emote of emotes) {
 			const identifier: SevenTVChannelIdentifier = {
 				Channel: channel.Name,
@@ -403,8 +367,10 @@ export class SevenTVEvent extends MWebSocket {
 	}
 
 	override OnReconnect(): void {
-		for (const channel of this.List) {
-			this.List = [];
+		const copy = [...this.List];
+		this.List = [];
+
+		for (const channel of copy) {
 			this.addChannel(channel);
 		}
 	}
@@ -415,41 +381,63 @@ export class SevenTVEvent extends MWebSocket {
 		return error;
 	}
 
-	async addChannel(channel: SevenTVChannelIdentifier): Promise<void> {
+	addChannel(channel: SevenTVChannelIdentifier): void {
 		this.waitConnect().then(() => {
-			// They close the connection if we send listen request twice.
-			if (this.List.includes(channel)) return;
+			if (this.isInList(channel)) {
+				return;
+			}
+
 			this.List.push(channel);
 
-			if (this.ws) {
-				this.ws.send(
-					createMessage(Opcodes.Subscribe, {
-						type: 'emote_set.update',
-						condition: {
-							object_id: channel.EmoteSet,
-						},
-					}),
-				);
-				super.Log(`Joined ${channel.Channel}`);
+			if (!this.ws) {
+				return;
 			}
+
+			this.ws.send(
+				createMessage(Opcodes.Subscribe, {
+					type: 'emote_set.update',
+					condition: {
+						object_id: channel.EmoteSet,
+					},
+				}),
+			);
+
+			super.Log(`Joined`, { Channel: channel.Channel });
 		});
 	}
 
-	async removeChannel(channel: SevenTVChannelIdentifier): Promise<void> {
-		if (this.List.includes(channel)) {
-			this.waitConnect().then(() => {
-				if (this.ws) {
-					this.ws.send(
-						createMessage(Opcodes.UnSubscribe, {
-							type: 'emote_set.update',
-							condition: { object_id: channel.EmoteSet },
-						}),
-					);
-					super.Log(`Parted ${channel}`);
-				}
-				this.List = this.List.filter((a) => a !== channel);
-			});
+	removeChannel(channel: SevenTVChannelIdentifier): void {
+		if (!this.isInList(channel)) {
+			return;
 		}
+
+		this.waitConnect().then(() => {
+			if (!this.ws) {
+				return;
+			}
+
+			this.removeFromList(channel);
+
+			this.ws.send(
+				createMessage(Opcodes.UnSubscribe, {
+					type: 'emote_set.update',
+					condition: { object_id: channel.EmoteSet },
+				}),
+			);
+
+			super.Log(`Parted`, { Channel: channel.Channel });
+			return;
+		});
+	}
+
+	protected isInList({ Channel, EmoteSet }: SevenTVChannelIdentifier): boolean {
+		return (
+			this.List.find((a) => a.Channel === Channel && a.EmoteSet === EmoteSet) !== undefined
+		);
+	}
+
+	protected removeFromList({ Channel, EmoteSet }: SevenTVChannelIdentifier): void {
+		this.List = this.List.filter((a) => a.Channel !== Channel && a.EmoteSet !== EmoteSet);
 	}
 
 	HideNotification(

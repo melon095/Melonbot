@@ -42,3 +42,7 @@ export interface IBanphrase extends IPubBase {
 	pb1_url?: string;
 	regex?: string;
 }
+
+export interface ISettings extends IPubBase {
+	id: string;
+}
