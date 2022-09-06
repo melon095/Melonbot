@@ -98,6 +98,7 @@ export default class Twitch {
 	private async _setupRedisCallbacks() {
 		Bot.Redis.Subscribe('EventSub');
 		Bot.Redis.Subscribe('banphrase');
+		Bot.Redis.Subscribe('user-update');
 		Bot.Redis.on('channel.moderator.add', (Data) => {
 			new EventSubTriggers.AddMod(Data).Handle();
 		});

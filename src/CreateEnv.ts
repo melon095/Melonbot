@@ -116,11 +116,9 @@ export const Setup = {
 					const mode = NChannelFunctions.DatabaseToMode(channel.bot_permission);
 					const user = await Bot.User.Get(channel.user_id, channel.name);
 
-					let newChannel = await Channel.New(user, mode, channel.live);
-					newChannel = await Channel.WithEventsub(
-						newChannel,
-						channel.seventv_emote_set ?? undefined,
-					);
+					const newChannel = await Channel.New(user, mode, channel.live);
+					await Channel.WithEventsub(newChannel, channel.seventv_emote_set ?? undefined);
+
 					twitch.channels.push(newChannel);
 
 					await Sleep(Bot.Config.Verified ? 0.025 : 1);

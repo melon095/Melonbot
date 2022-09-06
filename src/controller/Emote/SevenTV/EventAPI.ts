@@ -418,7 +418,7 @@ export class SevenTVEvent extends MWebSocket {
 	async addChannel(channel: SevenTVChannelIdentifier): Promise<void> {
 		this.waitConnect().then(() => {
 			// They close the connection if we send listen request twice.
-			if (this.List.includes(channel)) return;
+			if (this.isInList(channel)) return;
 			this.List.push(channel);
 
 			if (this.ws) {
@@ -430,13 +430,13 @@ export class SevenTVEvent extends MWebSocket {
 						},
 					}),
 				);
-				super.Log(`Joined ${channel.Channel}`);
+				super.Log(`Joined`, { Channel: channel.Channel });
 			}
 		});
 	}
 
 	async removeChannel(channel: SevenTVChannelIdentifier): Promise<void> {
-		if (this.List.includes(channel)) {
+		if (this.isInList(channel)) {
 			this.waitConnect().then(() => {
 				if (this.ws) {
 					this.ws.send(
@@ -445,11 +445,17 @@ export class SevenTVEvent extends MWebSocket {
 							condition: { object_id: channel.EmoteSet },
 						}),
 					);
-					super.Log(`Parted ${channel}`);
+					super.Log(`Parted`, { Channel: channel.Channel });
 				}
 				this.List = this.List.filter((a) => a !== channel);
 			});
 		}
+	}
+
+	protected isInList({ Channel, EmoteSet }: SevenTVChannelIdentifier): boolean {
+		return (
+			this.List.find((a) => a.Channel === Channel && a.EmoteSet === EmoteSet) !== undefined
+		);
 	}
 
 	HideNotification(
