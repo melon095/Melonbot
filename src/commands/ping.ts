@@ -22,20 +22,11 @@ export default class extends CommandModel {
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		const commitCount = cleanCommand('git rev-list --all --count');
-		const commitSha = cleanCommand('git rev-parse --short HEAD');
-		const branch = cleanCommand('git rev-parse --abbrev-ref HEAD');
-
 		const devBot = Bot.Config.Development ? ' Development Bot' : ' ';
 
 		return {
 			Success: true,
-			Result: [
-				`Pong!`,
-				`Uptime ${tools.humanizeDuration(process.uptime())}`,
-				`${commitCount} ${branch.toString()}@${commitSha}`,
-				devBot,
-			]
+			Result: [`Pong!`, `Uptime ${tools.humanizeDuration(process.uptime())}`, devBot]
 				.filter(Boolean)
 				.join(' | '),
 		};
