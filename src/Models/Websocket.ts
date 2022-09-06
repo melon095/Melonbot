@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import WebSocket from 'ws';
 import { Sleep } from './../tools/tools.js';
 
@@ -40,7 +38,7 @@ export default abstract class MWebSocket implements IWebsocket {
 	}
 
 	async Connect(): Promise<boolean> {
-		return new Promise((Resolve, Reject) => {
+		return new Promise((Resolve) => {
 			this.ws = new WebSocket(this.address);
 
 			this.ws.addEventListener('open', () => Resolve(this.OpenListener()));
@@ -61,17 +59,14 @@ export default abstract class MWebSocket implements IWebsocket {
 				await Sleep(10);
 				await this.Connect().then(() => this.OnReconnect());
 			}
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		} catch (err: any) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			this.Log('WEBSOCKET_RECONNECT. ', new Error(err).message);
+		} catch (err) {
+			this.Log('WEBSOCKET_RECONNECT. ', err);
 		}
-		return Promise.resolve();
+		return;
 	}
 
 	async waitConnect(): Promise<boolean> {
-		return new Promise((Resolve, Reject) => {
+		return new Promise((Resolve) => {
 			const interval = setInterval(() => {
 				if (this.IsOpen) {
 					Resolve(this.IsOpen);
@@ -80,11 +75,11 @@ export default abstract class MWebSocket implements IWebsocket {
 					Resolve(this.IsOpen);
 				}
 				return;
-			}, 2000);
+			}, 500);
 
 			setTimeout(() => {
 				clearInterval(interval);
-			}, 10000);
+			}, 5000);
 		});
 	}
 
