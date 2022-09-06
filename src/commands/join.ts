@@ -36,7 +36,7 @@ export default class extends CommandModel {
 			.then(() => {
 				return {
 					Success: true,
-					Result: 'Joining your channel! :)',
+					Result: `Joining your channel. :) Remember to read 👉 https://twitch.tv/${Bot.Config.BotUsername}/about for info on setting me up.`,
 				};
 			})
 			.catch(() => {

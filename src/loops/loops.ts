@@ -107,7 +107,7 @@
 				await Bot.Redis.SSet(`channel:${channel.user_id}:viewers`, JSON.stringify(viewers));
 			});
 
-			await Promise.all(promises);
+			await Promise.allSettled(promises);
 		} catch (error) {
 			Bot.HandleErrors('__loops/ViewerList', error);
 		}

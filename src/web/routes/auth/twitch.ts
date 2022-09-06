@@ -1,6 +1,7 @@
 import Got from '../../../tools/Got.js';
 import type { Helix } from './../../../Typings/types.js';
 import { Authenticator } from './../../../web/index.js';
+import { GetSafeError } from './../../../controller/User/index.js';
 
 const redirect_uri = Bot.Config.Website.WebUrl + '/auth/twitch/callback';
 
@@ -104,16 +105,24 @@ export default (async function () {
 			}
 
 			const user = await Bot.User.Get(user_json.data[0].id, user_json.data[0].login, {
-				throwOnNotFound: false,
-			});
-
-			if (!user) {
-				res.render('error', {
-					safeError:
-						'I have never seen you before, please say something in chat to get started.',
+				throwOnNotFound: true,
+			})
+				.then((a) => a)
+				.catch((error) => {
+					if (error instanceof GetSafeError) {
+						res.render('error', {
+							safeError:
+								'I have never seen you before, please say something in chat to get started.',
+						});
+					} else {
+						res.render('error', {
+							safeError: 'There was an error logging you in try again later.',
+						});
+					}
+					return;
 				});
-				return;
-			}
+
+			if (!user) return;
 
 			// Save the user's access token and generate a JWT Token
 			const jwt = await user.SetToken(
