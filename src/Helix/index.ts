@@ -203,10 +203,11 @@ export default {
 		return await _request('GET', 'users', { params: url });
 	},
 	Stream: async (users: User[]): Promise<{ data: Helix.Stream['data']; notLive: User[] }> => {
+		const copy = [...users];
 		const chunks = [];
 
-		while (users.length > 0) {
-			chunks.push(users.splice(0, 100));
+		while (copy.length > 0) {
+			chunks.push(copy.splice(0, 100));
 		}
 
 		const promises = chunks.map(async (channels) => {

@@ -28,11 +28,8 @@
 			const notLive = streams.notLive;
 
 			for (const stream of live) {
-				const user = users.find((u) => u.TwitchUID === stream.user_id);
-				if (!user) continue;
-
 				const channel = Bot.Twitch.Controller.TwitchChannels.find(
-					(c) => c.Id === user.TwitchUID,
+					(c) => c.Id === stream.user_id,
 				);
 				if (!channel) continue;
 
