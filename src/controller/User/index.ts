@@ -128,9 +128,10 @@ export default class User {
 			.get({
 				url: `https://api.ivr.fi/v2/twitch/user`,
 				searchParams: {
-					login: username
-				}
-			}).json()) as Ivr.User[];
+					login: username,
+				},
+			})
+			.json()) as Ivr.User[];
 
 		if (!response.length) {
 			throw new GetSafeError('User not found');
