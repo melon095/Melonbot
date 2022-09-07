@@ -403,30 +403,30 @@ export class Channel {
 	}
 
 	static async Join(user: User) {
-		const queries = [];
+		await Bot.SQL.Get.begin(async () => {
+			const queries = [];
 
-		await Bot.SQL
-			.Query`INSERT INTO channels (name, user_id) VALUES (${user.Name}, ${user.TwitchUID})`;
+			await Bot.SQL
+				.Query`INSERT INTO channels (name, user_id) VALUES (${user.Name}, ${user.TwitchUID})`;
 
-		queries.push(Bot.SQL.Query`INSERT INTO stats (name) VALUES (${user.Name})`);
+			queries.push(Bot.SQL.Query`INSERT INTO stats (name) VALUES (${user.Name})`);
 
-		queries.push(Bot.SQL.Query`INSERT INTO banphrases VALUES (${user.Name}, ${'[]'})`);
+			const triviaValues: Database.trivia = {
+				channel: user.Name,
+				user_id: user.TwitchUID,
+				cooldown: 60000,
+				filter: { exclude: [], include: [] },
+				leaderboard: [],
+			};
 
-		const triviaValues: Database.trivia = {
-			channel: user.Name,
-			user_id: user.TwitchUID,
-			cooldown: 60000,
-			filter: { exclude: [], include: [] },
-			leaderboard: [],
-		};
-
-		queries.push(
-			Bot.SQL.Query`
+			queries.push(
+				Bot.SQL.Query`
                 INSERT INTO trivia ${Bot.SQL.Get(triviaValues)}`,
-		);
+			);
 
-		await Promise.all(queries).catch((e) => {
-			Bot.HandleErrors('channel/join', e);
+			await Promise.all(queries);
+		}).catch((error) => {
+			Bot.HandleErrors('channel/join', error);
 			throw '';
 		});
 
