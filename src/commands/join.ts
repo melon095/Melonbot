@@ -72,7 +72,7 @@ export default class extends CommandModel {
 		const [name] = await Bot.SQL.Query`
                 SELECT name 
                 FROM channels 
-                WHERE user_id = ${ctx.user.TwitchUID}`;
+                WHERE user_id = ${channel.TwitchUID}`;
 
 		if (name) {
 			return {
