@@ -125,7 +125,7 @@ export default class User {
 		}
 
 		const response = (await Got('json')
-			.get(`https://api.ivr.fi/v2/twitch/user/${username}`)
+			.get(`https://api.ivr.fi/v2/twitch/user?login=${username}`)
 			.json()) as Ivr.User[];
 
 		if (!response.length) {
