@@ -2,6 +2,7 @@ import Got from './../../tools/Got.js';
 import { JWTData } from 'web/index.js';
 import { UserRole } from './../../Typings/models/bot/index.js';
 import Helix from './../../Helix/index.js';
+import type { Ivr } from './../../Typings/types.js';
 
 export class GetSafeError extends Error {
 	constructor(message: string) {
@@ -98,6 +99,50 @@ export default class User {
 		}
 
 		return users;
+	}
+
+	static CleanName(name: string) {
+		return name.toLowerCase().replace(/[@#]/g, '');
+	}
+
+	static async ResolveUsername(username: string): Promise<User> {
+		const cache = User.Cache.get(username);
+
+		if (cache) {
+			return cache;
+		}
+
+		const user = await Bot.SQL.Query<Database.users[]>`
+            SELECT * FROM users
+            WHERE name = ${username}
+            LIMIT 1
+        `;
+
+		if (user.length) {
+			const dbUser = new User(user[0]);
+			User.Cache.set(username, dbUser);
+			return dbUser;
+		}
+
+		const response = (await Got('json')
+			.get(`https://api.ivr.fi/v2/twitch/resolve/${username}`)
+			.json()) as Ivr.User[];
+
+		if (!response.length) {
+			throw new GetSafeError('User not found');
+		}
+
+		const { login, id } = response[0];
+
+		const newUser = await Bot.SQL.Query<Database.users[]>`
+            INSERT INTO users (name, twitch_uid, role)
+            VALUES (${login}, ${id}, 'user')
+            RETURNING *
+        `;
+
+		const newIvr = new User(newUser[0]);
+		User.Cache.set(login, newIvr);
+		return newIvr;
 	}
 
 	async SetToken(

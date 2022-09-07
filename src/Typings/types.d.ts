@@ -126,3 +126,79 @@ export namespace Helix {
 		}[];
 	}
 }
+
+export namespace Ivr {
+	export interface ModVip {
+		mods: {
+			id: string;
+			login: string;
+			displayName: string;
+			grantedAt: string;
+		}[];
+		vips: {
+			id: string;
+			login: string;
+			displayName: string;
+			grantedAt: string;
+		}[];
+		ttl?: number;
+	}
+
+	export interface User {
+		banned: boolean;
+		displayName: string;
+		login: string;
+		id: string;
+		bio: string;
+		follows: number;
+		followers: number;
+		profileViewCount: number;
+		chatColor: string;
+		logo?: string;
+		banner?: string;
+		verifiedBot: boolean;
+		createdAt: string;
+		updatedAt: string;
+		emotePrefix: string;
+		roles: {
+			isAffiliate: boolean;
+			isPartner: boolean;
+			isStaff: boolean;
+		};
+		badges: {
+			setID: string;
+			title: string;
+			description: string;
+			version: string;
+		}[];
+		chatSettings: {
+			chatDelayMs: number;
+			followersOnlyDurationMinutes: number | null;
+			slowModeDurationSeconds?: number | null;
+			blockLinks?: boolean;
+			isSubscribersOnlyModeEnabled?: boolean;
+			isEmoteOnlyModeEnabled?: boolean;
+			isFastSubsModeEnabled?: boolean;
+			isUniqueChatModeEnabled?: boolean;
+			requireVerifiedAccount?: boolean;
+			rules: string[];
+		};
+		stream: {
+			title: string;
+			id: string;
+			createadAt: string;
+			type: 'live' | string;
+			viewersCount: number;
+			game: {
+				displayName: string;
+			};
+		} | null;
+		lastBroadcast: {
+			startedAt: string;
+			title: string;
+		};
+		panels: {
+			id: string;
+		}[];
+	}
+}
