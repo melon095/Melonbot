@@ -2,7 +2,7 @@ import humanize from 'humanize-duration';
 import { NChannel, TTokenFunction, NCommand } from './../Typings/types';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import Got from './Got';
+import Got from './Got.js';
 
 const VALIDATE_WEBSITE = 'https://id.twitch.tv/oauth2/validate';
 const REFRESH_WEBSITE = 'https://id.twitch.tv/oauth2/token';
