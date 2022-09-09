@@ -1,4 +1,5 @@
 import got from 'got';
+import Got, { BaseGot } from './tools/Got.js';
 import { TCommandContext } from './Models/Command.js';
 
 const url = 'https://7tv.io/v3/gql';
@@ -166,11 +167,10 @@ export enum ListItemAction {
 
 export default {
 	setup: () => {
-		api = got.extend({
+		api = Got('json').extend({
 			prefixUrl: url,
 			headers: {
 				Authorization: `Bearer ${Bot.Config.SevenTV.Bearer}`,
-				'Content-Type': 'application/json',
 			},
 			hooks: {
 				beforeError: [
@@ -178,7 +178,19 @@ export default {
 						const { response } = error;
 						if (response && response.body) {
 							const { body } = response;
-							console.error('Error on 7TV GQL:', { body, code: response.statusCode });
+							try {
+								const json = JSON.parse(body as string);
+								Bot.HandleErrors('Error on 7TV GQL:', {
+									input: error.options.body,
+									errors: JSON.stringify(json.errors),
+									code: response.statusCode,
+								});
+							} catch (_) {
+								console.warn('7TV GQL Most likely recevied an Cloudflare issue', {
+									input: error.options.body,
+									code: response.statusCode,
+								});
+							}
 						}
 						return error;
 					},

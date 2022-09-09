@@ -4,11 +4,17 @@ export default function ErrorHandler<T>(Category: string, Err: T, ...args: strin
 		if (!Err.message) return;
 		try {
 			Bot.SQL.Query`INSERT INTO error_logs (error_message) VALUES (${Err.message})`.execute();
-			console.error({ Category, Err, args: args.join(' ') });
 		} catch (e) {
 			console.error(e);
 		}
+	} else if (typeof Err === 'object') {
+		Bot.SQL.Query`INSERT INTO error_logs (error_message) VALUES (${JSON.stringify(
+			Err,
+		)})`.execute();
+	} else if (typeof Err === 'string') {
+		Bot.SQL.Query`INSERT INTO error_logs (error_message) VALUES (${Err})`.execute();
 	} else {
-		console.error({ Category, Err, args: args.join(' ') });
+		console.warn('Error Handler: Unknown Error Type');
 	}
+	console.error({ Category, Err, args: args.join(' ') });
 }

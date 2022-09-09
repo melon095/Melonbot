@@ -73,7 +73,6 @@ const _createHeaders = async (): Promise<Record<string, string>> => {
 	};
 };
 
-// TODO: Scrap this
 const _request = async <T>(
 	method: Method,
 	path: string,
@@ -89,7 +88,6 @@ const _request = async <T>(
 		headers,
 		searchParams: options.params,
 		json: options.body,
-		throwHttpErrors: false,
 	});
 
 	if (response.statusCode >= 400) {
@@ -97,7 +95,7 @@ const _request = async <T>(
 			`${path} - Helix request failed with status code ${response.statusCode}`,
 			response.body,
 		);
-		throw new Error(`Helix request failed with status code ${response.statusCode}`);
+		throw '';
 	}
 
 	const json = JSON.parse(response.body) as T;
