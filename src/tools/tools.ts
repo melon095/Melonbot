@@ -1,8 +1,8 @@
-import axios from 'axios';
 import humanize from 'humanize-duration';
 import { NChannel, TTokenFunction, NCommand } from './../Typings/types';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import Got from './Got';
 
 const VALIDATE_WEBSITE = 'https://id.twitch.tv/oauth2/validate';
 const REFRESH_WEBSITE = 'https://id.twitch.tv/oauth2/token';
@@ -79,36 +79,28 @@ const createToken = async (): Promise<string | null> => {
 		'channel:moderate',
 	];
 
-	const newToken = await axios(
-		`https://id.twitch.tv/oauth2/token?client_id=${Bot.Config.Twitch.ClientID}&client_secret=${
-			Bot.Config.Twitch.ClientSecret
-		}&grant_type=client_credentials&scope=${scopes.join(' ')}`,
-		{
-			method: 'POST',
-			headers: {
-				accepts: 'application/json',
-			},
-		},
-	)
-		.then((res) => res.data)
-		.then((data) => {
-			return {
-				access: data?.access_token,
-				expires: data?.expires_in,
-			};
-		})
-		.catch((err) => {
-			console.log(err);
-			return null;
-		});
+	const url = `https://id.twitch.tv/oauth2/token?client_id=${
+		Bot.Config.Twitch.ClientID
+	}&client_secret=${
+		Bot.Config.Twitch.ClientSecret
+	}&grant_type=client_credentials&scope=${scopes.join(' ')}`;
 
-	if (!newToken) return null;
+	const { statusCode, body } = await Got('json').post(url, { throwHttpErrors: false });
+
+	const json = JSON.parse(body);
+
+	if (statusCode >= 400) {
+		Bot.HandleErrors('tools/createToken', new Error(json));
+		return null;
+	}
+
+	const { access_token, expires_in } = json;
 
 	await (
-		await Bot.Redis.SSet('apptoken', newToken.access)
-	)(newToken.expires);
+		await Bot.Redis.SSet('apptoken', access_token)
+	)(expires_in);
 
-	return newToken.access;
+	return access_token;
 };
 
 export const token = {
@@ -126,29 +118,22 @@ export const token = {
 			return { status: 'OK', error: '', token: newToken };
 		}
 
-		const token = await axios(VALIDATE_WEBSITE, {
-			method: 'GET',
+		const token = await Got('json').get(VALIDATE_WEBSITE, {
 			headers: {
-				accepts: 'application/json',
 				Authorization: `Bearer ${apptoken}`,
 			},
-		})
-			.then(() => {
-				return apptoken;
-			})
-			.catch(async (err) => {
-				// Token has either ran out or something actually failed
-				// [TODO]: Better error handling.
-				// Currently no idea if the token has actually failed as i can't find any documentation regarding this.
-				// https://dev.twitch.tv/docs/authentication#validating-requests
-				console.log(err);
+			throwHttpErrors: false,
+		});
 
-				return await createToken();
-			});
+		if (token.statusCode === 200) return { status: 'OK', token: apptoken, error: '' };
 
-		if (!token) return { status: 'ERROR', token: '', error: 'No token' };
+		const body = JSON.parse(token.body);
+		Bot.HandleErrors('tools/token/Bot', new Error(body));
+		const newToken = await createToken();
 
-		return { status: 'OK', token: token, error: '' };
+		if (!newToken) return { status: 'ERROR', token: '', error: 'No token' };
+
+		return { status: 'OK', token: newToken, error: '' };
 	},
 };
 
