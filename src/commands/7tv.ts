@@ -1,5 +1,5 @@
 import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import gql, { EmoteSearchFilter } from '../SevenTVGQL.js';
 
 export default class extends CommandModel {
@@ -11,14 +11,8 @@ export default class extends CommandModel {
 	Aliases = [];
 	Cooldown = 5;
 	Params = [
-		{
-			name: 'index',
-			type: 'string',
-		},
-		{
-			name: 'exact',
-			type: 'boolean',
-		},
+		[ArgType.String, 'index'],
+		[ArgType.Boolean, 'exact'],
 	];
 	Flags = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {

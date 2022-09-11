@@ -1,29 +1,22 @@
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 
 import vm from 'node:vm';
 import { Channel } from './../controller/Channel/index.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function Execute(script: string, ctx: TCommandContext): Promise<object | string> {
 	const crypto = await import('crypto');
-	return new Promise((Resolve, Reject) => {
-		const context = vm.createContext({
-			crypto,
-			version: process.version,
-			ctx,
-			Bot,
-		});
-		try {
-			Resolve(
-				new vm.Script(script).runInNewContext(context, {
-					timeout: 2500,
-				}),
-			);
-		} catch (e) {
-			Reject(e);
-		}
+	const context = vm.createContext({
+		crypto,
+		version: process.version,
+		ctx,
+		Bot,
 	});
+	const result = await new vm.Script(script).runInNewContext(context, {
+		timeout: 2500,
+	});
+
+	return result;
 }
 
 export default class extends CommandModel {
@@ -35,8 +28,8 @@ export default class extends CommandModel {
 	Aliases = ['debug'];
 	Cooldown = 5;
 	Params = [
-		{ name: 'username', type: 'string' },
-		{ name: 'id', type: 'string' },
+		[ArgType.String, 'username'],
+		[ArgType.String, 'id'],
 	];
 	Flags = [ECommandFlags.NO_BANPHRASE, ECommandFlags.NO_EMOTE_PREPEND];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {

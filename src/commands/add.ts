@@ -1,4 +1,4 @@
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import gql, { EmoteSearchFilter, ListItemAction } from './../SevenTVGQL.js';
 import { ObjectID } from 'bson';
@@ -13,14 +13,8 @@ export default class extends CommandModel {
 	Aliases = [];
 	Cooldown = 5;
 	Params = [
-		{
-			name: 'alias',
-			type: 'string',
-		},
-		{
-			name: 'exact',
-			type: 'boolean',
-		},
+		[ArgType.String, 'alias'],
+		[ArgType.Boolean, 'exact'],
 	];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {

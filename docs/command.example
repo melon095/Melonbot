@@ -1,5 +1,5 @@
 import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 
 export default class extends CommandModel
 {

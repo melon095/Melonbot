@@ -1,4 +1,4 @@
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 
 export default class extends CommandModel {
@@ -11,8 +11,8 @@ export default class extends CommandModel {
 	Aliases = ['t'];
 	Cooldown = 5;
 	Params = [
-		{ name: 'exclude', type: 'string' },
-		{ name: 'include', type: 'string' },
+		[ArgType.String, 'exclude'],
+		[ArgType.String, 'include'],
 	];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
