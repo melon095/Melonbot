@@ -2,6 +2,11 @@ import { EPermissionLevel, ECommandFlags } from '../Typings/enums.js';
 import { Channel } from 'controller/Channel';
 import User from './../controller/User/index.js';
 
+export enum ArgType {
+	String = 'string',
+	Boolean = 'boolean',
+}
+
 export type LongDescriptionFunction = (prefix: string) => Promise<string[]>;
 
 export type TExecuteFunction = (arg0: TCommandContext) => Promise<CommandResult>;
@@ -13,10 +18,8 @@ export type TCommandContext = {
 	data: TContextData;
 };
 
-export type TArgs = {
-	name: string;
-	type: string; // [TODO]: Can't use string literal here.
-};
+/// [ArgType, string]
+export type TArgs = (ArgType | string)[];
 
 export type TParamsContext = {
 	[key: string]: string | boolean;
@@ -130,14 +133,16 @@ export abstract class CommandModel {
 
 		// Setup default data to params.
 		for (const param of params) {
-			switch (param.type) {
+			const [type, name] = param;
+
+			switch (type) {
 				case 'string': {
-					values[param.name] = '';
+					values[name] = '';
 					break;
 				}
 
 				case 'boolean': {
-					values[param.name] = false;
+					values[name] = false;
 					break;
 				}
 			}
@@ -148,19 +153,21 @@ export abstract class CommandModel {
 			if (word.slice(0, 2) === '--') {
 				const param = word.slice(2);
 
-				const paramType = params.find((i) => param.includes(i.name));
+				const paramType = params.find((i) => param.includes(i[1]));
 
 				if (paramType === undefined)
 					throw new ParseArgumentsError(`Invalid argument: ${param}`);
 
-				switch (paramType.type) {
+				const [type, name] = paramType;
+
+				switch (type) {
 					case 'string': {
 						const value = word.slice(word.indexOf('=') + 1, word.length);
 						values[word.slice(2, word.indexOf('=', 3))] = value.toString();
 						break;
 					}
 					case 'boolean': {
-						values[paramType.name] = true;
+						values[name] = true;
 						break;
 					}
 				}

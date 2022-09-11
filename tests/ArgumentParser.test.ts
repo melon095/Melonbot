@@ -1,4 +1,4 @@
-import { CommandModel, ParseArgumentsError, TArgs } from '../src/Models/Command';
+import { CommandModel, ParseArgumentsError, TArgs, ArgType } from '../src/Models/Command';
 
 const parser = CommandModel.ParseArguments;
 
@@ -8,7 +8,7 @@ const isCorrectErrorInstance = (candidate: unknown): candidate is ParseArguments
 describe('CommandModel.ParseArguments', () => {
 	it('Should parse arguments', () => {
 		const input = ['foo', 'bar', '--baz'];
-		const args: TArgs[] = [{ name: 'baz', type: 'boolean' }];
+		const args = [[ArgType.Boolean, 'baz']];
 
 		const result = parser(input, args);
 
@@ -18,7 +18,7 @@ describe('CommandModel.ParseArguments', () => {
 
 	it('Should parse arguments with values', () => {
 		const input = ['foo', 'bar', '--baz=qux'];
-		const args: TArgs[] = [{ name: 'baz', type: 'string' }];
+		const args = [[ArgType.String, 'baz']];
 
 		const result = parser(input, args);
 
@@ -28,7 +28,7 @@ describe('CommandModel.ParseArguments', () => {
 
 	it('Should handle arguments in the middle of the input', () => {
 		const input = ['foo', '--baz=qux', 'bar'];
-		const args: TArgs[] = [{ name: 'baz', type: 'string' }];
+		const args = [[ArgType.String, 'baz']];
 
 		const result = parser(input, args);
 
@@ -38,9 +38,9 @@ describe('CommandModel.ParseArguments', () => {
 
 	it('Should handle multiple arguments', () => {
 		const input = ['foo', 'bar', '--baz=qux', '--quux=quuz'];
-		const args: TArgs[] = [
-			{ name: 'baz', type: 'string' },
-			{ name: 'quux', type: 'string' },
+		const args = [
+			[ArgType.String, 'baz'],
+			[ArgType.String, 'quux'],
 		];
 
 		const result = parser(input, args);
@@ -51,7 +51,7 @@ describe('CommandModel.ParseArguments', () => {
 
 	it('Should fail on invalid arguments', () => {
 		const input = ['foo', '--baz=qux', 'bar', '--quux'];
-		const args: TArgs[] = [{ name: 'baz', type: 'string' }];
+		const args = [[ArgType.String, 'baz']];
 
 		try {
 			parser(input, args);
