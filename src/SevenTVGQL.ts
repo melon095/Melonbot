@@ -381,7 +381,7 @@ export default {
 		}
 		return data.data;
 	},
-	GetUserByUsername: async function ({ ID }: User): Promise<V3User> {
+	GetUserByUsername: async function ({ TwitchUID }: User): Promise<V3User> {
 		const data: Base<{ user: V3User }> = await api
 			.post('', {
 				body: JSON.stringify({
@@ -407,7 +407,7 @@ export default {
                     }`,
 					variables: {
 						platform: ConnectionPlatform.TWITCH,
-						id: ID,
+						id: TwitchUID,
 					},
 				}),
 			})
