@@ -482,7 +482,7 @@ export class Channel {
 	}
 
 	async User(): Promise<User> {
-		return await Bot.User.Get(this.Id, this.Name);
+		return Bot.User.Get(this.Id, this.Name);
 	}
 
 	setMod(): void {

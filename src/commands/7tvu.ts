@@ -20,9 +20,18 @@ export default class extends CommandModel {
 	Params = [];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+		let internalUser;
+
+		if (ctx.input[0]) {
+			const userName = Bot.User.CleanName(ctx.input[0]);
+			internalUser = await Bot.User.ResolveUsername(userName);
+		} else {
+			internalUser = ctx.user;
+		}
+
 		const name = ctx.input[0] || ctx.user.Name;
 		const user = await gql
-			.GetUserByUsername(name.replace('@', ''))
+			.GetUserByUsername(internalUser)
 			.then((u) => u)
 			.catch(() => null);
 

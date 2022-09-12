@@ -1,6 +1,7 @@
 import got from 'got';
-import Got, { BaseGot } from './tools/Got.js';
+import Got from './tools/Got.js';
 import { TCommandContext } from './Models/Command.js';
+import User from './controller/User/index.js';
 
 const url = 'https://7tv.io/v3/gql';
 
@@ -82,22 +83,6 @@ interface ChangeEmoteInset {
 			name: string;
 		}[];
 	};
-}
-
-interface V2User {
-	id: string;
-	twitch_id: string;
-	login: string;
-	display_name: string;
-	role: {
-		id: string;
-		name: string;
-		position: number;
-		color: number;
-		allowed: number;
-		denied: number;
-	};
-	profile_picture_id: string;
 }
 
 interface V3User {
@@ -396,29 +381,11 @@ export default {
 		}
 		return data.data;
 	},
-	V2GetUser: async (username: string): Promise<V2User> => {
-		const user = await got.get(`https://api.7tv.app/v2/users/${username}`, {
-			throwHttpErrors: false,
-		});
-
-		if (user.statusCode === 404) {
-			return Promise.reject('User not found');
-		}
-
-		return JSON.parse(user.body);
-	},
-	GetUserByUsername: async function (username: string): Promise<V3User> {
-		const id = await Bot.Redis.SGet(`seventv:id:${username}`).then(async (id) => {
-			if (id) return id;
-			const v2_id = await this.V2GetUser(username).then(({ id }) => id);
-			await Bot.Redis.SSet(`seventv:id:${username}`, v2_id);
-			return v2_id;
-		});
-
+	GetUserByUsername: async function (username: User): Promise<V3User> {
 		const data: Base<{ user: V3User }> = await api
 			.post('', {
 				body: JSON.stringify({
-					query: `query GetUser($id: ObjectID!) {
+					query: `query GetUserByConnection($platform: ConnectionPlatform!, $id: String!) {
                         user (id: $id) {
                             id,
                             user_type,
@@ -439,7 +406,8 @@ export default {
                         }
                     }`,
 					variables: {
-						id,
+						platform: ConnectionPlatform.TWITCH,
+						id: username,
 					},
 				}),
 			})
@@ -517,7 +485,7 @@ export default {
 			};
 		}
 
-		const user = await this.GetUserByUsername(ctx.channel.Name).catch(() => null);
+		const user = await this.GetUserByUsername(await ctx.channel.User()).catch(() => null);
 
 		if (!user) {
 			return {
