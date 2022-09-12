@@ -381,12 +381,12 @@ export default {
 		}
 		return data.data;
 	},
-	GetUserByUsername: async function (username: User): Promise<V3User> {
+	GetUserByUsername: async function ({ ID }: User): Promise<V3User> {
 		const data: Base<{ user: V3User }> = await api
 			.post('', {
 				body: JSON.stringify({
 					query: `query GetUserByConnection($platform: ConnectionPlatform!, $id: String!) {
-                        user (id: $id) {
+                        userByConnection (platform: $platform, id: $id) {
                             id,
                             user_type,
                             username,
@@ -407,7 +407,7 @@ export default {
                     }`,
 					variables: {
 						platform: ConnectionPlatform.TWITCH,
-						id: username,
+						id: ID,
 					},
 				}),
 			})
