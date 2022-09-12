@@ -36,7 +36,6 @@ export default class extends CommandModel {
 			internalUser = ctx.user;
 		}
 
-		const name = ctx.input[0] || ctx.user.Name;
 		const user = await gql
 			.GetUserByUsername(internalUser)
 			.then((u) => u)

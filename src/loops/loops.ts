@@ -215,7 +215,9 @@
                 FROM channels`;
 
 		for (const channel of channels) {
-			const user = await gql.GetUserByUsername(channel.name).catch(() => undefined);
+			const channelUser = await Bot.User.Get(channel.user_id, channel.name);
+
+			const user = await gql.GetUserByUsername(channelUser).catch(() => undefined);
 			if (!user) continue;
 
 			const emote_set = await gql.getDefaultEmoteSet(user.id);

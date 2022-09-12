@@ -19,12 +19,24 @@ export default class extends CommandModel {
 	Params = [];
 	Flags = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+		let internalUser;
+
 		const name = ctx.input[0];
 		if (!name) {
 			return {
 				Success: false,
 				Result: 'Please provide a username :(',
 			};
+		} else {
+			try {
+				const userName = Bot.User.CleanName(ctx.input[0]);
+				internalUser = await Bot.User.ResolveUsername(userName);
+			} catch (error) {
+				return {
+					Success: false,
+					Result: 'Unable to find that user',
+				};
+			}
 		}
 
 		const owner = await gql.isAllowedToModify(ctx);
@@ -35,7 +47,7 @@ export default class extends CommandModel {
 			};
 		}
 
-		const user = await gql.GetUserByUsername(name.replace('@', '')).catch(() => null);
+		const user = await gql.GetUserByUsername(internalUser).catch(() => null);
 		if (!user)
 			return {
 				Success: false,
