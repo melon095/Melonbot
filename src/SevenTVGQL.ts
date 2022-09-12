@@ -382,7 +382,7 @@ export default {
 		return data.data;
 	},
 	GetUserByUsername: async function ({ TwitchUID }: User): Promise<V3User> {
-		const data: Base<{ user: V3User }> = await api
+		const data: Base<{ userByConnection: V3User }> = await api
 			.post('', {
 				body: JSON.stringify({
 					query: `query GetUserByConnection($platform: ConnectionPlatform!, $id: String!) {
@@ -417,7 +417,7 @@ export default {
 			throw data.errors[0].message;
 		}
 
-		return data.data.user;
+		return data.data.userByConnection;
 	},
 	GetRoles: async (): Promise<{ id: string; name: string }[]> => {
 		const data: Base<{ roles: { id: string; name: string }[] }> = await api
