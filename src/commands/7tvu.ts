@@ -23,8 +23,15 @@ export default class extends CommandModel {
 		let internalUser;
 
 		if (ctx.input[0]) {
-			const userName = Bot.User.CleanName(ctx.input[0]);
-			internalUser = await Bot.User.ResolveUsername(userName);
+			try {
+				const userName = Bot.User.CleanName(ctx.input[0]);
+				internalUser = await Bot.User.ResolveUsername(userName);
+			} catch (error) {
+				return {
+					Success: false,
+					Result: 'Unable to find that user',
+				};
+			}
 		} else {
 			internalUser = ctx.user;
 		}
