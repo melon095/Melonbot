@@ -44,7 +44,7 @@ export default class extends CommandModel {
 		if (!user) {
 			return {
 				Success: false,
-				Result: `User ${name} not found.`,
+				Result: `User ${internalUser.Name} not found.`,
 			};
 		}
 
