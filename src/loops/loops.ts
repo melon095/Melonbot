@@ -1,3 +1,5 @@
+import User from './../controller/User/index.js';
+
 (async () => {
 	const Got = (await import('./../tools/Got.js')).default;
 	const Helix = (await import('./../Helix/index.js')).default;
@@ -150,7 +152,26 @@
 			await gql.getEditors(user_sets.user.id).then(async (response) => {
 				// Store the editors in redis.
 				// Only editors of the channel are allowed to modify the emote-set.
-				const editors = response.user.editors.map((editor) => editor.user.username);
+				const promisedEditors = await Promise.allSettled(
+					response.user.editors.map((editor) => {
+						return Bot.User.ResolveUsername(editor.user.username);
+					}),
+				);
+
+				const failed = promisedEditors.filter((p) => p.status === 'rejected');
+
+				if (failed.length) {
+					console.warn('Failed to resolve usernames for some editors', {
+						chanel: channel.name,
+						failed,
+					});
+				}
+
+				const editors = (
+					promisedEditors.filter(
+						(res) => res.status === 'fulfilled',
+					) as PromiseFulfilledResult<User>[]
+				).map((r) => r.value.Name);
 
 				const current_editors = await Bot.Redis.SetMembers(
 					`seventv:${default_emote_sets}:editors`,
