@@ -105,6 +105,29 @@ export default class User {
 		return name.toLowerCase().replace(/[@#]/g, '');
 	}
 
+	static async ResolveTwitchID(id: string): Promise<User> {
+		const response = (await Got('json')
+			.get({
+				url: `https://api.ivr.fi/v2/twitch/user`,
+				searchParams: {
+					id,
+				},
+			})
+			.json()) as Ivr.User[];
+
+		if (!response.length) {
+			throw new GetSafeError(`User ${id} not found`);
+		}
+
+		const { login, id: twitchID } = response[0];
+
+		const user = User.Get(login, twitchID);
+
+		if (user) return user;
+
+		throw new GetSafeError(`User ${login} - ${twitchID} not found`);
+	}
+
 	static async ResolveUsername(username: string): Promise<User> {
 		const cache = User.Cache.get(username);
 
@@ -134,7 +157,7 @@ export default class User {
 			.json()) as Ivr.User[];
 
 		if (!response.length) {
-			throw new GetSafeError('User not found');
+			throw new GetSafeError(`User ${username} not found`);
 		}
 
 		const { login, id } = response[0];

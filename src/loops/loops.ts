@@ -1,4 +1,5 @@
 import User from './../controller/User/index.js';
+import { ConnectionPlatform } from './../SevenTVGQL.js';
 
 (async () => {
 	const Got = (await import('./../tools/Got.js')).default;
@@ -153,8 +154,14 @@ import User from './../controller/User/index.js';
 				// Store the editors in redis.
 				// Only editors of the channel are allowed to modify the emote-set.
 				const promisedEditors = await Promise.allSettled(
-					response.user.editors.map((editor) => {
-						return Bot.User.ResolveUsername(editor.user.username);
+					response.user.editors.map(async (editor) => {
+						const twitch = editor.user.connections.find(
+							(c) => c.platform === ConnectionPlatform.TWITCH,
+						);
+						if (!twitch)
+							throw new Error(`${editor.user.username} -- No Twitch Connection`);
+
+						return Bot.User.ResolveTwitchID(twitch.id);
 					}),
 				);
 

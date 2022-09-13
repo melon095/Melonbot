@@ -61,6 +61,10 @@ interface UserEditor {
 			id: string;
 			user: {
 				username: string;
+				connections: {
+					id: string;
+					platform: ConnectionPlatform;
+				}[];
 			};
 		}[];
 	};
@@ -300,6 +304,10 @@ export default {
                                 id,
                                 user {
                                     username
+                                    connections {
+                                        platform
+                                        id
+                                    }
                                 }
                             }
                         }
