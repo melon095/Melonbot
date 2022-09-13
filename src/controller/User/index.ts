@@ -105,27 +105,47 @@ export default class User {
 		return name.toLowerCase().replace(/[@#]/g, '');
 	}
 
-	static async ResolveTwitchID(id: string): Promise<User> {
+	static async ResolveTwitchID(id: string[]): Promise<{ Okay: User[]; Failed: string[] }> {
+		const searchParams = new URLSearchParams({ id: id.join(',') });
+
 		const response = (await Got('json')
 			.get({
 				url: `https://api.ivr.fi/v2/twitch/user`,
-				searchParams: {
-					id,
-				},
+				searchParams: searchParams,
 			})
 			.json()) as Ivr.User[];
 
 		if (!response.length) {
-			throw new GetSafeError(`User ${id} not found`);
+			return { Okay: [], Failed: id };
 		}
 
-		const { login, id: twitchID } = response[0];
+		const Okay = [];
+		const Failed = [];
 
-		const user = User.Get(twitchID, login);
+		const promise = await Promise.allSettled(
+			response.map(async (user) => {
+				const { login, id: twitchID } = user;
 
-		if (user) return user;
+				const a = await User.Get(twitchID, login);
+				if (a) {
+					return a;
+				}
+				throw new GetSafeError(`User ${login} not found`);
+			}),
+		);
 
-		throw new GetSafeError(`User ${login} - ${twitchID} not found`);
+		Okay.push(
+			...(
+				promise.filter((p) => p.status === 'fulfilled') as PromiseFulfilledResult<User>[]
+			).map((p) => p.value),
+		);
+		Failed.push(
+			...(promise.filter((p) => p.status === 'rejected') as PromiseRejectedResult[]).map(
+				(p) => p.reason,
+			),
+		);
+
+		return { Okay, Failed };
 	}
 
 	static async ResolveUsername(username: string): Promise<User> {

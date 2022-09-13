@@ -130,17 +130,21 @@ import { ConnectionPlatform } from './../SevenTVGQL.js';
 
 		// Get every channel we are editors of
 		const sets = await gql.getUserEmoteSets(bot_id);
-		const editor_of = sets.user.editor_of;
+		const editor_of = sets.user.editor_of.filter((e) =>
+			e.user.connections.find((c) => c.platform === ConnectionPlatform.TWITCH),
+		);
 
 		for (const user of editor_of) {
-			// const user = editor_of[channel]
-
 			// Get their emote-sets
 			const user_sets = await gql.getUserEmoteSets(user.id);
 			if (user_sets === null) continue;
 
+			const twitchID = user_sets.user.connections.find(
+				(c) => c.platform === ConnectionPlatform.TWITCH,
+			)?.id;
+
 			// Find their channel.
-			const channel = channels.find(({ name }) => name === user_sets.user.username);
+			const channel = channels.find(({ user_id }) => user_id === twitchID);
 			if (channel === undefined) continue;
 			// Read-Mode.
 			if (channel?.bot_permission === 0) continue;
@@ -151,34 +155,24 @@ import { ConnectionPlatform } from './../SevenTVGQL.js';
 			);
 			// Get every editor of their channel
 			await gql.getEditors(user_sets.user.id).then(async (response) => {
-				// Store the editors in redis.
-				// Only editors of the channel are allowed to modify the emote-set.
-				const promisedEditors = await Promise.allSettled(
-					response.user.editors.map(async (editor) => {
-						const twitch = editor.user.connections.find(
-							(c) => c.platform === ConnectionPlatform.TWITCH,
-						);
-						if (!twitch)
-							throw new Error(`${editor.user.username} -- No Twitch Connection`);
+				const ids = response.user.editors
+					.map(
+						(e) =>
+							e.user.connections.find((c) => c.platform === ConnectionPlatform.TWITCH)
+								?.id,
+					)
+					.filter((e) => e) as string[];
 
-						return Bot.User.ResolveTwitchID(twitch.id);
-					}),
-				);
+				const promisedEditors = await Bot.User.ResolveTwitchID(ids);
 
-				const failed = promisedEditors.filter((p) => p.status === 'rejected');
-
-				if (failed.length) {
+				if (promisedEditors.Failed.length) {
 					console.warn('Failed to resolve usernames for some editors', {
-						chanel: channel.name,
-						failed,
+						Channel: channel.name,
+						Failed: promisedEditors.Failed,
 					});
 				}
 
-				const editors = (
-					promisedEditors.filter(
-						(res) => res.status === 'fulfilled',
-					) as PromiseFulfilledResult<User>[]
-				).map((r) => r.value.Name);
+				const editors = promisedEditors.Okay.map((e) => e.Name);
 
 				const current_editors = await Bot.Redis.SetMembers(
 					`seventv:${default_emote_sets}:editors`,
