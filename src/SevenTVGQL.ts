@@ -29,8 +29,19 @@ interface GetCurrentUser {
 	user: {
 		id: string;
 		username: string;
+		connections: {
+			id: string;
+			platform: ConnectionPlatform;
+		}[];
 		editor_of: {
 			id: string;
+			user: {
+				username: string;
+				connections: {
+					id: string;
+					platform: ConnectionPlatform;
+				}[];
+			};
 		}[];
 		emotes_sets: {
 			id: string;
@@ -61,6 +72,10 @@ interface UserEditor {
 			id: string;
 			user: {
 				username: string;
+				connections: {
+					id: string;
+					platform: ConnectionPlatform;
+				}[];
 			};
 		}[];
 	};
@@ -191,10 +206,18 @@ export default {
                         user (id: $id) {
                             id,
                             username,
+                            connections {
+                                id
+                                platform
+                            }
                             editor_of {
                                 id,
                                 user {
                                     username
+                                    connections {
+                                        id
+                                        platform
+                                    }
                                 }
                             } 
                         }
@@ -300,6 +323,10 @@ export default {
                                 id,
                                 user {
                                     username
+                                    connections {
+                                        platform
+                                        id
+                                    }
                                 }
                             }
                         }
