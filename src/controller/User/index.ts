@@ -121,7 +121,7 @@ export default class User {
 
 		const { login, id: twitchID } = response[0];
 
-		const user = User.Get(login, twitchID);
+		const user = User.Get(twitchID, login);
 
 		if (user) return user;
 
