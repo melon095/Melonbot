@@ -62,10 +62,13 @@ export default class User {
 			return cacheUser;
 		}
 
-		// Check if exists in database
+		// Find the user in the database
+		// Based of the twitch uid
+		// Name changes won't break it as it should pick the latest detected user
 		const dbUser = await Bot.SQL.Query<Database.users[]>`
             SELECT * FROM users
-            WHERE name = ${Name}
+            WHERE twitch_uid = ${TwitchID}
+            ORDER BY first_seen DESC
             LIMIT 1
         `;
 
@@ -95,10 +98,10 @@ export default class User {
 		const users = [];
 
 		for (const user of Users) {
-			users.push(await User.Get(user.TwitchID, user.Name));
+			users.push(User.Get(user.TwitchID, user.Name));
 		}
 
-		return users;
+		return Promise.all(users);
 	}
 
 	static CleanName(name: string) {

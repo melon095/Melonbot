@@ -1,5 +1,5 @@
 import User from './../controller/User/index.js';
-import { ConnectionPlatform } from './../SevenTVGQL.js';
+import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
 
 (async () => {
 	const Got = (await import('./../tools/Got.js')).default;
@@ -155,15 +155,34 @@ import { ConnectionPlatform } from './../SevenTVGQL.js';
 			);
 			// Get every editor of their channel
 			await gql.getEditors(user_sets.user.id).then(async (response) => {
-				const ids = response.user.editors
-					.map(
-						(e) =>
-							e.user.connections.find((c) => c.platform === ConnectionPlatform.TWITCH)
-								?.id,
-					)
-					.filter((e) => e) as string[];
+				interface TempUser {
+					TwitchID: string;
+					Name: string;
+				}
 
-				const promisedEditors = await Bot.User.ResolveTwitchID(ids);
+				// Finds the twitch id and the 7tv username
+				const fixUser = ({ user }: Editor): Partial<TempUser> => {
+					const id = user.connections.find(
+						(c) => c.platform === ConnectionPlatform.TWITCH,
+					)?.id;
+					return { TwitchID: id, Name: user.username };
+				};
+
+				const resEditors = response.user.editors;
+
+				const ids = resEditors
+					.map(fixUser)
+					.filter((e) => e?.TwitchID !== undefined) as TempUser[];
+
+				const knownUsers = await Bot.User.GetMultiple(ids);
+
+				const notKnown = ids.filter(
+					(id) => !knownUsers.find((u) => u.TwitchUID === id.TwitchID),
+				);
+
+				const promisedEditors = await Bot.User.ResolveTwitchID(
+					notKnown.map((e) => e.TwitchID),
+				);
 
 				if (promisedEditors.Failed.length) {
 					console.warn('Failed to resolve usernames for some editors', {
@@ -173,6 +192,7 @@ import { ConnectionPlatform } from './../SevenTVGQL.js';
 				}
 
 				const editors = promisedEditors.Okay.map((e) => e.Name);
+				knownUsers.map((u) => editors.push(u.Name));
 
 				const current_editors = await Bot.Redis.SetMembers(
 					`seventv:${default_emote_sets}:editors`,
@@ -239,7 +259,7 @@ import { ConnectionPlatform } from './../SevenTVGQL.js';
 		for (const channel of channels) {
 			const channelUser = await Bot.User.Get(channel.user_id, channel.name);
 
-			const user = await gql.GetUserByUsername(channelUser).catch(() => undefined);
+			const user = await gql.GetUser(channelUser).catch(() => undefined);
 			if (!user) continue;
 
 			const emote_set = await gql.getDefaultEmoteSet(user.id);

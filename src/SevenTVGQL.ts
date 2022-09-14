@@ -12,6 +12,17 @@ export enum ConnectionPlatform {
 	YOUTUBE = 'YOUTUBE',
 }
 
+export interface Editor {
+	id: string;
+	user: {
+		username: string;
+		connections: {
+			id: string;
+			platform: ConnectionPlatform;
+		}[];
+	};
+}
+
 interface Base<T> {
 	errors?: {
 		message: string;
@@ -33,16 +44,7 @@ interface GetCurrentUser {
 			id: string;
 			platform: ConnectionPlatform;
 		}[];
-		editor_of: {
-			id: string;
-			user: {
-				username: string;
-				connections: {
-					id: string;
-					platform: ConnectionPlatform;
-				}[];
-			};
-		}[];
+		editor_of: Editor[];
 		emotes_sets: {
 			id: string;
 		}[];
@@ -68,16 +70,7 @@ interface UserEditor {
 	user: {
 		id: string;
 		username: string;
-		editors: {
-			id: string;
-			user: {
-				username: string;
-				connections: {
-					id: string;
-					platform: ConnectionPlatform;
-				}[];
-			};
-		}[];
+		editors: Editor[];
 	};
 }
 
@@ -408,7 +401,7 @@ export default {
 		}
 		return data.data;
 	},
-	GetUserByUsername: async function ({ TwitchUID }: User): Promise<V3User> {
+	GetUser: async function ({ TwitchUID }: User): Promise<V3User> {
 		const data: Base<{ userByConnection: V3User }> = await api
 			.post('', {
 				body: JSON.stringify({
@@ -512,12 +505,12 @@ export default {
 			};
 		}
 
-		const user = await this.GetUserByUsername(await ctx.channel.User()).catch(() => null);
+		const user = await this.GetUser(await ctx.channel.User()).catch(() => null);
 
 		if (!user) {
 			return {
 				okay: false,
-				message: "You don' seem to have a 7TV profile.",
+				message: "You don't seem to have a 7TV profile.",
 			};
 		}
 

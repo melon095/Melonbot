@@ -47,7 +47,7 @@ export default class extends CommandModel {
 			};
 		}
 
-		const user = await gql.GetUserByUsername(internalUser).catch(() => null);
+		const user = await gql.GetUser(internalUser).catch(() => null);
 		if (!user)
 			return {
 				Success: false,
@@ -66,7 +66,7 @@ export default class extends CommandModel {
 			}
 		};
 
-		const isEditor = await isAlreadyEditor(owner.user_id!, user.username);
+		const isEditor = await isAlreadyEditor(owner.user_id!, internalUser.Name);
 		if (isEditor) {
 			try {
 				await gql.ModifyUserEditorPermissions(
@@ -80,7 +80,7 @@ export default class extends CommandModel {
 					Result: errorPrompt(String(error)),
 				};
 			}
-			await Bot.Redis.SetRemove(`seventv:${owner.emote_set!}:editors`, [user.username]);
+			await Bot.Redis.SetRemove(`seventv:${owner.emote_set!}:editors`, [internalUser.Name]);
 
 			return {
 				Success: false,
@@ -100,7 +100,7 @@ export default class extends CommandModel {
 				};
 			}
 
-			await Bot.Redis.SetAdd(`seventv:${owner.emote_set!}:editors`, [user.username]);
+			await Bot.Redis.SetAdd(`seventv:${owner.emote_set!}:editors`, [internalUser.Name]);
 			return {
 				Success: true,
 				Result: resultPrompt('Added', user.username),

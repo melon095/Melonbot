@@ -37,7 +37,7 @@ export default class extends CommandModel {
 		}
 
 		const user = await gql
-			.GetUserByUsername(internalUser)
+			.GetUser(internalUser)
 			.then((u) => u)
 			.catch(() => null);
 
