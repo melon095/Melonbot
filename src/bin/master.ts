@@ -26,7 +26,7 @@
 		console.error('Unhandled rejection', { err, promise });
 	});
 
-	Setup.All().then(() => Setup.Bot());
+	Setup.All('BOT').then(() => Setup.Bot());
 
 	async function exitHandler(): Promise<void> {
 		// Wait for all messages to get sent before turning off bot.

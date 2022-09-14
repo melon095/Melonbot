@@ -43,8 +43,11 @@ export default (async function () {
 
 		await user.SetSettings(settings);
 
-		await Bot.Redis.Publish('user-update', 'settings', {
-			id: user.TwitchUID,
+		await Bot.Redis.Publish('user-update', {
+			Type: 'settings',
+			Data: {
+				id: user.TwitchUID,
+			},
 		});
 
 		res.status(200).json({ status: 'ACK' });

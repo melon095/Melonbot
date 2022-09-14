@@ -42,10 +42,12 @@ export default (async function () {
 			return;
 		}
 
-		await Bot.Redis.Publish('banphrase', 'banphrase', {
-			channel: user.TwitchUID,
-			request: 'DELETE',
-			id: parseInt(id),
+		await Bot.Redis.Publish('banphrase', {
+			Data: {
+				channel: user.TwitchUID,
+				request: 'DELETE',
+				id: parseInt(id),
+			},
 		});
 
 		res.status(200).json({ id, status: 'ACK' });
@@ -84,13 +86,15 @@ export default (async function () {
 			return;
 		}
 
-		await Bot.Redis.Publish('banphrase', 'banphrase', {
-			channel: user.TwitchUID,
-			request: 'UPDATE',
-			id: parseInt(id),
-			type: body.type,
-			pb1_url: body.pb1,
-			regex: body.regex,
+		await Bot.Redis.Publish('banphrase', {
+			Data: {
+				channel: user.TwitchUID,
+				request: 'UPDATE',
+				id: parseInt(id),
+				type: body.type,
+				pb1_url: body.pb1,
+				regex: body.regex,
+			},
 		});
 
 		res.status(200).json({ id, status: 'ACK' });
@@ -113,12 +117,14 @@ export default (async function () {
 			return;
 		}
 
-		await Bot.Redis.Publish('banphrase', 'banphrase', {
-			channel: user.TwitchUID,
-			request: 'ADD',
-			type: body.type,
-			pb1_url: body.pb1,
-			regex: body.regex,
+		await Bot.Redis.Publish('banphrase', {
+			Data: {
+				channel: user.TwitchUID,
+				request: 'ADD',
+				type: body.type,
+				pb1_url: body.pb1,
+				regex: body.regex,
+			},
 		});
 
 		res.status(200).json({ status: 'ACK' });
