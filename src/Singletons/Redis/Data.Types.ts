@@ -1,24 +1,23 @@
-export type TPubRecType =
-	| 'connect'
-	| 'channel.moderator.add'
-	| 'channel.moderator.remove'
-	| 'channel.follow'
-	| 'banphrase';
+export type TPubRecType = 'connect' | 'channel.follow' | 'banphrase';
 
-export interface IPubBase {
-	Type: TPubRecType;
-	Data: object; // IPubConnect and so on are stored inside Data property
+/**
+ * Type is the eventsub type that was emitted
+ * However if it is undefined the type is the channel name it was sent from
+ */
+export interface IPubBase<T = object> {
+	Type?: TPubRecType;
+	Data: T;
 }
 
 export interface IPing {
 	Pong: string;
 }
 
-export interface IPubConnect extends IPubBase {
+export interface IPubConnect {
 	Version: string;
 }
 
-export interface IPubModAdd extends IPubBase {
+export interface IPubUserToBroadcaster {
 	user_id: string;
 	user_login: string;
 	user_name: string;
@@ -28,13 +27,11 @@ export interface IPubModAdd extends IPubBase {
 	broadcaster_user_name: string;
 }
 
-export interface IPubModRemove extends IPubModAdd {}
-
-export interface IPubFollow extends IPubModAdd {
+export interface IPubFollow extends IPubUserToBroadcaster {
 	followed_at: string;
 }
 
-export interface IBanphrase extends IPubBase {
+export interface IBanphrase {
 	channel: string;
 	request: 'DELETE' | 'ADD' | 'UPDATE';
 	id: number;
@@ -43,6 +40,6 @@ export interface IBanphrase extends IPubBase {
 	regex?: string;
 }
 
-export interface ISettings extends IPubBase {
+export interface ISettings {
 	id: string;
 }

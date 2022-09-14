@@ -96,24 +96,6 @@ export default class Twitch {
 	}
 
 	private async _setupRedisCallbacks() {
-		Bot.Redis.Subscribe('EventSub');
-		Bot.Redis.Subscribe('banphrase');
-		Bot.Redis.Subscribe('user-update');
-		Bot.Redis.on('channel.moderator.add', (Data) => {
-			new EventSubTriggers.AddMod(Data).Handle();
-		});
-
-		Bot.Redis.on('channel.moderator.remove', (Data) => {
-			new EventSubTriggers.RemoveMod(Data).Handle();
-		});
-
-		Bot.Redis.on('connect', (Data) => {
-			new EventSubTriggers.Connect(Data).Handle();
-		});
-
-		Bot.Redis.on('channel.follow', (Data) => {
-			new EventSubTriggers.Follow(Data).Handle();
-		});
 		Bot.Redis.on('banphrase', (Data) => {
 			const channel = this.TwitchChannelSpecific({ ID: Data.channel });
 			if (!channel) return;

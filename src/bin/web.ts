@@ -10,6 +10,6 @@
 	// @ts-ignore
 	Bot.Config.SQL = {};
 
-	await (await import('../CreateEnv.js')).Setup.All();
+	await (await import('../CreateEnv.js')).Setup.All('WEB');
 	await import('../web/index.js');
 })();

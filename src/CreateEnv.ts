@@ -25,8 +25,12 @@ import { RedisSingleton } from './Singletons/Redis/index.js';
 import * as tools from './tools/tools.js';
 import User from './controller/User/index.js';
 
+type ProcessType = 'BOT' | 'WEB';
+
 export const Setup = {
-	All: async (): Promise<void> => {
+	All: async (Process: ProcessType): Promise<void> => {
+		process.env.TYPE = Process;
+
 		process.on('uncaughtException', function (exception) {
 			console.error(exception);
 			process.exitCode = -1;
