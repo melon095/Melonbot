@@ -19,8 +19,6 @@ jobs:
   test:
 
     runs-on: ubuntu-latest
-    env:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     
     steps:
       - uses: actions/checkout@v2
@@ -30,7 +28,5 @@ jobs:
         with:
           go-version: 1.18.1
 
-      - uses: golangci/golangci-lint-action@v3
-        with:
-          working-directory: 'Golang/'
-          args: github.com/JoachimFlottorp/Melonbot/Golang/...
+      - name: Run tests
+        run: go test -v github.com/JoachimFlottorp/Melonbot/Golang/...
