@@ -1,0 +1,11 @@
+## Node processes wont be moved to docker compose, as i prefer to run them on pm2
+
+version: '3'
+
+services:
+  eventsub:
+    build: ./Golang/EventSub
+    volumes:
+      - ./Golang/EventSub:/app
+    ports:
+      3000:3000
