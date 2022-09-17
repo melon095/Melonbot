@@ -180,18 +180,21 @@ import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
 					(id) => !knownUsers.find((u) => u.TwitchUID === id.TwitchID),
 				);
 
-				const promisedEditors = await Bot.User.ResolveTwitchID(
-					notKnown.map((e) => e.TwitchID),
-				);
+				const editors: string[] = [];
+				if (notKnown.length) {
+					const promisedEditors = await Bot.User.ResolveTwitchID(
+						notKnown.map((e) => e.TwitchID),
+					);
 
-				if (promisedEditors.Failed.length) {
-					console.warn('Failed to resolve usernames for some editors', {
-						Channel: channel.name,
-						Failed: promisedEditors.Failed,
-					});
+					if (promisedEditors.Failed.length) {
+						console.warn('Failed to resolve usernames for some editors', {
+							Channel: channel.name,
+							Failed: promisedEditors.Failed,
+						});
+					}
+					promisedEditors.Okay.map((e) => editors.push(e.Name));
 				}
 
-				const editors = promisedEditors.Okay.map((e) => e.Name);
 				knownUsers.map((u) => editors.push(u.Name));
 
 				const current_editors = await Bot.Redis.SetMembers(
