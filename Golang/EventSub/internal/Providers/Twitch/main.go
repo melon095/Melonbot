@@ -14,7 +14,7 @@ import (
 	"github.com/JoachimFlottorp/Melonbot/Golang/Common/redis"
 	"github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/config"
 	"github.com/nicklaw5/helix"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const (
@@ -77,7 +77,7 @@ func (e *EventSub) HandleEventsubNotification(ctx context.Context, notification 
 		var event twitch.EventSubModeratorAddEvent
 		err := json.Unmarshal(notification.Event, &event)
 		if err != nil {
-			log.Errorf("Failed to munmarshal unmarshal event %v error: %v", notification.Event, err)
+			zap.S().Errorf("Failed to munmarshal unmarshal event %v error: %v", notification.Event, err)
 			return errors.New("failed unmarshal event")
 		}
 		e.onModAdd(event)
@@ -87,7 +87,7 @@ func (e *EventSub) HandleEventsubNotification(ctx context.Context, notification 
 		var event twitch.EventSubModeratorRemoveEvent
 		err := json.Unmarshal(notification.Event, &event)
 		if err != nil {
-			log.Errorf("Failed to munmarshal unmarshal event %v error: %v", notification.Event, err)
+			zap.S().Errorf("Failed to munmarshal unmarshal event %v error: %v", notification.Event, err)
 			return errors.New("failed unmarshal event")
 		}
 		e.onModRemove(event)
@@ -97,7 +97,7 @@ func (e *EventSub) HandleEventsubNotification(ctx context.Context, notification 
 		var event twitch.EventSubChannelFollowEvent
 		err := json.Unmarshal(notification.Event, &event)
 		if err != nil {
-			log.Errorf("Failed to unmarshal event %v error: %v", notification.Event, err)
+			zap.S().Errorf("Failed to unmarshal event %v error: %v", notification.Event, err)
 			return errors.New("failed unmarshal event")
 		}
 		e.onFollow(event)
@@ -105,7 +105,7 @@ func (e *EventSub) HandleEventsubNotification(ctx context.Context, notification 
 	}
 
 	default: {
-		log.Errorf("Unknown event type %v", notification)
+		zap.S().Errorf("Unknown event type %v", notification)
 	}
 	}
 	return nil

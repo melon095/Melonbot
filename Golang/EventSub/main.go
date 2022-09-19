@@ -4,21 +4,24 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/pkg/assert"
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/pkg/env"
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/pkg/helper"
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/pkg/log"
+	"github.com/JoachimFlottorp/GoCommon/assert"
+	"github.com/JoachimFlottorp/GoCommon/helper/json"
+	"github.com/JoachimFlottorp/GoCommon/log"
 	twitch "github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/Providers/Twitch"
 	"github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/config"
 	"github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/server"
+	"go.uber.org/zap"
 )
 
 var (
-	cfg = flag.String("config", "./../../config.json", "config file")
-	loglevel = flag.String("loglevel", log.LogLevel.String(log.LevelDebug), "log level")
-	port = flag.String("port", "3000", "port")
+	cfg 	= flag.String("config", "./../../config.json", "config file")
+	debug 	= flag.Bool("debug", false, "debug mode")
+	port 	= flag.String("port", "3000", "port")
 )
 
 const (
@@ -28,10 +31,13 @@ const (
 )
 
 func init() {
-	env.Load()
 	flag.Parse()
 
-	log.New(log.IntoLogLevel(*loglevel))
+	if *debug {
+		log.InitLogger(zap.NewDevelopmentConfig())
+	} else {
+		log.InitLogger(zap.NewProductionConfig())
+	}
 	
 	if cfg == nil {
 		panic("config flag is required")
@@ -39,13 +45,13 @@ func init() {
 }
 
 func main() {
-	ctx := context.Background()
+	file, err := os.OpenFile(*cfg, os.O_RDONLY, 0)
+	assert.Error(err)
 
-	file, err := helper.ReadFile(*cfg)
-	assert.ErrAssert(err)
+	defer file.Close()
 	
-	conf, err := helper.DeserializeStruct[config.Config](file)
-	assert.ErrAssert(err)
+	conf, err := json.DeserializeStruct[config.Config](file)
+	assert.Error(err, "failed to deserialize config")
 
 	validateConfig(conf)
 	
@@ -55,15 +61,38 @@ func main() {
 
 	c := twitch.Connect_t{Version: version}
 
-	server.Start(ctx, c)
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	
+	ctx, cancel := context.WithCancel(context.Background())
+	
+	var serverDone <-chan struct{}
+	done := make(chan struct{})
+
+	go func() {
+		<-sig
+		cancel()
+		if serverDone != nil {
+			<-serverDone
+		}
+
+		close(done)
+	}()
+
+
+	serverDone = server.Start(ctx, c)
+
+	<-done
+	
+	zap.S().Info("Shutting down")
 }
 
 func validateConfig(conf *config.Config) {
 	if conf.EventSub.PublicUrl == "" {
-		log.Get().Fatal("EventSub public url is required")
+		zap.S().Fatal("EventSub public url is required")
 	}
 
 	if !strings.Contains(conf.EventSub.PublicUrl, "https://") {
-		log.Get().Fatal("EventSub public url must be https")
+		zap.S().Fatal("EventSub public url must be https")
 	}
 }

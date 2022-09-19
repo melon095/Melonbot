@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	twitch "github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/Providers/Twitch"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const (
@@ -41,7 +41,7 @@ func (s *Server) eventHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		log.Error(err)
+		zap.S().Error(err)
 		return
 	}
 
@@ -50,12 +50,12 @@ func (s *Server) eventHandler(w http.ResponseWriter, r *http.Request) {
 	validate, err := twitch.ValidateHMAC(header, string(body), s.secret)
 
 	if err != nil {
-		log.Error(err)
+		zap.S().Error(err)
 		return
 	}
 
 	if !validate {
-		log.Warn("Received an invalid HMAC")
+		zap.S().Warn("Received an invalid HMAC")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -63,13 +63,13 @@ func (s *Server) eventHandler(w http.ResponseWriter, r *http.Request) {
 	var notification twitch.EventSubNotificaton
 	err = json.Unmarshal(body, &notification)
 	if err != nil {
-		log.Warn("Received an invalid JSON", err)
+		zap.S().Warn("Received an invalid JSON", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if notification.Challenge != "" {
-		log.Debug("Received verification event")
+		zap.S().Debug("Received verification event")
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte(notification.Challenge))
 		return
@@ -79,47 +79,46 @@ func (s *Server) eventHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Header.Get(twitch.TwitchEventsubMessageType) {
 		case twitch.MessageTypeNotification: {
-			log.Debugf("Received notification event")
+			zap.S().Debugf("Received notification event")
 			s.eventsub.HandleEventsubNotification(ctx, &notification)
 			break
 		}
 		case twitch.MessageTypeRevocation: {
-			log.Debug("Received revocation event")
+			zap.S().Debug("Received revocation event")
 
 			reason := notification.Subscription.Status
-			fields := log.Fields{
-				"Status": notification.Subscription.Type,
-				"Condition": notification.Subscription.Condition,
-			}
+			status := notification.Subscription.Type
 			switch reason {
+
 				case "user_removed": {
-					log.WithFields(fields).Warn("User in subscription has been removed / banned")
+					zap.S().Warn("User in subscription has been removed / banned")
 					break
 				}
 				case "authorization_revoked": {
-					log.WithFields(fields).Warn("The user revoked the authorization token or simply changed their password")
+					zap.S().Warn("The user revoked the authorization token or simply changed their password")
 					break
 				}
 				case "notification_failures_exceeded": {
-					log.WithFields(fields).Warn("The callback failed to respond in a timely manner too many times")
+					zap.S().Warn("The callback failed to respond in a timely manner too many times")
 					break
 				}
 				default: {
 					break
 				}
 			}
+			zap.S().Warn(zap.String("Reason", reason), zap.String("Status", status))
 			break
 		}
 	}
 }
 
 func registerRoutes(server *Server) {
-	log.Info("Registering routes...")
+	zap.S().Info("Registering routes...")
 
 	// Logger middleware
 	server.router.Use(func (next http.Handler) http.Handler { 
 		return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
-			log.Infof("[REQUEST] %s %s %v", r.Method, r.URL.Path, r.Host)
+			zap.S().Infof("[REQUEST] %s %s %v", r.Method, r.URL.Path, r.Host)
 			next.ServeHTTP(w, r)
 		})
 	})

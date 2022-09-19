@@ -4,31 +4,30 @@ import (
 	"context"
 
 	"github.com/JoachimFlottorp/Melonbot/Golang/Common/models/twitch"
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/pkg/log"
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/redis"
+	"go.uber.org/zap"
 )
 
 // TODO Validate it's the bot id here rather on node side
 func registerEvents(s *Server) {
 	s.eventsub.OnModAddEvent(func(event twitch.EventSubModeratorAddEvent) {
-		log.Get().Infof("ModAddEvent %v", event)
-		if err := redis.PublishJSON(s.redis, context.Background(), "channel.moderator.add", event); err != nil {
-			log.Get().Error("Error publishing to redis: ", err)
+		zap.S().Infof("ModAddEvent %v", event)
+		if err := s.redis.Publish(context.Background(), "channel.moderator.add", event); err != nil {
+			zap.S().Error("Error publishing to redis: ", err)
 		}
 	})
 		
 
 	s.eventsub.OnModRemoveEvent(func(event twitch.EventSubModeratorRemoveEvent) {
-		log.Get().Infof("ModRemoveEvent %v", event)
-		if err := redis.PublishJSON(s.redis, context.Background(), "channel.moderator.remove", event); err != nil {
-			log.Get().Error("Error publishing to redis: ", err)
+		zap.S().Infof("ModRemoveEvent %v", event)
+		if err := s.redis.Publish(context.Background(), "channel.moderator.remove", event); err != nil {
+			zap.S().Error("Error publishing to redis: ", err)
 		}
 	})
 
 	s.eventsub.OnFollowEvent(func(event twitch.EventSubChannelFollowEvent) {
-		log.Get().Infof("FollowEvent %v", event)
-		if err := redis.PublishJSON(s.redis, context.Background(), "channel.follow", event); err != nil {
-			log.Get().Error("Error publishing to redis: ", err)
+		zap.S().Infof("FollowEvent %v", event)
+		if err := s.redis.Publish(context.Background(), "channel.follow", event); err != nil {
+			zap.S().Error("Error publishing to redis: ", err)
 		}
 	})
 }

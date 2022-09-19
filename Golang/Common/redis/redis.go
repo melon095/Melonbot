@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/pkg/helper"
+	"github.com/JoachimFlottorp/GoCommon/helper/json"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -31,6 +31,12 @@ type PubJSON interface {
 	Type() Key
 }
 
+type SendEvent struct {
+	Type Key;
+	Data interface{};
+}
+
+
 type Instance interface  {
 	// Ping checks if the redis instance is alive
 	Ping(context.Context) error
@@ -48,8 +54,21 @@ type Instance interface  {
 	
 	// Subscribe subscribes to a channel and returns a channel
 	Subscribe(context.Context, Key) chan PubMessage
-	// Publish publishes a message to a channel
-	Publish(context.Context, Key, string) error
+	// Publish publish a struct to a channel
+	//
+	// It's important to note that the struct must be json.Marshalable
+	//
+	// Data is sent as {
+	// 	"Type": Key
+	// 	"Data": interface{}
+	// }
+	//
+	// This allows the receiver to know what type of data it is receiving
+	// 
+	// Such as Eventsub, where the type could be "foo" or "bar"
+	// 
+	// And the data would could be different for each type
+	Publish(context.Context, Key, PubJSON) error
 
 	// Prefix returns the prefix used for all keys
 	Prefix() string
@@ -108,45 +127,19 @@ func (r *redisInstance) Expire(ctx context.Context, key Key, expiration time.Dur
 	return r.client.Expire(ctx, r.formatKey(key), expiration).Err()
 }
 
-func (r *redisInstance) Publish(ctx context.Context, channel Key, data string) error {
-	return r.client.Publish(ctx, r.formatKey(channel), data).Err()
-
-	// return r.client.Publish(ctx, r.channelName, jsonBytes).Err()
-}
-
-type SendEvent struct {
-	Type Key;
-	Data interface{};
-}
-
-// PublishJSON publish a struct to a channel
-//
-// It's important to note that the struct must be json.Marshalable
-//
-// Data is sent as {
-// 	"Type": Key
-// 	"Data": interface{}
-// }
-//
-// This allows the receiver to know what type of data it is receiving
-// 
-// Such as Eventsub, where the type could be "foo" or "bar"
-// 
-// And the data would could be different for each type
-func PublishJSON(inst Instance, ctx context.Context, channel Key, data PubJSON) error {
+func (r *redisInstance) Publish(ctx context.Context, channel Key, data PubJSON) error {
 	var send SendEvent;
 	
 	send.Type = data.Type();
 	send.Data = data
 	
-	s, err := helper.SerializeStruct(send)
+	s, err := json.SerializeStruct(send)
 	if err != nil {
 		return err
 	}
 
-	return inst.Publish(ctx, Key(inst.Prefix() + channel.String()), string(s))
+	return r.client.Publish(ctx, r.Prefix() + channel.String(), s).Err()
 }
-
 
 func (r *redisInstance) Subscribe(ctx context.Context, channel Key) chan PubMessage {
 	ch := make(chan PubMessage)

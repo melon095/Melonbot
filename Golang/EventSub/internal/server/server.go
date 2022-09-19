@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/pkg/assert"
+	"github.com/JoachimFlottorp/GoCommon/assert"
 	"github.com/JoachimFlottorp/Melonbot/Golang/Common/redis"
 	twitch "github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/Providers/Twitch"
 	"github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/config"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Server struct {
@@ -42,12 +42,12 @@ func NewServer(url string, cfg *config.Config) *Server {
 	}
 
 	redis, err := redis.Create(ctx, cfg.EventSub.Redis)
-	assert.ErrAssert(err)
+	assert.Error(err)
 		
 	apptoken, _ := redis.Get(ctx, "apptoken")
 	
 	if apptoken == "" {
-		log.Warn("No app token found, run Melonbot to load it")
+		zap.S().Panic("No app token found, run Melonbot to load it")
 	}
 
 	sub := twitch.NewEventSub(cfg)
@@ -68,16 +68,26 @@ func NewServer(url string, cfg *config.Config) *Server {
 	return server
 }
 
-func (s *Server) Start(ctx context.Context, cn twitch.Connect_t) {
-	err := redis.PublishJSON(s.redis, ctx, "EventSub", cn)
-
-	assert.ErrAssert(err)
+func (s *Server) Start(ctx context.Context, cn twitch.Connect_t) chan struct{} {
+	done := make(chan struct{})
 	
-	// if err := s.redis.Publish(context.Background(), "connect", cn); err != nil {
-	// 	log.Error("Error publishing to redis: ", err)
-	// }
+	err := s.redis.Publish(ctx, "EventSub", cn)
 
-	log.Info("Starting server on -> ", s.externalURL)
-	log.Fatal(s.http.ListenAndServe())
+	assert.Error(err, "failed to publish connect message")
+
+	zap.S().Infof("Starting server on -> %s", s.externalURL)
+
+	go func() {
+		err := s.http.ListenAndServe()
+		assert.Error(err, "failed to start server")
+	}()
+	
+	go func() {
+		<-ctx.Done()
+		
+		close(done)
+	}()
+
+	return done
 }
 
