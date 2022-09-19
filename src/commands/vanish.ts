@@ -19,7 +19,7 @@ export default class extends CommandModel {
 				Result: '',
 			};
 		}
-		await ctx.channel.VanishUser(ctx.user.Name);
+		await ctx.channel.VanishUser(ctx.user.Name).catch(() => null);
 
 		return {
 			Success: true,

@@ -25,7 +25,7 @@ export default class extends CommandModel {
 	Description = 'Debug command';
 	Permission = EPermissionLevel.ADMIN;
 	OnlyOffline = false;
-	Aliases = ['debug'];
+	Aliases = ['debug', 'js', 'eval'];
 	Cooldown = 5;
 	Params = [
 		[ArgType.String, 'username'],
