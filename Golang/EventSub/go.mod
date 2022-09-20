@@ -3,6 +3,7 @@ module github.com/JoachimFlottorp/Melonbot/Golang/EventSub
 go 1.18
 
 require (
+	github.com/JoachimFlottorp/Melonbot/Golang/Common v0.0.0-00010101000000-000000000000
 	github.com/JoachimFlottorp/GoCommon v0.0.0-20220919224617-149fb676e5df
 	github.com/gorilla/mux v1.8.0
 	github.com/nicklaw5/helix v1.25.0
@@ -22,4 +23,4 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 )
 
-replace github.com/JoachimFlottorp/Melonbot/Golang/Common => ./../Common
+replace github.com/JoachimFlottorp/Melonbot/Golang/Common => ../Common
