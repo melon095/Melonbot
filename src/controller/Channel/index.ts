@@ -357,6 +357,8 @@ export class Channel {
 	}
 
 	private async onQueue(message: string, options: ChannelTalkOptions): Promise<void> {
+		const client = Bot.Twitch.Controller.client;
+
 		let result = message;
 		if (!options.NoEmoteAtStart) result = `👤 ${message}`;
 
@@ -364,7 +366,7 @@ export class Channel {
 			this.Banphrase.Check(message)
 				.then(({ banned, reason }) => {
 					if (!banned) {
-						Bot.Twitch.Controller.client.say(this.Name, result);
+						client.privmsg(this.Name, result);
 					} else {
 						console.log({
 							What: 'Received bad word in channel',
@@ -373,18 +375,18 @@ export class Channel {
 							Reason: reason,
 						});
 
-						Bot.Twitch.Controller.client.say(this.Name, 'cmonBruh bad word.');
+						client.privmsg(this.Name, 'cmonBruh bad word.');
 					}
 				})
 				.catch((error) => {
 					Bot.HandleErrors('banphraseCheck', error);
-					Bot.Twitch.Controller.client.say(
+					client.privmsg(
 						this.Name,
 						'PoroSad unable to verify message against banphrase api.',
 					);
 				});
 		} else {
-			Bot.Twitch.Controller.client.say(this.Name, cleanMessage(result));
+			client.privmsg(this.Name, cleanMessage(result));
 		}
 	}
 

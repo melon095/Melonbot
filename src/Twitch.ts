@@ -244,7 +244,7 @@ export default class Twitch {
 			const user = await Bot.User.Get(senderUserID, senderUsername);
 
 			// Update bot's mode if they have changed.
-			if (senderUserID === Bot.Config.BotUsername) {
+			if (senderUsername === Bot.Config.BotUsername) {
 				channel.UpdateAll(msg);
 				return;
 			}
