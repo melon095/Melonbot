@@ -10,9 +10,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/JoachimFlottorp/Melonbot/EventSub/pkg/config"
+	twitch "github.com/JoachimFlottorp/Melonbot/Golang/Common/models/twitch"
+	"github.com/JoachimFlottorp/Melonbot/Golang/Common/redis"
+	"github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/config"
 	"github.com/nicklaw5/helix"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const (
@@ -40,9 +42,9 @@ type EventSub struct {
 	secret string
 	callbackURL string
 
-	onModAdd func(event helix.EventSubModeratorAddEvent)
-	onModRemove func(event helix.EventSubModeratorRemoveEvent)
-	onFollow func(event helix.EventSubChannelFollowEvent)
+	onModAdd func(event twitch.EventSubModeratorAddEvent)
+	onModRemove func(event twitch.EventSubModeratorRemoveEvent)
+	onFollow func(event twitch.EventSubChannelFollowEvent)
 }
 
 func NewEventSub(cfg *config.Config) *EventSub {
@@ -52,15 +54,15 @@ func NewEventSub(cfg *config.Config) *EventSub {
 	}
 }
 
-func (e *EventSub) OnModAddEvent(callback func(event helix.EventSubModeratorAddEvent)) {
+func (e *EventSub) OnModAddEvent(callback func(event twitch.EventSubModeratorAddEvent)) {
 	e.onModAdd = callback
 }
 
-func (e *EventSub) OnModRemoveEvent(callback func(event helix.EventSubModeratorRemoveEvent)) {
+func (e *EventSub) OnModRemoveEvent(callback func(event twitch.EventSubModeratorRemoveEvent)) {
 	e.onModRemove = callback
 }
 
-func (e *EventSub) OnFollowEvent(callback func(event helix.EventSubChannelFollowEvent)) {
+func (e *EventSub) OnFollowEvent(callback func(event twitch.EventSubChannelFollowEvent)) {
 	e.onFollow = callback
 }
 
@@ -72,30 +74,30 @@ func (e *EventSub) HandleEventsubNotification(ctx context.Context, notification 
 	
 	switch notification.Subscription.Type {
 	case helix.EventSubTypeModeratorAdd: {
-		var event helix.EventSubModeratorAddEvent
+		var event twitch.EventSubModeratorAddEvent
 		err := json.Unmarshal(notification.Event, &event)
 		if err != nil {
-			log.Errorf("Failed to munmarshal unmarshal event %v error: %v", notification.Event, err)
+			zap.S().Errorf("Failed to munmarshal unmarshal event %v error: %v", notification.Event, err)
 			return errors.New("failed unmarshal event")
 		}
 		e.onModAdd(event)
 		break
 	}
 	case helix.EventSubTypeModeratorRemove: {
-		var event helix.EventSubModeratorRemoveEvent
+		var event twitch.EventSubModeratorRemoveEvent
 		err := json.Unmarshal(notification.Event, &event)
 		if err != nil {
-			log.Errorf("Failed to munmarshal unmarshal event %v error: %v", notification.Event, err)
+			zap.S().Errorf("Failed to munmarshal unmarshal event %v error: %v", notification.Event, err)
 			return errors.New("failed unmarshal event")
 		}
 		e.onModRemove(event)
 		break
 	}
 	case helix.EventSubTypeChannelFollow: {
-		var event helix.EventSubChannelFollowEvent
+		var event twitch.EventSubChannelFollowEvent
 		err := json.Unmarshal(notification.Event, &event)
 		if err != nil {
-			log.Errorf("Failed to unmarshal event %v error: %v", notification.Event, err)
+			zap.S().Errorf("Failed to unmarshal event %v error: %v", notification.Event, err)
 			return errors.New("failed unmarshal event")
 		}
 		e.onFollow(event)
@@ -103,7 +105,7 @@ func (e *EventSub) HandleEventsubNotification(ctx context.Context, notification 
 	}
 
 	default: {
-		log.Errorf("Unknown event type %v", notification)
+		zap.S().Errorf("Unknown event type %v", notification)
 	}
 	}
 	return nil
@@ -111,6 +113,10 @@ func (e *EventSub) HandleEventsubNotification(ctx context.Context, notification 
 
 type Connect_t struct {
 	Version string;
+}
+
+func (c Connect_t) Type() redis.Key {
+	return "connect"
 }
 
 type TwitchHeader struct {
@@ -124,7 +130,7 @@ type TwitchHeader struct {
 }
 
 type EventSubNotificaton struct {
-	Subscription helix.EventSubSubscription `json:"subscription"`
+	Subscription twitch.EventSubSubscription `json:"subscription"`
 	Challenge string `json:"challenge"`
 	Event json.RawMessage `json:"event"`
 }

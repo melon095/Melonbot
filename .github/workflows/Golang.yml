@@ -1,0 +1,32 @@
+name: Run Golang tests
+
+# This action works with pull requests and pushes
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+    - 'Golang/**'
+  push:
+    branches: ["master"]
+    paths:
+    - 'Golang/**'
+
+defaults:
+  run:
+    working-directory: Golang
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install and setup Golang
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18.1
+
+      - name: Run tests
+        run: go test -v github.com/JoachimFlottorp/Melonbot/Golang/...

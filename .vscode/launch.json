@@ -10,7 +10,7 @@
 			"request": "launch",
 			"mode": "debug",
 			"args": [],
-			"program": "${workspaceRoot}/EventSub/main.go"
+			"program": "${workspaceRoot}/Golang/EventSub/main.go"
 		},
 		{
 			"type": "pwa-node",

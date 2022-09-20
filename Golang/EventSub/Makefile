@@ -5,11 +5,11 @@ build:
 
 run: build
 	chmod a+x ./bin/EventSub
-	./bin/EventSub -config ./../config.json -loglevel info
+	./bin/EventSub
 
 run-debug: build
 	chmod a+x ./bin/EventSub
-	./bin/EventSub -config ./../config.json -loglevel debug
+	./bin/EventSub -debug
 
 test:
 	go test -v ./...
