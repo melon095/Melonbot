@@ -95,7 +95,7 @@ interface ChangeEmoteInset {
 
 interface V3User {
 	id: string;
-	user_type: string;
+	type: string;
 	username: string;
 	created_at: string;
 	avatar_url: string;
@@ -408,7 +408,7 @@ export default {
 					query: `query GetUserByConnection($platform: ConnectionPlatform!, $id: String!) {
                         userByConnection (platform: $platform, id: $id) {
                             id,
-                            user_type,
+                            type,
                             username,
                             roles,
                             created_at,
