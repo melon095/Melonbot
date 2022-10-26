@@ -21,6 +21,7 @@ const makeReq = async (channel: string, seed?: string): Promise<ApiResponse> => 
 				channel,
 				seed,
 			},
+			throwHttpErrors: false,
 		})
 		.json();
 };
