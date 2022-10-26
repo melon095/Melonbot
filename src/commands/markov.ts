@@ -12,7 +12,7 @@ interface ApiResponse {
 	error?: string;
 }
 
-const API_URL = 'https://staging.melon095.live/api/markov';
+const API_URL = 'https://magnolia.melon095.live/api/markov';
 
 const makeReq = async (channel: string, seed?: string): Promise<ApiResponse> => {
 	return Got('json')
