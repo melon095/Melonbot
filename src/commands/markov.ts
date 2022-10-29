@@ -1,6 +1,7 @@
 import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import Got from './../tools/Got.js';
+import { Unping } from './../tools/tools.js';
 
 interface ApiResponse {
 	success: boolean;
@@ -58,9 +59,12 @@ export default class extends CommandModel {
 			};
 		}
 
+		const users = await ctx.channel.GetViewers();
+		const msg = await Unping(users, res.data.markov);
+
 		return {
 			Success: true,
-			Result: `🔮 ${res.data.markov}`,
+			Result: `🔮 ${msg}`,
 		};
 	};
 	LongDescription = async (prefix: string) => [

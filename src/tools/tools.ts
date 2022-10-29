@@ -5,7 +5,6 @@ import { fileURLToPath } from 'url';
 import Got from './Got.js';
 
 const VALIDATE_WEBSITE = 'https://id.twitch.tv/oauth2/validate';
-const REFRESH_WEBSITE = 'https://id.twitch.tv/oauth2/token';
 
 export function convertHMS(timeInSeconds: number): string | undefined {
 	try {
@@ -294,3 +293,16 @@ export const Import = async (folder: string, route: string) =>
 	await (
 		await import(join('file://', folder, route))
 	).default;
+
+export const Unping = async (users: string[], message: string): Promise<string> => {
+	const unpingUser = (user: string) => `${user[0]}\u{E0000}${user.slice(1)}`;
+
+	return message
+		.split(' ')
+		.map((x) => {
+			const x2 = x.replace(/[@#.,:;?!.,:;\s]/gm, '');
+
+			return users.includes(x2.toLowerCase()) ? unpingUser(x) : x;
+		})
+		.join(' ');
+};
