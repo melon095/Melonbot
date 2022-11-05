@@ -29,9 +29,17 @@ export default class extends CommandModel {
 			};
 		}
 
-		const params = CommandModel.ParseArguments(ctx.input.slice(1), command.Params, {
-			allowInvalid: false,
-		});
+		let params;
+		try {
+			params = CommandModel.ParseArguments(ctx.input.slice(1), command.Params, {
+				allowInvalid: false,
+			});
+		} catch (error) {
+			return {
+				Result: (error as Error).message,
+				Success: false,
+			};
+		}
 
 		const context: TCommandContext = {
 			...ctx,
