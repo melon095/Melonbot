@@ -101,20 +101,20 @@ export class CommandsHandler {
 	}
 
 	async get(identifier: string): Promise<CommandModel | undefined> {
-		return new Promise((Resolve) => {
-			const command = this.commandNameList.find(
-				(command) => command.Name === identifier || command.Aliases?.includes(identifier),
-			);
+		const command = this.commandNameList.find(
+			(command) => command.Name === identifier || command.Aliases?.includes(identifier),
+		);
 
-			if (command === undefined) return Resolve(undefined);
+		if (command === undefined) return undefined;
 
-			Import(resolve(process.cwd(), 'build/commands'), `${command.Name}.js`)
-				.then((c) => Resolve(new c()))
-				.catch((e) => {
-					Bot.HandleErrors('CommandsHandler/getCommands', e);
-					Resolve(undefined);
-				});
-		});
+		const c = Import(resolve(process.cwd(), 'build/commands'), `${command.Name}.js`)
+			.then((c) => new c())
+			.catch((e) => {
+				Bot.HandleErrors('CommandsHandler/getCommands', e);
+				return undefined;
+			});
+
+		return c;
 	}
 
 	get Commands() {

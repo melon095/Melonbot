@@ -39,7 +39,7 @@ export default class extends CommandModel {
 
 		const end = performance.now();
 
-		const time = end - start;
+		const time = (end - start).toFixed(2);
 		const resp = `${time}ms - ${response.Result}`;
 
 		return {
