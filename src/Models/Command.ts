@@ -127,7 +127,15 @@ export abstract class CommandModel {
 		return this.Code(ctx);
 	}
 
-	static ParseArguments(args: string[], params: TArgs[]): ArgsParseResult {
+	public HasFlag(flag: ECommandFlags): boolean {
+		return this.Flags.includes(flag);
+	}
+
+	static ParseArguments(
+		args: string[],
+		params: TArgs[],
+		opts: { allowInvalid?: boolean },
+	): ArgsParseResult {
 		let copy = [...args];
 		const values: TParamsContext = {};
 
@@ -155,8 +163,13 @@ export abstract class CommandModel {
 
 				const paramType = params.find((i) => param.includes(i[1]));
 
-				if (paramType === undefined)
-					throw new ParseArgumentsError(`Invalid argument: ${param}`);
+				if (paramType === undefined) {
+					if (!opts.allowInvalid) {
+						throw new ParseArgumentsError(`Invalid argument: ${param}`);
+					}
+
+					continue;
+				}
 
 				const [type, name] = paramType;
 

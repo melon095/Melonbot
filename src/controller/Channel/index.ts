@@ -221,7 +221,9 @@ export class Channel {
 
 			let argsResult: ArgsParseResult;
 			try {
-				argsResult = CommandModel.ParseArguments(copy, command.Params);
+				argsResult = CommandModel.ParseArguments(copy, command.Params, {
+					allowInvalid: command.HasFlag(ECommandFlags.ALLOW_INVALID_ARGS),
+				});
 			} catch (error) {
 				/// Indicates that the input is invalid
 				if (error instanceof ParseArgumentsError) {

@@ -1,4 +1,4 @@
-import { CommandModel, ParseArgumentsError, TArgs, ArgType } from '../src/Models/Command';
+import { CommandModel, ParseArgumentsError, ArgType } from '../src/Models/Command';
 
 const parser = CommandModel.ParseArguments;
 
@@ -10,7 +10,7 @@ describe('CommandModel.ParseArguments', () => {
 		const input = ['foo', 'bar', '--baz'];
 		const args = [[ArgType.Boolean, 'baz']];
 
-		const result = parser(input, args);
+		const result = parser(input, args, {});
 
 		expect(result.input).toEqual(['foo', 'bar']);
 		expect(result.values).toEqual({ baz: true });
@@ -20,7 +20,7 @@ describe('CommandModel.ParseArguments', () => {
 		const input = ['foo', 'bar', '--baz=qux'];
 		const args = [[ArgType.String, 'baz']];
 
-		const result = parser(input, args);
+		const result = parser(input, args, {});
 
 		expect(result.input).toEqual(['foo', 'bar']);
 		expect(result.values).toEqual({ baz: 'qux' });
@@ -30,7 +30,7 @@ describe('CommandModel.ParseArguments', () => {
 		const input = ['foo', '--baz=qux', 'bar'];
 		const args = [[ArgType.String, 'baz']];
 
-		const result = parser(input, args);
+		const result = parser(input, args, {});
 
 		expect(result.input).toEqual(['foo', 'bar']);
 		expect(result.values).toEqual({ baz: 'qux' });
@@ -43,7 +43,7 @@ describe('CommandModel.ParseArguments', () => {
 			[ArgType.String, 'quux'],
 		];
 
-		const result = parser(input, args);
+		const result = parser(input, args, {});
 
 		expect(result.input).toEqual(['foo', 'bar']);
 		expect(result.values).toEqual({ baz: 'qux', quux: 'quuz' });
@@ -54,7 +54,7 @@ describe('CommandModel.ParseArguments', () => {
 		const args = [[ArgType.String, 'baz']];
 
 		try {
-			parser(input, args);
+			parser(input, args, { allowInvalid: false });
 		} catch (error) {
 			const isError = isCorrectErrorInstance(error);
 			expect(isError).toBe(true);
