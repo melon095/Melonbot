@@ -487,6 +487,12 @@ export class Channel {
 		return Bot.User.Get(this.Id, this.Name);
 	}
 
+	async GetViewers(): Promise<string[]> {
+		return JSON.parse(
+			await Bot.Redis.SGet(`channel:${(await this.User()).TwitchUID}:viewers`),
+		) as string[];
+	}
+
 	setMod(): void {
 		if (this.Mode === 'Moderator') return;
 		this.Mode = 'Moderator';
