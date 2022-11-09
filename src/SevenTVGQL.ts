@@ -238,7 +238,10 @@ export default {
                         name
                         owner {
                             id
-                            platform
+                            connections {
+                                id
+                                platform
+                            }
                         }
                       }
                     }
