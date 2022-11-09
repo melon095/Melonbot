@@ -75,7 +75,7 @@ export default class extends CommandModel {
 		`**Example**: ${prefix}markov`,
 		`**Example**: ${prefix}markov forsen`,
 		'',
-		'-c --channel [channel]',
+		'-c, --channel [channel]',
 		'   Channel to generate markov from',
 	];
 }

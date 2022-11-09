@@ -90,12 +90,13 @@ export default class extends CommandModel {
 		`Searches up to 100 7TV emotes.`,
 		`**Usage**: ${prefix}7tv <search term>`,
 		`**Example**: ${prefix}7tv Apu`,
-		'-e --exact',
+		'-e, --exact',
 		'   Search for an exact match',
 		'',
-		'By default the command will return the first 5 emotes',
 		'',
-		'-i --index <number>',
+		'-i, --index <number>',
 		'   Return the emotes at the specified index',
+		'',
+		'By default the command will return the first 5 emotes',
 	];
 }

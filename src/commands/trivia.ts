@@ -45,7 +45,7 @@ export default class extends CommandModel {
 		`Starts a new trivia in the channel.`,
 		`Usage: ${prefix}trivia`,
 		'',
-		'-e --exclude [category,category2]',
+		'-e, --exclude [category,category2]',
 		'   Excludes a category from the trivia',
 		`**Note**: Don't use spaces between the commas and the category names.`,
 		'',
