@@ -202,3 +202,17 @@ export namespace Ivr {
 		}[];
 	}
 }
+
+export namespace KBot {
+	type GetUserByUsername = {
+		status: number;
+		userid: string;
+		currentUsername: string;
+		nameHistory: {
+			username: string;
+			color: string;
+			foundUTC: string;
+			foundTimestamp: number;
+		}[];
+	};
+}

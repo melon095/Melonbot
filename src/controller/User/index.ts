@@ -2,7 +2,8 @@ import Got from './../../tools/Got.js';
 import { JWTData } from 'web/index.js';
 import { UserRole } from './../../Typings/models/bot/index.js';
 import Helix from './../../Helix/index.js';
-import type { Ivr } from './../../Typings/types.js';
+import type { Ivr, KBot } from './../../Typings/types.js';
+import { TimeoutError } from 'got';
 
 export class GetSafeError extends Error {
 	constructor(message: string) {
@@ -170,20 +171,7 @@ export default class User {
 			return dbUser;
 		}
 
-		const response = (await Got('json')
-			.get({
-				url: `https://api.ivr.fi/v2/twitch/user`,
-				searchParams: {
-					login: username,
-				},
-			})
-			.json()) as Ivr.User[];
-
-		if (!response.length) {
-			throw new GetSafeError(`User ${username} not found`);
-		}
-
-		const { login, id } = response[0];
+		const { login, id } = await getUserIvrOrKbot(username);
 
 		const newUser = await Bot.SQL.Query<Database.users[]>`
             INSERT INTO users (name, twitch_uid, role)
@@ -258,3 +246,44 @@ export default class User {
 		return 'ACK';
 	}
 }
+
+const getUserIvrOrKbot = async (login: string): Promise<{ login: string; id: string }> => {
+	try {
+		const response = (await Got('json')
+			.get({
+				url: `https://api.ivr.fi/v2/twitch/user`,
+				searchParams: {
+					login,
+				},
+			})
+			.json()) as Ivr.User[];
+
+		if (response.length) {
+			return { login: response[0].login, id: response[0].id };
+		}
+	} catch (error) {
+		console.log({ API: 'IVR', error });
+	}
+
+	try {
+		const kbot = (await Got('json')
+			.get({
+				url: `https://kunszg.com/api/user`,
+				searchParams: {
+					login,
+				},
+				timeout: {
+					response: 5000,
+				},
+			})
+			.json()) as KBot.GetUserByUsername;
+
+		if (kbot) {
+			return { login: kbot.currentUsername, id: kbot.userid };
+		}
+	} catch (error) {
+		console.log({ API: 'KBot', error });
+	}
+
+	throw new GetSafeError(`User ${login} not found`);
+};
