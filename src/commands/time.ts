@@ -1,6 +1,5 @@
-import { EPermissionLevel, ECommandFlags } from '../Typings/enums.js';
+import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
-import commands from 'web/routes/bot/commands.js';
 
 export default class extends CommandModel {
 	Name = 'time';
@@ -11,7 +10,7 @@ export default class extends CommandModel {
 	Aliases = [];
 	Cooldown = 5;
 	Params = [];
-	Flags = [ECommandFlags.ALLOW_INVALID_ARGS];
+	Flags = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const name = ctx.input[0];
 		if (!name) {
@@ -31,9 +30,7 @@ export default class extends CommandModel {
 
 		let params;
 		try {
-			params = CommandModel.ParseArguments(ctx.input.slice(1), command.Params, {
-				allowInvalid: false,
-			});
+			params = CommandModel.ParseArguments(ctx.input.slice(1), command.Params);
 		} catch (error) {
 			return {
 				Result: (error as Error).message,
@@ -43,7 +40,7 @@ export default class extends CommandModel {
 
 		const context: TCommandContext = {
 			...ctx,
-			input: params.input,
+			input: params.output,
 			data: {
 				...ctx.data,
 				Params: params.values,

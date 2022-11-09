@@ -13,6 +13,7 @@ export default class extends CommandModel {
 	Params = [
 		[ArgType.String, 'index'],
 		[ArgType.Boolean, 'exact'],
+		[ArgType.String, 'author'],
 	];
 	Flags = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
@@ -89,10 +90,12 @@ export default class extends CommandModel {
 		`Searches up to 100 7TV emotes.`,
 		`**Usage**: ${prefix}7tv <search term>`,
 		`**Example**: ${prefix}7tv Apu`,
-		`**Example**: ${prefix}7tv Apu --exact`,
+		'-e --exact',
+		'   Search for an exact match',
 		'',
-		'Will return the first 5 emotes it can find',
-		'If you want to see more, use the index parameter',
-		`**Example**: ${prefix}7tv Apu --index=1`,
+		'By default the command will return the first 5 emotes',
+		'',
+		'-i --index <number>',
+		'   Return the emotes at the specified index',
 	];
 }

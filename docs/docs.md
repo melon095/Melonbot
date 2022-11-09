@@ -46,8 +46,17 @@ So if the command is called `baz`, both `foo` and `bar` would trigger the `baz` 
 ### Parameters
 
 A parameter is used to give specific data to the command
-A parameter can be given by doing `<prefix> <command> --foo=<data>`
+A parameter can be given by doing `<prefix> <command> --foo <data>`
 If a parameter is given which the command supports it will be shown inside the Data variable passed into the execution code
+
+Parameters also support using the first character of the parameter as a prefix, so `--foo <data>` can also be written as `-f <data>`
+
+<b>Important</b>
+
+Don't have two parameters with the first character, this will cause one of them to be overwritten.
+
+Arguments also do not (at the moment) support spaces.
+So if someone reading this, know how to fix this. Please make a PR. :D
 
 ```typescript
 data.Params: [key: string]

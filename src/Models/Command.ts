@@ -51,12 +51,12 @@ export type CommandResult = {
 export class ParseArgumentsError extends Error {
 	constructor(message: string) {
 		super(message);
-		this.name = 'ArgsParseError';
+		this.name = 'ParseArgumentsError';
 	}
 }
 
 export interface ArgsParseResult {
-	input: string[];
+	output: string[];
 	values: TParamsContext;
 }
 
@@ -131,63 +131,68 @@ export abstract class CommandModel {
 		return this.Flags.includes(flag);
 	}
 
-	static ParseArguments(
-		args: string[],
-		params: TArgs[],
-		opts: { allowInvalid?: boolean },
-	): ArgsParseResult {
-		let copy = [...args];
+	/**
+	 * Argument parser
+	 *
+	 * Takes a input array and parses it into a object with the arguments as keys.
+	 *
+	 * @example <prefix> <command> --foo bar
+	 * @example <prefix> <command> --baz
+	 *
+	 * Becomes
+	 * {
+	 *  foo: 'bar'
+	 *  baz: true
+	 * }
+	 */
+	static ParseArguments(args: string[], params: TArgs[]): ArgsParseResult {
 		const values: TParamsContext = {};
+		let copy = Array.from(args);
 
-		// Setup default data to params.
+		// Fill arguments with default values
 		for (const param of params) {
 			const [type, name] = param;
 
 			switch (type) {
-				case 'string': {
+				case ArgType.String:
 					values[name] = '';
 					break;
-				}
-
-				case 'boolean': {
+				case ArgType.Boolean:
 					values[name] = false;
 					break;
-				}
 			}
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		for (const [_, word] of args.entries()) {
-			if (word.slice(0, 2) === '--') {
-				const param = word.slice(2);
+		for (const param of params) {
+			const [type, fullName] = param;
 
-				const paramType = params.find((i) => param.includes(i[1]));
+			const char = fullName[0];
 
-				if (paramType === undefined) {
-					if (!opts.allowInvalid) {
-						throw new ParseArgumentsError(`Invalid argument: ${param}`);
-					}
+			const index = [copy.indexOf(`--${fullName}`), copy.indexOf(`-${char}`)].find(
+				(i) => i !== -1,
+			);
 
-					continue;
-				}
+			if (index === undefined) continue;
 
-				const [type, name] = paramType;
-
-				switch (type) {
-					case 'string': {
-						const value = word.slice(word.indexOf('=') + 1, word.length);
-						values[word.slice(2, word.indexOf('=', 3))] = value.toString();
-						break;
-					}
-					case 'boolean': {
-						values[name] = true;
-						break;
-					}
-				}
-				copy = copy.filter((i) => i !== word);
+			if (type === ArgType.Boolean) {
+				values[fullName] = true;
+				copy = copy.filter((arg) => arg !== `--${fullName}` && arg !== `-${char}`);
+				continue;
 			}
+
+			const value = copy[index + 1];
+			if (value) {
+				values[fullName] = value;
+			} else {
+				continue;
+			}
+
+			copy = copy.filter((_, i) => i !== index && i !== index + 1);
 		}
 
-		return { input: copy, values };
+		return {
+			output: copy,
+			values,
+		};
 	}
 }
