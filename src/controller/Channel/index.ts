@@ -221,9 +221,7 @@ export class Channel {
 
 			let argsResult: ArgsParseResult;
 			try {
-				argsResult = CommandModel.ParseArguments(copy, command.Params, {
-					allowInvalid: command.HasFlag(ECommandFlags.ALLOW_INVALID_ARGS),
-				});
+				argsResult = CommandModel.ParseArguments(copy, command.Params);
 			} catch (error) {
 				/// Indicates that the input is invalid
 				if (error instanceof ParseArgumentsError) {
@@ -238,7 +236,7 @@ export class Channel {
 			const ctx: TCommandContext = {
 				channel: this,
 				user: user,
-				input: argsResult.input,
+				input: argsResult.output,
 				data: {
 					Params: argsResult.values,
 					User: extras,
