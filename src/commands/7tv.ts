@@ -53,6 +53,8 @@ export default class extends CommandModel {
 								(o) => o.platform === ConnectionPlatform.TWITCH,
 							)?.id;
 
+							if (!twitchUID) return user.Name === e.owner?.username;
+
 							return twitchUID === user.TwitchUID;
 						});
 					}

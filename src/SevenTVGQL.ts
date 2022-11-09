@@ -63,6 +63,7 @@ interface EmoteSearchResult {
 			name: string;
 			owner: {
 				id: string;
+				username: string;
 				connections: Connection[];
 			};
 		}[];
@@ -241,6 +242,7 @@ export default {
                         name
                         owner {
                             id
+                            username
                             connections {
                                 id
                                 platform
