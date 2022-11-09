@@ -16,10 +16,7 @@ export interface Editor {
 	id: string;
 	user: {
 		username: string;
-		connections: {
-			id: string;
-			platform: ConnectionPlatform;
-		}[];
+		connections: Connection[];
 	};
 }
 
@@ -40,16 +37,19 @@ interface GetCurrentUser {
 	user: {
 		id: string;
 		username: string;
-		connections: {
-			id: string;
-			platform: ConnectionPlatform;
-		}[];
+		connections: Connection[];
 		editor_of: Editor[];
 		emotes_sets: {
 			id: string;
 		}[];
 	};
 }
+
+type Connection = {
+	id: string;
+	platform: ConnectionPlatform;
+	emote_set_id: string;
+};
 
 interface EmoteSet {
 	id: string;
@@ -62,6 +62,7 @@ interface EmoteSearchResult {
 		items: {
 			id: string;
 			name: string;
+			owner: Connection[];
 		}[];
 	};
 }
@@ -76,10 +77,7 @@ interface UserEditor {
 
 interface Connections {
 	user: {
-		connections: {
-			platform: ConnectionPlatform;
-			emote_set_id: string;
-		}[];
+		connections: Connection[];
 	};
 }
 
@@ -100,10 +98,7 @@ interface V3User {
 	created_at: string;
 	avatar_url: string;
 	roles: string[];
-	connections: {
-		id: string;
-		platform: ConnectionPlatform;
-	}[];
+	connections: Connection[];
 	emote_sets: {
 		id: string;
 		emotes: {
@@ -202,6 +197,7 @@ export default {
                             connections {
                                 id
                                 platform
+                                emote_set_id
                             }
                             editor_of {
                                 id,
@@ -210,6 +206,7 @@ export default {
                                     connections {
                                         id
                                         platform
+                                        emote_set_id
                                     }
                                 }
                             } 
@@ -240,6 +237,11 @@ export default {
                       items {
                         id
                         name
+                        owner {
+                            id
+                            platform
+                            emote_set_id
+                        }
                       }
                     }
                   }`,
@@ -319,6 +321,7 @@ export default {
                                     connections {
                                         platform
                                         id
+                                        emote_set_id
                                     }
                                 }
                             }
@@ -346,6 +349,7 @@ export default {
                             id,
                             username,
                             connections {
+                                id
                                 platform,
                                 emote_set_id
                             }
@@ -415,6 +419,7 @@ export default {
                             connections {
                                 id,
                                 platform
+                                emote_set_id
                             }
                             emote_sets {
                                 id,

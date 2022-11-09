@@ -1,6 +1,6 @@
 import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import gql, { EmoteSearchFilter } from '../SevenTVGQL.js';
+import gql, { ConnectionPlatform, EmoteSearchFilter } from '../SevenTVGQL.js';
 
 export default class extends CommandModel {
 	Name = '7tv';
@@ -40,7 +40,24 @@ export default class extends CommandModel {
 		try {
 			emotes = await gql
 				.SearchEmoteByName(ctx.input.join(' '), filter)
-				.then((res) => res.emotes);
+				.then((res) => res.emotes)
+				.then(async (emotes) => {
+					if (ctx.data.Params.author) {
+						const user = await Bot.User.ResolveUsername(
+							ctx.data.Params.author as string,
+						);
+						if (!user) return emotes.items;
+
+						return emotes.items.filter((e) => {
+							const twitchUID = e.owner.find(
+								(o) => o.platform === ConnectionPlatform.TWITCH,
+							)?.id;
+
+							return twitchUID === user.TwitchUID;
+						});
+					}
+					return emotes.items;
+				});
 		} catch (error) {
 			return {
 				Success: false,
@@ -48,22 +65,22 @@ export default class extends CommandModel {
 			};
 		}
 
-		if (emotes.items.length === 0) {
+		if (emotes.length === 0) {
 			return {
 				Success: false,
 				Result: 'No emotes found :(',
 			};
 		}
 
-		if (emotes.items.length > 1) {
+		if (emotes.length > 1) {
 			const index = ctx.data.Params['index']
 				? parseInt(ctx.data.Params['index'] as string)
 				: 0;
 
 			// split the emotes into chunks of 5
 			const chunks = [];
-			for (let i = 0; i < emotes.items.length; i += 5) {
-				chunks.push(emotes.items.slice(i, i + 5));
+			for (let i = 0; i < emotes.length; i += 5) {
+				chunks.push(emotes.slice(i, i + 5));
 			}
 
 			let message;
@@ -83,7 +100,7 @@ export default class extends CommandModel {
 		}
 		return {
 			Success: true,
-			Result: `'${emotes.items[0].name}' - https://7tv.app/emotes/${emotes.items[0].id}`,
+			Result: `'${emotes[0].name}' - https://7tv.app/emotes/${emotes[0].id}`,
 		};
 	};
 	LongDescription = async (prefix: string) => [
@@ -93,9 +110,11 @@ export default class extends CommandModel {
 		'-e, --exact',
 		'   Search for an exact match',
 		'',
-		'',
 		'-i, --index <number>',
 		'   Return the emotes at the specified index',
+		'',
+		'-a, --author <username>',
+		'   Return only emotes from the specified twitch username',
 		'',
 		'By default the command will return the first 5 emotes',
 	];
