@@ -44,18 +44,19 @@ export default class extends CommandModel {
 				.then(async (emotes) => {
 					if (ctx.data.Params.author) {
 						const user = await Bot.User.ResolveUsername(
-							ctx.data.Params.author as string,
+							(ctx.data.Params.author as string).toLowerCase(),
 						);
 						if (!user) return emotes.items;
 
 						return emotes.items.filter((e) => {
-							const twitchUID = e.owner.find(
+							const twitchUID = e.owner?.connections?.find(
 								(o) => o.platform === ConnectionPlatform.TWITCH,
 							)?.id;
 
 							return twitchUID === user.TwitchUID;
 						});
 					}
+
 					return emotes.items;
 				});
 		} catch (error) {

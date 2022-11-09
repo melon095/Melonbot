@@ -61,7 +61,10 @@ interface EmoteSearchResult {
 		items: {
 			id: string;
 			name: string;
-			owner: Connection[];
+			owner: {
+				id: string;
+				connections: Connection[];
+			};
 		}[];
 	};
 }
