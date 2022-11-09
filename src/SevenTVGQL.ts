@@ -48,7 +48,6 @@ interface GetCurrentUser {
 type Connection = {
 	id: string;
 	platform: ConnectionPlatform;
-	emote_set_id: string;
 };
 
 interface EmoteSet {
@@ -77,7 +76,7 @@ interface UserEditor {
 
 interface Connections {
 	user: {
-		connections: Connection[];
+		connections: (Connection & { emote_set_id: string })[];
 	};
 }
 
@@ -240,7 +239,6 @@ export default {
                         owner {
                             id
                             platform
-                            emote_set_id
                         }
                       }
                     }
