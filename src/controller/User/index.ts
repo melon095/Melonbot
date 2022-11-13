@@ -268,6 +268,6 @@ export default class User {
 	toString() {
 		return `User((${this.ID}) ${this.Name}:${this.TwitchUID} - ${
 			this.Role
-		} - ${this.FirstSeen.toString()})`;
+		} - ${this.FirstSeen.toLocaleDateString()})`;
 	}
 }
