@@ -278,8 +278,11 @@ export default {
 		if (data.errors) throw data.errors[0].message;
 		else return data.data.emote;
 	},
-	CurrentEnabledEmotes: async (emote_set: string): Promise<EmoteSet[]> => {
-		const data: Base<{ emoteSet: { emotes: EmoteSet[] } }> = await api
+	CurrentEnabledEmotes: async (
+		emote_set: string,
+		filter?: (emote: EmoteSet) => boolean,
+	): Promise<EmoteSet[]> => {
+		const { data, errors }: Base<{ emoteSet: { emotes: EmoteSet[] } }> = await api
 			.post('', {
 				body: JSON.stringify({
 					query: `query GetEmoteSet ($id: ObjectID!) {
@@ -299,10 +302,17 @@ export default {
 			})
 			.json();
 
-		if (data.errors) {
-			throw data.errors[0].message;
+		if (errors) {
+			throw errors[0].message;
 		}
-		return data.data.emoteSet.emotes;
+
+		const { emotes } = data.emoteSet;
+
+		if (filter) {
+			return emotes.filter(filter);
+		}
+
+		return emotes;
 	},
 	getEditors: async (id: string): Promise<UserEditor> => {
 		const data: Base<UserEditor> = await api
@@ -491,14 +501,11 @@ export default {
 		return data.data;
 	},
 	isAllowedToModify: async function (ctx: TCommandContext): Promise<ModifyData> {
-		const [emote_set_id] = await Bot.SQL.Query<Database.channels[]>`
+		const [{ seventv_emote_set }] = await Bot.SQL.Query<Database.channels[]>`
                 SELECT seventv_emote_set 
                     FROM channels 
                     WHERE name = ${ctx.channel.Name}`;
-		if (
-			emote_set_id?.seventv_emote_set === null ||
-			emote_set_id?.seventv_emote_set === undefined
-		) {
+		if (!seventv_emote_set) {
 			return {
 				okay: false,
 				message: 'I am not an editor of this channel :/',
@@ -515,23 +522,14 @@ export default {
 		}
 
 		if (ctx.channel.Id !== ctx.user.TwitchUID) {
-			const cant_use = await Bot.Redis.SetMembers(
-				`seventv:${emote_set_id.seventv_emote_set}:editors`,
-			).then((res) => {
-				if (!res.includes(ctx.user.Name)) {
-					return 'USER';
-				} else if (!res.includes(Bot.Config.BotUsername)) {
-					return 'BOT';
-				}
-				return '';
-			});
+			const editors = await Bot.Redis.SetMembers(`seventv:${seventv_emote_set}:editors`);
 
-			if (cant_use === 'USER') {
+			if (!editors.includes(ctx.user.Name)) {
 				return {
 					okay: false,
 					message: 'You are not an editor of this channel :/',
 				};
-			} else if (cant_use === 'BOT') {
+			} else if (!editors.includes(Bot.Config.BotUsername)) {
 				return {
 					okay: false,
 					message: 'I am not an editor of this channel :/',
@@ -542,7 +540,7 @@ export default {
 		return {
 			okay: true,
 			message: '',
-			emote_set: emote_set_id.seventv_emote_set,
+			emote_set: seventv_emote_set,
 			user_id: user.id,
 		};
 	},

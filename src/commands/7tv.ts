@@ -17,13 +17,6 @@ export default class extends CommandModel {
 	];
 	Flags = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		if (['add', 'remove'].includes(ctx.input[0])) {
-			return {
-				Success: true,
-				Result: 'Use the remove / add comamnd instead :)',
-			};
-		}
-
 		if (ctx.input[0] === undefined) {
 			return {
 				Success: false,

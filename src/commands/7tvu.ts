@@ -67,9 +67,8 @@ export default class extends CommandModel {
 
 		const slots = emote_set?.emotes.length || 0;
 		const max_slots = emote_set?.capacity || 0;
-		const { id } = user.connections.find((c) => c.platform === ConnectionPlatform.TWITCH) || {
-			id: null,
-		};
+		const id =
+			user.connections.find((c) => c.platform === ConnectionPlatform.TWITCH)?.id ?? null;
 
 		const Result = [
 			`${user.username} (${id})`,

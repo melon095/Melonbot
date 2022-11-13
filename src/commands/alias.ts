@@ -14,11 +14,18 @@ export default class extends CommandModel {
 	Params = [];
 	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		const okay = await gql.isAllowedToModify(ctx);
-		if (!okay.okay) {
+		const { message, okay, emote_set } = await gql.isAllowedToModify(ctx);
+		if (!okay) {
 			return {
 				Success: false,
-				Result: okay.message,
+				Result: message,
+			};
+		}
+
+		if (!emote_set) {
+			return {
+				Success: false,
+				Result: "Broadcaster doesn't have a emote set",
 			};
 		}
 
@@ -29,9 +36,9 @@ export default class extends CommandModel {
 			};
 		}
 
-		const src = (await gql.CurrentEnabledEmotes(okay.emote_set!)).find(
-			(emote) => emote.name === ctx.input[0],
-		);
+		const input = ctx.input[0];
+
+		const [src] = await gql.CurrentEnabledEmotes(emote_set, (emote) => emote.name === input);
 
 		if (!src) {
 			return {
@@ -43,11 +50,11 @@ export default class extends CommandModel {
 		const dst = ctx.input[1] || '';
 
 		return await gql
-			.ModifyEmoteSet(okay.emote_set!, ListItemAction.UPDATE, src.id, dst)
+			.ModifyEmoteSet(emote_set, ListItemAction.UPDATE, src.id, dst)
 			.then((emotes) => {
 				const identifier: SevenTVChannelIdentifier = {
 					Channel: ctx.channel.Name,
-					EmoteSet: okay.emote_set!,
+					EmoteSet: emote_set,
 				};
 
 				Bot.Twitch.Emotes.SevenTVEvent.HideNotification(
@@ -61,14 +68,14 @@ export default class extends CommandModel {
 
 					return {
 						Success: true,
-						Result: `I reset the alias from ${src.name} to ${newEmote?.name}`,
-					};
-				} else {
-					return {
-						Success: true,
-						Result: `I set the alias from ${src.name} to ${dst}`,
+						Result: `I reset the alias of ${src.name} to ${newEmote?.name}`,
 					};
 				}
+
+				return {
+					Success: true,
+					Result: `I set the alias of ${src.name} to ${dst}`,
+				};
 			})
 			.catch((err) => {
 				console.error(`7TV - Failed to alias emote - ${err}`);

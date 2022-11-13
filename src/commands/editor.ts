@@ -1,9 +1,9 @@
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
-import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
+import { EPermissionLevel } from './../Typings/enums.js';
 import gql, { UserEditorPermissions } from '../SevenTVGQL.js';
 
 const isAlreadyEditor = async (owner: string, editor: string) => {
-	return await Bot.Redis.SetMembers(`seventv:${owner}:editors`).then((editors) =>
+	return Bot.Redis.SetMembers(`seventv:${owner}:editors`).then((editors) =>
 		editors.includes(editor),
 	);
 };
@@ -27,23 +27,30 @@ export default class extends CommandModel {
 				Success: false,
 				Result: 'Please provide a username :(',
 			};
-		} else {
-			try {
-				const userName = Bot.User.CleanName(ctx.input[0]);
-				internalUser = await Bot.User.ResolveUsername(userName);
-			} catch (error) {
-				return {
-					Success: false,
-					Result: 'Unable to find that user',
-				};
-			}
 		}
 
-		const owner = await gql.isAllowedToModify(ctx);
-		if (!owner.okay) {
+		try {
+			const userName = Bot.User.CleanName(ctx.input[0]);
+			internalUser = await Bot.User.ResolveUsername(userName);
+		} catch (error) {
 			return {
 				Success: false,
-				Result: owner.message,
+				Result: 'Unable to find that user',
+			};
+		}
+
+		const { okay, message, emote_set, user_id } = await gql.isAllowedToModify(ctx);
+		if (!okay) {
+			return {
+				Success: false,
+				Result: message,
+			};
+		}
+
+		if (!emote_set || !user_id) {
+			return {
+				Success: false,
+				Result: 'Broadcaster has not set up an emote set',
 			};
 		}
 
@@ -66,21 +73,17 @@ export default class extends CommandModel {
 			}
 		};
 
-		const isEditor = await isAlreadyEditor(owner.user_id!, internalUser.Name);
+		const isEditor = await isAlreadyEditor(user_id, internalUser.Name);
 		if (isEditor) {
 			try {
-				await gql.ModifyUserEditorPermissions(
-					owner.user_id!,
-					user.id,
-					UserEditorPermissions.NONE,
-				);
+				await gql.ModifyUserEditorPermissions(user_id, user.id, UserEditorPermissions.NONE);
 			} catch (error) {
 				return {
 					Success: false,
 					Result: errorPrompt(String(error)),
 				};
 			}
-			await Bot.Redis.SetRemove(`seventv:${owner.emote_set!}:editors`, [internalUser.Name]);
+			await Bot.Redis.SetRemove(`seventv:${emote_set}:editors`, [internalUser.Name]);
 
 			return {
 				Success: false,
@@ -89,7 +92,7 @@ export default class extends CommandModel {
 		} else {
 			try {
 				await gql.ModifyUserEditorPermissions(
-					owner.user_id!,
+					user_id,
 					user.id,
 					UserEditorPermissions.DEFAULT,
 				);
@@ -100,7 +103,7 @@ export default class extends CommandModel {
 				};
 			}
 
-			await Bot.Redis.SetAdd(`seventv:${owner.emote_set!}:editors`, [internalUser.Name]);
+			await Bot.Redis.SetAdd(`seventv:${emote_set}:editors`, [internalUser.Name]);
 			return {
 				Success: true,
 				Result: resultPrompt('Added', user.username),
