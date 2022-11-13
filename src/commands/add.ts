@@ -17,17 +17,20 @@ const resolveEmote = async (
 	filters: EmoteSearchFilter,
 	specific: number,
 ): Promise<PartialEmote | null> => {
-	const emote = await gql.SearchEmoteByName(name, filters).then((res) => {
-		const e = res?.emotes?.items;
+	const emote = await gql
+		.SearchEmoteByName(name, filters)
+		.then((res) => {
+			const e = res?.emotes?.items;
 
-		if (!e || !e.length) return null;
+			if (!e || !e.length) return null;
 
-		if (specific) {
-			return e[specific];
-		}
+			if (specific) {
+				return e[specific];
+			}
 
-		return e[0];
-	});
+			return e[0];
+		})
+		.catch(() => null);
 
 	if (emote) return emote;
 
