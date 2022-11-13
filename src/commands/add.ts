@@ -77,7 +77,15 @@ export default class extends CommandModel {
 
 		const specific = parseInt(ctx.input[1]);
 
-		const emote = await resolveEmote(ctx.input[0], filters, specific);
+		let emote: PartialEmote | null;
+		try {
+			emote = await resolveEmote(ctx.input[0], filters, specific);
+		} catch (error) {
+			return {
+				Success: false,
+				Result: `7TV Error: ${error}`,
+			};
+		}
 
 		if (emote === null) {
 			return {
