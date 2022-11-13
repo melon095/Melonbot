@@ -34,9 +34,10 @@ const resolveEmote = async (
 
 	if (emote) return emote;
 
-	if (ObjectID.isValid(name)) {
+	try {
+		ObjectID.isValid(name);
 		return gql.GetEmoteByID(name.split('/').filter(Boolean).pop() ?? '').then((res) => res);
-	} else if (IsSevenTVURL(name)) {
+	} catch (_) {
 		return gql.GetEmoteByID(name).then((res) => res);
 	}
 
