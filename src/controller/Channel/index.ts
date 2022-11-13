@@ -274,10 +274,17 @@ export class Channel {
 
 				.catch((error) => {
 					Bot.HandleErrors('command/run/catch', error);
-					this.say('PoroSad Command Failed...', {
-						NoEmoteAtStart: true,
-						SkipBanphrase: true,
-					});
+
+					if (user.Role === 'admin') {
+						this.say(`❗ ${user.Name}: ${getStringFromError(error)}`, {
+							SkipBanphrase: true,
+						});
+					} else {
+						this.say('PoroSad Command Failed...', {
+							NoEmoteAtStart: true,
+							SkipBanphrase: true,
+						});
+					}
 
 					const Result: CommandExecutionResult = {
 						user_id: user.TwitchUID,
@@ -653,3 +660,8 @@ export interface CommandExecutionResult {
 }
 
 const cleanMessage = (message: string): string => message.replace(/(\r\n|\n|\r)/gm, ' ');
+const getStringFromError = (error: Error | string): string => {
+	if (typeof error === 'string') return error;
+	if (error instanceof Error) return error.message;
+	return JSON.stringify(error)?.replace(/(\r\n|\n|\r)/gm, ' ') ?? 'Unknown error';
+};
