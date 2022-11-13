@@ -3,24 +3,6 @@ export type ChannelTalkOptions = {
 	NoEmoteAtStart?: boolean = false; // Don't add the 👤 at the start of the message.
 };
 
-export type ParamsReturnType = {
-	input: string[];
-	params: TParamsContext;
-};
-
-export type TCommands = {
-	Name: string;
-	Ping: boolean;
-	Description: string;
-	Permission: PermissionLevel;
-	OnlyOffline: boolean;
-	StaticData: StaticDataType<T>;
-	Code: TExecuteFunction;
-	Aliases: string[];
-	Cooldown: number;
-	Params: TArgs[];
-};
-
 export type TTokenFunction = {
 	status: 'OK' | 'ERROR' | 'MESSAGE';
 	token: string;
