@@ -275,7 +275,7 @@ export class Channel {
 				.catch((error) => {
 					Bot.HandleErrors('command/run/catch', error);
 
-					if (user.Role === 'admin') {
+					if (user.HasSuperPermission()) {
 						this.say(`❗ ${user.Name}: ${getStringFromError(error)}`, {
 							SkipBanphrase: true,
 						});
