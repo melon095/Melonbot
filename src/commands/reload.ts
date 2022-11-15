@@ -15,6 +15,7 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [];
+	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const setting = ctx.input[0];
 		if (!setting) {

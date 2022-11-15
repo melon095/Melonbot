@@ -9,7 +9,10 @@ export enum ArgType {
 
 export type LongDescriptionFunction = (prefix: string) => Promise<string[]>;
 
-export type TExecuteFunction = (arg0: TCommandContext) => Promise<CommandResult>;
+export type TExecuteFunction<M extends object = object> = (
+	arg0: TCommandContext,
+	arg1: M,
+) => Promise<CommandResult>;
 
 export type TCommandContext = {
 	channel: Channel;
@@ -55,12 +58,31 @@ export class ParseArgumentsError extends Error {
 	}
 }
 
+export class SafeResponseError extends Error {
+	constructor(prefix: string, message: string) {
+		super(`${prefix} Error: ${message}`);
+		this.name = 'SafeResponseError';
+	}
+}
+
 export interface ArgsParseResult {
 	output: string[];
 	values: TParamsContext;
 }
 
-export abstract class CommandModel {
+export type ModBuilderFn<T extends object = object> = (ctx: TCommandContext) => T;
+
+export type ModBuilderDefault<T extends object = object> = ModBuilderFn<T>;
+
+export interface ModBuilder<Fn extends ModBuilderFn = ModBuilderFn> {
+	/**
+	 * @returns The module's name. This is used to identify the module.
+	 */
+	Name(): string;
+	Build(ctx: TCommandContext): Promise<ReturnType<Fn>>;
+}
+
+export abstract class CommandModel<Mods extends object = object> {
 	/**
 	 * Name to invoke command
 	 */
@@ -111,10 +133,16 @@ export abstract class CommandModel {
 	public abstract readonly Flags: ECommandFlags[];
 
 	/**
+	 * PreHandlers are executed before the command is executed.
+	 * They can be used to pre-fetch data.
+	 */
+	public abstract readonly PreHandlers: ModBuilder[];
+
+	/**
 	 * The actual code to run.
 	 * @param
 	 */
-	public abstract readonly Code: TExecuteFunction;
+	public abstract readonly Code: TExecuteFunction<Mods>;
 
 	/**
 	 * Big description on how to use the command.
@@ -123,8 +151,8 @@ export abstract class CommandModel {
 	 */
 	public readonly LongDescription?: LongDescriptionFunction;
 
-	public async Execute(ctx: TCommandContext): Promise<CommandResult> {
-		return this.Code(ctx);
+	public async Execute(ctx: TCommandContext, mods: Mods): Promise<CommandResult> {
+		return this.Code(ctx, mods);
 	}
 
 	public HasFlag(flag: ECommandFlags): boolean {

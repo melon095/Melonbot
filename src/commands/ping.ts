@@ -1,14 +1,7 @@
-import shell from 'node:child_process';
 import * as tools from './../tools/tools.js';
 import process from 'node:process';
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
-import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
-
-const cleanCommand = (command: string) =>
-	shell
-		.execSync(command)
-		.toString()
-		.replace(/\r?\n|\r/g, '');
+import { EPermissionLevel } from './../Typings/enums.js';
 
 export default class extends CommandModel {
 	Name = 'ping';
@@ -19,7 +12,8 @@ export default class extends CommandModel {
 	Aliases = [];
 	Cooldown = 20;
 	Params = [];
-	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
+	Flags = [];
+	PreHandlers = [];
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const devBot = Bot.Config.Development ? ' Development Bot' : ' ';

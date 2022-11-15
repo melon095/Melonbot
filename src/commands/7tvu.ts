@@ -1,4 +1,3 @@
-import { ECommandFlags } from '../Typings/enums.js';
 import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, CommandResult, TCommandContext } from '../Models/Command.js';
 import { differenceFormat } from './../tools/tools.js';
@@ -18,7 +17,8 @@ export default class extends CommandModel {
 	Aliases = [];
 	Cooldown = 5;
 	Params = [];
-	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
+	Flags = [];
+	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		let internalUser;
 

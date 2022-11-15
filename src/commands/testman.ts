@@ -31,7 +31,8 @@ export default class extends CommandModel {
 		[ArgType.String, 'username'],
 		[ArgType.String, 'id'],
 	];
-	Flags = [ECommandFlags.NO_BANPHRASE, ECommandFlags.NO_EMOTE_PREPEND];
+	Flags = [ECommandFlags.NO_BANPHRASE];
+	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		if (ctx.input[0] === 'bot' && ctx.input[1] === 'join') {
 			const { username, id } = ctx.data.Params;

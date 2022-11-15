@@ -96,7 +96,7 @@ export class CommandsHandler {
 			return;
 		} catch (e) {
 			Bot.HandleErrors('CommandsHandler/initialize', e);
-			return Promise.reject();
+			return;
 		}
 	}
 
@@ -129,27 +129,17 @@ export class CommandsHandler {
 	}
 
 	private async FindCommands(): Promise<Class[]> {
-		// eslint-disable-next-line no-async-promise-executor
-		return new Promise(async (Resolve, Reject) => {
-			try {
-				const commands: NodeRequire[] = [];
-				const dirname = `${process.cwd()}/build/commands`;
+		const commands: NodeRequire[] = [];
+		const dirname = `${process.cwd()}/build/commands`;
 
-				const dir = fs.readdirSync(dirname, { withFileTypes: true });
+		const dir = fs.readdirSync(dirname, { withFileTypes: true });
 
-				for (const command of dir) {
-					if (command.name.split('.')[2] !== 'map') {
-						const file = await Import(
-							resolve(process.cwd(), 'build/commands'),
-							command.name,
-						);
-						commands.push(file);
-					}
-				}
-				return Resolve(commands as unknown as Class[]);
-			} catch (e) {
-				return Reject(e);
+		for (const command of dir) {
+			if (command.name.split('.')[2] !== 'map') {
+				const file = await Import(resolve(process.cwd(), 'build/commands'), command.name);
+				commands.push(file);
 			}
-		});
+		}
+		return commands as unknown as Class[];
 	}
 }

@@ -1,5 +1,6 @@
 import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { Fetch } from './../PreHandlers/index.js';
 
 export default class extends CommandModel {
 	Name = 'time';
@@ -11,6 +12,7 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [];
+	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const name = ctx.input[0];
 		if (!name) {
@@ -47,8 +49,10 @@ export default class extends CommandModel {
 			},
 		};
 
+		const mods = await Fetch(context, command.PreHandlers);
+
 		const start = performance.now();
-		const response = await command.Code(context).catch((err) => {
+		const response = await command.Code(context, mods).catch((err) => {
 			return {
 				Result: err,
 				Success: false,

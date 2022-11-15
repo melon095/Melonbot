@@ -1,8 +1,9 @@
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
+import { EPermissionLevel } from './../Typings/enums.js';
 import gql, { EmoteSearchFilter, ListItemAction } from './../SevenTVGQL.js';
 import { ObjectID } from 'bson';
 import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
+import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
 
 const IsSevenTVURL = (url: string) =>
 	/https?:\/\/(?:next\.)?7tv.app\/emotes\/\b6\d[a-f0-9]{22}\b/.test(url);
@@ -10,6 +11,10 @@ const IsSevenTVURL = (url: string) =>
 type PartialEmote = {
 	name: string;
 	id: string;
+};
+
+type PreHandlers = {
+	SevenTV: Get7TVUserMod;
 };
 
 const resolveEmote = async (
@@ -44,7 +49,7 @@ const resolveEmote = async (
 	return null;
 };
 
-export default class extends CommandModel {
+export default class extends CommandModel<PreHandlers> {
 	Name = 'add';
 	Ping = false;
 	Description = 'Add a 7TV emote';
@@ -56,22 +61,10 @@ export default class extends CommandModel {
 		[ArgType.String, 'alias'],
 		[ArgType.Boolean, 'exact'],
 	];
-	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		const { okay, message, emote_set } = await gql.isAllowedToModify(ctx);
-		if (!okay) {
-			return {
-				Success: false,
-				Result: message,
-			};
-		}
-
-		if (!emote_set) {
-			return {
-				Success: false,
-				Result: 'Broadcaster has not set up an emote set',
-			};
-		}
+	Flags = [];
+	PreHandlers = [SevenTVAllowed];
+	Code = async (ctx: TCommandContext, mods: PreHandlers): Promise<CommandResult> => {
+		const { EmoteSet } = mods.SevenTV;
 
 		const filters: EmoteSearchFilter = {};
 
@@ -101,11 +94,11 @@ export default class extends CommandModel {
 		const name = (ctx.data.Params.alias as string) || emote.name;
 
 		return gql
-			.ModifyEmoteSet(emote_set, ListItemAction.ADD, emote.id, name)
+			.ModifyEmoteSet(EmoteSet(), ListItemAction.ADD, emote.id, name)
 			.then(() => {
 				const identifier: SevenTVChannelIdentifier = {
 					Channel: ctx.channel.Name,
-					EmoteSet: emote_set,
+					EmoteSet: EmoteSet(),
 				};
 
 				Bot.Twitch.Emotes.SevenTVEvent.HideNotification(

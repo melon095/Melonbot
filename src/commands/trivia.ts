@@ -1,5 +1,5 @@
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
+import { EPermissionLevel } from './../Typings/enums.js';
 
 export default class extends CommandModel {
 	Name = 'trivia';
@@ -14,7 +14,8 @@ export default class extends CommandModel {
 		[ArgType.String, 'exclude'],
 		[ArgType.String, 'include'],
 	];
-	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
+	Flags = [];
+	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		if (ctx.channel.Trivia === null) {
 			return {
