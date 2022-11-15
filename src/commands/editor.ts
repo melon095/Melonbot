@@ -16,7 +16,7 @@ const isAlreadyEditor = async (owner: string, editor: string) => {
 
 export default class extends CommandModel<PreHandlers> {
 	Name = 'editor';
-	Ping = false;
+	Ping = true;
 	Description = 'Allows the bot to add and remove users as 7TV editors';
 	Permission = EPermissionLevel.BROADCAST;
 	OnlyOffline = false;
@@ -69,6 +69,13 @@ export default class extends CommandModel<PreHandlers> {
 
 		const isEditor = await isAlreadyEditor(UserID(), internalUser.Name);
 		if (isEditor) {
+			if (internalUser.Name === Bot.Config.BotUsername) {
+				return {
+					Success: false,
+					Result: 'FailFish',
+				};
+			}
+
 			try {
 				await gql.ModifyUserEditorPermissions(
 					UserID(),
