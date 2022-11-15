@@ -196,13 +196,11 @@ function Push() {
 			const _ch = Bot.Twitch.Controller.TwitchChannelSpecific({
 				Name: identifier.Channel,
 			});
-			if (!_ch) return;
+			if (!_ch) continue;
 
 			const chunks = split_array(payload, 6);
 			for (const chunk of chunks) {
-				_ch.say(`7TV Update ${chunk.join(' ')}`, {
-					NoEmoteAtStart: true,
-				});
+				_ch.say(`7TV Update ${chunk.join(' ')}`);
 			}
 
 			Bot.Twitch.Emotes.SevenTVEvent.Log(

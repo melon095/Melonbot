@@ -10,7 +10,8 @@ export default class extends CommandModel {
 	Aliases = [];
 	Cooldown = 5;
 	Params = [];
-	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
+	Flags = [];
+	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		if (!ctx.channel.Trivia?.initiated)
 			return {

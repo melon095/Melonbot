@@ -9,11 +9,13 @@ import {
 	TCommandContext,
 	ParseArgumentsError,
 	ArgsParseResult,
+	SafeResponseError,
 } from '../../Models/Command.js';
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
-import { SevenTVChannelIdentifier, SevenTVEvent } from './../Emote/SevenTV/EventAPI';
+import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
 import User, { UserSettings } from './../User/index.js';
+import PreHandler from './../../PreHandlers/index.js';
 
 /**
  * Encapsulated data for every channel.
@@ -149,7 +151,6 @@ export class Channel {
 	async say(
 		msg: string,
 		options: ChannelTalkOptions = {
-			NoEmoteAtStart: false,
 			SkipBanphrase: false,
 		},
 	): Promise<void> {
@@ -243,15 +244,31 @@ export class Channel {
 				},
 			};
 
-			command
-				.Execute(ctx)
+			let mods;
+			try {
+				mods = await PreHandler.Fetch(ctx, command.PreHandlers);
+			} catch (error) {
+				if (error instanceof SafeResponseError) {
+					this.say(`❗ ${user.Name}: ${error.message}`, { SkipBanphrase: true });
+				} else {
+					Bot.HandleErrors('PreHandler', error);
 
+					this.say(`❗ ${user.Name}: An error occurred while running the command :(`, {
+						SkipBanphrase: true,
+					});
+				}
+
+				return;
+			}
+
+			command
+				.Execute(ctx, mods)
 				.then((data) => {
 					const CommandLogResult: CommandExecutionResult = {
 						user_id: user.TwitchUID,
 						username: user.Name,
 						channel: this.Id,
-						success: data.Success,
+						success: data.Success ?? false,
 						result: data.Result ?? '',
 						args: ctx.input,
 						command: command.Name,
@@ -267,11 +284,8 @@ export class Channel {
 
 					this.say(data.Result, {
 						SkipBanphrase: command.Flags.includes(ECommandFlags.NO_BANPHRASE),
-						NoEmoteAtStart:
-							data.Success || command.Flags.includes(ECommandFlags.NO_EMOTE_PREPEND),
 					});
 				})
-
 				.catch((error) => {
 					Bot.HandleErrors('command/run/catch', error);
 
@@ -281,7 +295,6 @@ export class Channel {
 						});
 					} else {
 						this.say('PoroSad Command Failed...', {
-							NoEmoteAtStart: true,
 							SkipBanphrase: true,
 						});
 					}
@@ -305,7 +318,6 @@ export class Channel {
 			Bot.HandleErrors('channel/tryCommand/catch', e);
 			this.say('BrokeBack command failed', {
 				SkipBanphrase: true,
-				NoEmoteAtStart: true,
 			});
 		}
 	}
@@ -366,35 +378,33 @@ export class Channel {
 	private async onQueue(message: string, options: ChannelTalkOptions): Promise<void> {
 		const client = Bot.Twitch.Controller.client;
 
-		let result = message;
-		if (!options.NoEmoteAtStart) result = `👤 ${message}`;
-
-		if (!options.SkipBanphrase) {
-			this.Banphrase.Check(message)
-				.then(({ banned, reason }) => {
-					if (!banned) {
-						client.privmsg(this.Name, result);
-					} else {
-						console.log({
-							What: 'Received bad word in channel',
-							Channel: this.Name,
-							Message: message,
-							Reason: reason,
-						});
-
-						client.privmsg(this.Name, 'cmonBruh bad word.');
-					}
-				})
-				.catch((error) => {
-					Bot.HandleErrors('banphraseCheck', error);
-					client.privmsg(
-						this.Name,
-						'PoroSad unable to verify message against banphrase api.',
-					);
-				});
-		} else {
-			client.privmsg(this.Name, cleanMessage(result));
+		if (options.SkipBanphrase) {
+			client.privmsg(this.Name, cleanMessage(message));
+			return;
 		}
+
+		this.Banphrase.Check(message)
+			.then(({ banned, reason }) => {
+				if (!banned) {
+					client.privmsg(this.Name, message);
+				} else {
+					console.log({
+						What: 'Received bad word in channel',
+						Channel: this.Name,
+						Message: message,
+						Reason: reason,
+					});
+
+					client.privmsg(this.Name, 'cmonBruh bad word.');
+				}
+			})
+			.catch((error) => {
+				Bot.HandleErrors('banphraseCheck', error);
+				client.privmsg(
+					this.Name,
+					'PoroSad unable to verify message against banphrase api.',
+				);
+			});
 	}
 
 	private async setupTrivia(): Promise<void> {
@@ -592,13 +602,12 @@ export class Channel {
 				`(Trivia) ThunBeast 👉 [${category}] ${question} ${
 					hasHint ? `| MaxLOL ❓ 👉 ${Bot.Config.Prefix} hint` : ''
 				}`,
-				{ NoEmoteAtStart: true, SkipBanphrase: false },
+				{ SkipBanphrase: false },
 			);
 		});
 
 		this.Trivia.on('timeout', (answer: string) => {
 			this.say(`(Trivia) SuperVinlin you guys suck! The answer was ${answer}`, {
-				NoEmoteAtStart: true,
 				SkipBanphrase: false,
 			});
 		});
@@ -606,13 +615,12 @@ export class Channel {
 		this.Trivia.on('complete', (winner: string, answer: string, sim: number) => {
 			this.say(
 				`(Trivia) ThunBeast 📣 ${winner} won the trivia! The answer was ${answer} (${sim}% similarity)`,
-				{ NoEmoteAtStart: true, SkipBanphrase: false },
+				{ SkipBanphrase: false },
 			);
 		});
 
 		this.Trivia.on('fail', () => {
 			this.say('(Trivia) BrokeBack Trivia broken.', {
-				NoEmoteAtStart: true,
 				SkipBanphrase: true,
 			});
 		});

@@ -22,6 +22,7 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [];
 	Flags = [];
+	PreHandlers = [];
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const MESSAGE = (advice: string) => `PotFriend advice: ${advice} PotFriend`;

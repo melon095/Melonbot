@@ -23,6 +23,7 @@ export default class extends CommandModel {
 	Cooldown = 20;
 	Params = [];
 	Flags = [ECommandFlags.NO_BANPHRASE];
+	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		if (ctx.channel.Name !== Bot.Config.BotUsername) {
 			return {

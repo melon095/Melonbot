@@ -14,8 +14,6 @@ export class ModerationModule {
 	}
 
 	ThankFollow(username: string): void {
-		this.self.say('Thanks for following, @' + username + ' peepoFloppaHug', {
-			NoEmoteAtStart: true,
-		});
+		this.self.say('Thanks for following, @' + username + ' peepoFloppaHug');
 	}
 }

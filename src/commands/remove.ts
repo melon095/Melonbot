@@ -1,10 +1,14 @@
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
-import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
-
+import { EPermissionLevel } from './../Typings/enums.js';
 import gql, { ListItemAction } from './../SevenTVGQL.js';
 import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
+import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
 
-export default class extends CommandModel {
+type PreHandlers = {
+	SevenTV: Get7TVUserMod;
+};
+
+export default class extends CommandModel<PreHandlers> {
 	Name = 'remove';
 	Ping = false;
 	Description = 'Remove 7TV emotes';
@@ -13,15 +17,10 @@ export default class extends CommandModel {
 	Aliases = [];
 	Cooldown = 5;
 	Params = [];
-	Flags = [ECommandFlags.NO_EMOTE_PREPEND];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		const okay = await gql.isAllowedToModify(ctx);
-		if (!okay.okay) {
-			return {
-				Success: false,
-				Result: okay.message,
-			};
-		}
+	Flags = [];
+	PreHandlers = [SevenTVAllowed];
+	Code = async (ctx: TCommandContext, mods: PreHandlers): Promise<CommandResult> => {
+		const { EmoteSet } = mods.SevenTV;
 
 		if (ctx.input[0] === undefined) {
 			return {
@@ -30,7 +29,7 @@ export default class extends CommandModel {
 			};
 		}
 
-		const emote = (await gql.CurrentEnabledEmotes(okay.emote_set!)).find(
+		const emote = (await gql.CurrentEnabledEmotes(EmoteSet())).find(
 			(emote) => emote.name === ctx.input[0],
 		);
 
@@ -42,7 +41,7 @@ export default class extends CommandModel {
 		}
 
 		try {
-			await gql.ModifyEmoteSet(okay.emote_set!, ListItemAction.REMOVE, emote.id);
+			await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.REMOVE, emote.id);
 		} catch (error) {
 			console.error(`7TV - Failed to remove emote - ${error}`);
 			return {
@@ -52,7 +51,7 @@ export default class extends CommandModel {
 		}
 		const identifier: SevenTVChannelIdentifier = {
 			Channel: ctx.channel.Name,
-			EmoteSet: okay.emote_set!,
+			EmoteSet: EmoteSet(),
 		};
 
 		Bot.Twitch.Emotes.SevenTVEvent.HideNotification(identifier, emote?.name || '', 'REMOVE');

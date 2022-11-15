@@ -16,6 +16,7 @@ export default class extends CommandModel {
 		[ArgType.String, 'author'],
 	];
 	Flags = [];
+	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		if (ctx.input[0] === undefined) {
 			return {

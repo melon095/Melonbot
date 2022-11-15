@@ -3,6 +3,11 @@ import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 
 import vm from 'node:vm';
 import { Channel } from './../controller/Channel/index.js';
+import TestPrehandler, { TestMod } from './../PreHandlers/test.js';
+
+type PreHandlers = {
+	test: TestMod;
+};
 
 async function Execute(script: string, ctx: TCommandContext): Promise<object | string> {
 	const crypto = await import('crypto');
@@ -19,7 +24,7 @@ async function Execute(script: string, ctx: TCommandContext): Promise<object | s
 	return result;
 }
 
-export default class extends CommandModel {
+export default class extends CommandModel<PreHandlers> {
 	Name = 'testman';
 	Ping = false;
 	Description = 'Debug command';
@@ -31,8 +36,14 @@ export default class extends CommandModel {
 		[ArgType.String, 'username'],
 		[ArgType.String, 'id'],
 	];
-	Flags = [ECommandFlags.NO_BANPHRASE, ECommandFlags.NO_EMOTE_PREPEND];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+	Flags = [ECommandFlags.NO_BANPHRASE];
+	PreHandlers = [TestPrehandler];
+	Code = async (ctx: TCommandContext, mods: PreHandlers): Promise<CommandResult> => {
+		return {
+			Success: true,
+			Result: `Yellow ${mods.test.Test} :)`,
+		};
+
 		if (ctx.input[0] === 'bot' && ctx.input[1] === 'join') {
 			const { username, id } = ctx.data.Params;
 

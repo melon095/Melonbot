@@ -37,6 +37,7 @@ export default class extends CommandModel {
 	Cooldown = 5;
 	Params = [[ArgType.String, 'channel']];
 	Flags = [];
+	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const channel = (ctx.data.Params.channel as string) || ctx.channel.Name;
 		const seed = ctx.input.join(' ');

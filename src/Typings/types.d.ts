@@ -1,6 +1,5 @@
 export type ChannelTalkOptions = {
 	SkipBanphrase?: boolean = false;
-	NoEmoteAtStart?: boolean = false; // Don't add the 👤 at the start of the message.
 };
 
 export type TTokenFunction = {

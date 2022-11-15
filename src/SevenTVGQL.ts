@@ -521,20 +521,20 @@ export default {
 			};
 		}
 
-		if (ctx.channel.Id !== ctx.user.TwitchUID) {
-			const editors = await Bot.Redis.SetMembers(`seventv:${seventv_emote_set}:editors`);
+		const editors = await Bot.Redis.SetMembers(`seventv:${seventv_emote_set}:editors`);
 
-			if (!editors.includes(ctx.user.Name)) {
-				return {
-					okay: false,
-					message: 'You are not an editor of this channel :/',
-				};
-			} else if (!editors.includes(Bot.Config.BotUsername)) {
-				return {
-					okay: false,
-					message: 'I am not an editor of this channel :/',
-				};
-			}
+		if (!editors.includes(Bot.Config.BotUsername)) {
+			return {
+				okay: false,
+				message: 'I am not an editor of this channel :/',
+			};
+		}
+
+		if (ctx.channel.Id !== ctx.user.TwitchUID && !editors.includes(ctx.user.Name)) {
+			return {
+				okay: false,
+				message: 'You are not an editor of this channel :/',
+			};
 		}
 
 		return {
