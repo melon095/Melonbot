@@ -8,7 +8,9 @@ type ModBuilderFn<T extends object = object> = (ctx: Context) => T;
 
 type ModBuilderDefault<T extends object = object> = ModBuilderFn<T>;
 
-type ModBuilder<Fn extends ModBuilderFn = ModBuilderFn> = (ctx: Context) => ReturnType<Fn>;
+type ModBuilder<Fn extends ModBuilderFn = ModBuilderFn> = (
+	ctx: Context,
+) => ReturnType<Fn> | Promise<ReturnType<Fn>>;
 
 type Command<M extends object = object> = (ctx: Context, mods: M) => void;
 
