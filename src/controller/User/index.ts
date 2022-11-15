@@ -257,4 +257,17 @@ export default class User {
 		await Bot.Redis.SSet(`user:${this.TwitchUID}:options`, JSON.stringify(options));
 		return 'ACK';
 	}
+
+	HasSuperPermission(): boolean {
+		return this.Role === 'admin' || this.Role === 'moderator';
+	}
+
+	/**
+	 * User((1) melon095:146910710 - admin - 2021-05-01T20:00:00.000Z)
+	 */
+	toString() {
+		return `User((${this.ID}) ${this.Name}:${this.TwitchUID} - ${
+			this.Role
+		} - ${this.FirstSeen.toLocaleDateString()})`;
+	}
 }

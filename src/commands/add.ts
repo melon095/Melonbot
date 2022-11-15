@@ -17,23 +17,27 @@ const resolveEmote = async (
 	filters: EmoteSearchFilter,
 	specific: number,
 ): Promise<PartialEmote | null> => {
-	const emote = await gql.SearchEmoteByName(name, filters).then((res) => {
-		const e = res?.emotes?.items;
+	const emote = await gql
+		.SearchEmoteByName(name, filters)
+		.then((res) => {
+			const e = res?.emotes?.items;
 
-		if (!e || !e.length) return null;
+			if (!e || !e.length) return null;
 
-		if (specific) {
-			return e[specific];
-		}
+			if (specific) {
+				return e[specific];
+			}
 
-		return e[0];
-	});
+			return e[0];
+		})
+		.catch(() => null);
 
 	if (emote) return emote;
 
-	if (ObjectID.isValid(name)) {
+	try {
+		ObjectID.isValid(name);
 		return gql.GetEmoteByID(name.split('/').filter(Boolean).pop() ?? '').then((res) => res);
-	} else if (IsSevenTVURL(name)) {
+	} catch (_) {
 		return gql.GetEmoteByID(name).then((res) => res);
 	}
 
@@ -77,7 +81,15 @@ export default class extends CommandModel {
 
 		const specific = parseInt(ctx.input[1]);
 
-		const emote = await resolveEmote(ctx.input[0], filters, specific);
+		let emote: PartialEmote | null;
+		try {
+			emote = await resolveEmote(ctx.input[0], filters, specific);
+		} catch (error) {
+			return {
+				Success: false,
+				Result: `7TV Error: ${error}`,
+			};
+		}
 
 		if (emote === null) {
 			return {

@@ -65,6 +65,29 @@ export default class extends CommandModel {
 						Result: 'Something went wrong',
 					};
 				});
+		} else if (ctx.input[0] === 'user') {
+			const username = ctx.input[1];
+
+			if (!username) {
+				return {
+					Success: false,
+					Result: 'You need to specify a username',
+				};
+			}
+
+			const user = await Bot.User.ResolveUsername(username);
+
+			if (!user) {
+				return {
+					Success: false,
+					Result: 'I have never seen this user before.',
+				};
+			}
+
+			return {
+				Success: true,
+				Result: user.toString(),
+			};
 		}
 
 		const script = `(async () => {"use strict"; \n${ctx.input.join(' ')}\n})()`;
