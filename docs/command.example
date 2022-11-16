@@ -12,6 +12,7 @@ export default class extends CommandModel
     Cooldown = 5;
     Params = [];
     Flags = [];
+	PreHandlers = [];
     Code = async (ctx: TCommandContext): Promise<CommandResult> => {
         return {
             Success: true,
@@ -20,7 +21,7 @@ export default class extends CommandModel
     };
     LongDescription = async (prefix: string) => [
         `This is a long description`,
-        `I am used on the website`
+        `I am used on the website`,
         `I support **markdown**`
     ]
 }

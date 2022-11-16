@@ -1,3 +1,10 @@
+Run on database
+
+```postgres
+SET search_path TO bot;
+CREATE EXTENSION "uuid-ossp" SCHEMA bot;
+```
+
 ### OWNER USER ID EXAMPLE CURL
 
 ```bash
