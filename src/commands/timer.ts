@@ -50,10 +50,6 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 			return new Err('Invalid interval');
 		}
 
-		if (interval < 60) {
-			interval = 60;
-		}
-
 		const [name, ...message] = args;
 
 		if (!name) {
