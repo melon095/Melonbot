@@ -40,7 +40,7 @@ type actionHandler = (
 const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 	create: async (ctx, args) => {
 		const _int = ctx.data.Params.interval as string;
-		let interval = 1;
+		let interval = 60;
 
 		if (_int !== '') {
 			interval = parseInt(_int);
@@ -48,6 +48,10 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 
 		if (isNaN(interval) || interval < 1) {
 			return new Err('Invalid interval');
+		}
+
+		if (interval < 60) {
+			interval = 60;
 		}
 
 		const [name, ...message] = args;
@@ -195,6 +199,6 @@ export default class extends CommandModel {
 		`**Example**: ${prefix}timer create test This is a test message`,
 		'',
 		`-i, --interval <interval>`,
-		`The interval in minutes between each message. Default is 1 minute.`,
+		`The interval in seconds between each message. Default is 60 seconds.`,
 	];
 }

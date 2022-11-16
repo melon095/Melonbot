@@ -216,4 +216,4 @@ export class SingleTimer {
 	}
 }
 
-const fixInterval = (minute: number): number => minute * 60 * 1000;
+const fixInterval = (interval: number): number => interval * 1000;
