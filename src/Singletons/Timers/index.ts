@@ -91,6 +91,8 @@ export default class TimerSingleton {
 			timers.add(timer);
 		}
 
+		timer.Start().unwrap();
+
 		return new Ok(timer);
 	}
 
