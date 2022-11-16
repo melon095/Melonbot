@@ -107,7 +107,7 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 		const msg = [];
 
 		for (const t of list.unwrap()) {
-			msg.push(`${t.Name} - ${t.Interval}m`);
+			msg.push(`${t.Name} - ${t.Interval}s`);
 		}
 
 		if (list.unwrap().size > 5) {
