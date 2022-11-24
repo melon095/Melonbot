@@ -4,4 +4,5 @@ export default interface timers {
 	name: string;
 	interval: number;
 	message: string;
+	enabled: boolean;
 }

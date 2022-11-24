@@ -1,6 +1,6 @@
 import { Result, Err, Ok } from './../../tools/result.js';
 
-type TimerOptions = Pick<Database.timers, 'name' | 'owner' | 'interval' | 'message'>;
+type TimerOptions = Omit<Database.timers, 'uuid'>;
 
 type TimerIdentifiers = Pick<Database.timers, 'uuid' | 'name'>;
 
@@ -10,7 +10,7 @@ const TimerToDatabase = async (timer: TimerOptions): Promise<Database.timers> =>
         RETURNING uuid, name
     `;
 
-	return { uuid, name, interval: timer.interval, message: timer.message, owner: timer.owner };
+	return Object.assign(timer, { uuid, name });
 };
 
 export default class TimerSingleton {
@@ -56,6 +56,10 @@ export default class TimerSingleton {
         `;
 
 		for (const opts of timers) {
+			if (!opts.enabled) {
+				continue;
+			}
+
 			const timers = this._timers.get(opts.owner);
 
 			const timer = new SingleTimer(opts);
