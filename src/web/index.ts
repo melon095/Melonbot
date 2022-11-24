@@ -191,6 +191,13 @@ const authedRoutes: HeaderItem[] = [
 			if (!okay) return;
 		}
 
+		const isAuthed = isAuthedPath(authedRoutes, req.url.slice(1));
+
+		if (isAuthed && !res.locals.authUser) {
+			res.redirect('/');
+			return;
+		}
+
 		next();
 	});
 
@@ -219,3 +226,11 @@ type WebRequestLog = {
 	query: string | null;
 	body: string | null;
 };
+
+const isAuthedPath = (routes: HeaderItem[], path: string): boolean =>
+	routes.some((item) => {
+		console.log({ item, path });
+		if (item.url === path) return true;
+		if (item.items) return isAuthedPath(item.items, path);
+		return false;
+	});
