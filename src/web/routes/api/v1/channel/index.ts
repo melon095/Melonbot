@@ -1,7 +1,3 @@
-type Settings = {
-	[key: string]: boolean;
-};
-
 export default (async function () {
 	const Express = await import('express');
 	const Router = Express.Router();
@@ -30,23 +26,13 @@ export default (async function () {
 			return;
 		}
 
-		const body = req.body as Settings;
-
-		const currentSettings = await user.GetSettings();
-
-		const newSettings = {
-			...currentSettings,
-			...body,
-		};
-
-		const settings = { ...currentSettings, ...newSettings };
-
-		await user.SetSettings(settings);
+		const settings = req.body;
 
 		await Bot.Redis.Publish('user-update', {
 			Type: 'settings',
 			Data: {
 				id: user.TwitchUID,
+				inner: settings,
 			},
 		});
 

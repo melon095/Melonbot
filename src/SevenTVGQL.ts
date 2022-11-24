@@ -2,6 +2,7 @@ import got from 'got';
 import Got from './tools/Got.js';
 import { TCommandContext } from './Models/Command.js';
 import User from './controller/User/index.js';
+import { GetSettings } from './controller/Channel/index.js';
 
 const url = 'https://7tv.io/v3/gql';
 
@@ -501,27 +502,27 @@ export default {
 		return data.data;
 	},
 	isAllowedToModify: async function (ctx: TCommandContext): Promise<ModifyData> {
-		const [{ seventv_emote_set }] = await Bot.SQL.Query<Database.channels[]>`
-                SELECT seventv_emote_set 
-                    FROM channels 
-                    WHERE name = ${ctx.channel.Name}`;
-		if (!seventv_emote_set) {
+		const emoteSet = (
+			await GetSettings(ctx.channel.User()).then((x) => x.SevenTVEmoteSet)
+		).ToString();
+
+		if (!emoteSet) {
 			return {
 				okay: false,
 				message: 'I am not an editor of this channel :/',
 			};
 		}
 
-		const user = await this.GetUser(await ctx.channel.User()).catch(() => null);
+		const suser = await this.GetUser(await ctx.channel.User()).catch(() => null);
 
-		if (!user) {
+		if (!suser) {
 			return {
 				okay: false,
 				message: "You don't seem to have a 7TV profile.",
 			};
 		}
 
-		const editors = await Bot.Redis.SetMembers(`seventv:${seventv_emote_set}:editors`);
+		const editors = await Bot.Redis.SetMembers(`seventv:${emoteSet}:editors`);
 
 		if (!editors.includes(Bot.Config.BotUsername)) {
 			return {
@@ -540,8 +541,8 @@ export default {
 		return {
 			okay: true,
 			message: '',
-			emote_set: seventv_emote_set,
-			user_id: user.id,
+			emote_set: emoteSet,
+			user_id: suser.id,
 		};
 	},
 };

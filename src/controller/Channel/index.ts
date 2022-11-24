@@ -2,6 +2,7 @@ import { NChannel, TUserCooldown, ChannelTalkOptions } from './../../Typings/typ
 import { EPermissionLevel, ECommandFlags } from './../../Typings/enums.js';
 import { Banphrase } from './../Banphrase/index.js';
 import * as tools from './../../tools/tools.js';
+import { Result, Err, Ok } from './../../tools/result.js';
 import { MessageScheduler } from './../../tools/MessageScheduler.js';
 import DankTwitch from '@kararty/dank-twitch-irc';
 import {
@@ -14,7 +15,7 @@ import {
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
 import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
-import User, { UserSettings } from './../User/index.js';
+import User from './../User/index.js';
 import PreHandler from './../../PreHandlers/index.js';
 
 /**
@@ -331,24 +332,28 @@ export class Channel {
 	 * Will only be enabled if the channel has the setting checked
 	 */
 	async joinEventSub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
-		const settings = await (await this.User()).GetSettings();
-		if (!settings.Eventsub) return;
+		const settings = await GetSettings(this.User());
+
+		const eventsub = settings.Eventsub.ToBoolean();
+		if (!eventsub) return;
 
 		if (!emoteSetID) {
-			try {
-				const e = await this.getEmoteSetID();
-				if (!e) return;
-				emoteSetID = e;
-			} catch (error) {
-				Bot.HandleErrors('channel/joinEventSub', error);
-				return;
-			}
+			const e = settings.SevenTVEmoteSet.ToString();
+			if (!e) return;
+			emoteSetID = {
+				EmoteSet: e,
+				Channel: this.Name,
+			};
+		}
+
+		if (!emoteSetID) {
+			return;
 		}
 
 		Bot.Twitch.Emotes.SevenTVEvent.addChannel(emoteSetID);
 	}
 
-	async leaveEventsub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
+	async leaveEventSub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
 		if (!emoteSetID) {
 			try {
 				const e = await this.getEmoteSetID();
@@ -364,13 +369,12 @@ export class Channel {
 	}
 
 	async getEmoteSetID(): Promise<SevenTVChannelIdentifier | void> {
-		const channel = await Bot.Twitch.Controller.GetChannel(this.Id);
-		if (!channel) throw new Error('Channel not found');
-		if (!channel.seventv_emote_set) return;
-		else {
+		const settings = await GetSettings(this.User());
+
+		if (settings.SevenTVEmoteSet) {
 			return {
-				EmoteSet: channel.seventv_emote_set,
-				Channel: channel.name,
+				EmoteSet: settings.SevenTVEmoteSet.ToString(),
+				Channel: this.Name,
 			};
 		}
 	}
@@ -510,6 +514,24 @@ export class Channel {
 		) as string[];
 	}
 
+	public async ReflectSettings(): Promise<void> {
+		const settings = await GetSettings(this.User());
+
+		if (!settings) return;
+
+		const eventsub = settings.Eventsub.ToBoolean();
+
+		if (eventsub !== undefined) {
+			switch (eventsub) {
+				case true:
+					await this.joinEventSub();
+					break;
+				case false:
+					await this.leaveEventSub();
+					break;
+			}
+		}
+	}
 	setMod(): void {
 		if (this.Mode === 'Moderator') return;
 		this.Mode = 'Moderator';
@@ -584,14 +606,6 @@ export class Channel {
 		await Bot.SQL.Query`
             INSERT INTO logs.commands_execution ${Bot.SQL.Get(result)}
         `;
-	}
-
-	public async ReflectNewSettings(settings: UserSettings): Promise<void> {
-		if (settings.Eventsub) {
-			await this.joinEventSub();
-		} else if (!settings.Eventsub) {
-			await this.leaveEventsub();
-		}
 	}
 
 	private async InitiateTrivia(): Promise<void> {
@@ -673,3 +687,85 @@ const getStringFromError = (error: Error | string): string => {
 	if (error instanceof Error) return error.message;
 	return JSON.stringify(error)?.replace(/(\r\n|\n|\r)/gm, ' ') ?? 'Unknown error';
 };
+
+export const GetSettings = async (channel: User | Promise<User>): Promise<ChannelSettings> => {
+	const done: ChannelSettings = {
+		Eventsub: DefaultChannelSetting(),
+		SevenTVEmoteSet: DefaultChannelSetting(),
+	};
+
+	const state = await Bot.Redis.HGetAll(`channel:${(await channel).TwitchUID}:settings`);
+
+	if (!state) {
+		return done;
+	}
+
+	for (const [key, value] of Object.entries(state)) {
+		done[key as ChannelSettingsNames] = new ChannelSettingsValue(value);
+	}
+
+	return new Proxy(done, {
+		get: (target, prop) => {
+			if (prop in target) return target[prop as ChannelSettingsNames];
+			return new ChannelSettingsValue('');
+		},
+	});
+};
+
+export const UpdateSetting = async (
+	user: User | Promise<User>,
+	name: string,
+	value: ChannelSettingsValue,
+): Promise<void> => {
+	const ID = (await user).TwitchUID;
+
+	const key = `channel:${ID}:settings`;
+
+	await Bot.Redis.HSet(key, name, value.ToString());
+
+	Bot?.Twitch?.Controller?.TwitchChannelSpecific({ ID })?.ReflectSettings();
+};
+
+export type ChannelSettingsNames = 'Eventsub' | 'SevenTVEmoteSet';
+
+export type ChannelSettings = {
+	[key in ChannelSettingsNames]: ChannelSettingsValue;
+};
+
+export class ChannelSettingsValue {
+	static FromUnknown(value: unknown): ChannelSettingsValue {
+		switch (typeof value) {
+			case 'string':
+				return new ChannelSettingsValue(value);
+			case 'number':
+			case 'boolean':
+				return new ChannelSettingsValue(value.toString());
+			default:
+				return new ChannelSettingsValue(JSON.stringify(value));
+		}
+	}
+
+	constructor(protected value: string) {}
+
+	public ToJSON<Obj extends object>(): Result<Obj, string> {
+		try {
+			return new Ok(JSON.parse(this.value));
+		} catch (e) {
+			return Err.NormalizeError(e);
+		}
+	}
+
+	public ToBoolean(): boolean {
+		return this.value === 'true';
+	}
+
+	public ToNumber(): number {
+		return Number(this.value) || 0;
+	}
+
+	public ToString(): string {
+		return this.value;
+	}
+}
+
+const DefaultChannelSetting = () => new ChannelSettingsValue('');

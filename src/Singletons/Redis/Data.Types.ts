@@ -42,4 +42,7 @@ export interface IBanphrase {
 
 export interface ISettings {
 	id: string;
+	inner: {
+		[key: string]: unknown;
+	};
 }

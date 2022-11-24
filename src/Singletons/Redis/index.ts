@@ -174,4 +174,25 @@ export class RedisSingleton extends EventEmitter {
 			.then((ok: number | null) => Boolean(ok))
 			.catch(() => false);
 	}
+
+	public async HGetAll(key: string): Promise<{ [key: string]: string }> {
+		return await this._client
+			.HGETALL(`${PREFIX}${key}`)
+			.then((members: { [key: string]: string }) => members)
+			.catch(() => ({}));
+	}
+
+	public async HSet(key: string, field: string, value: string): Promise<boolean> {
+		return await this._client
+			.HSET(`${PREFIX}${key}`, field, value)
+			.then((ok: number | null) => Boolean(ok))
+			.catch(() => false);
+	}
+
+	public async HDel(key: string, field: string): Promise<boolean> {
+		return await this._client
+			.HDEL(`${PREFIX}${key}`, field)
+			.then((ok: number | null) => Boolean(ok))
+			.catch(() => false);
+	}
 }

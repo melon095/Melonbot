@@ -14,17 +14,19 @@ export default (async function () {
         `;
 		const profilePicture = await user.GetProfilePicture();
 
+		const settings = await user.GetChannelSettings();
+
 		res.render('user/dashboard', {
 			user: {
 				...user,
 				profilePicture,
-				Options: await user.GetSettings(),
+				Options: settings,
 			},
 			banphrases,
 		});
 	});
 
-	Router.get('/logout', async (req, res) => {
+	Router.get('/logout', async (_, res) => {
 		const { id, name } = res.locals.authUser;
 		await Bot.Redis.SDel(`session:${id}:${name}`);
 		await Bot.Redis.SDel(`token:${id}:${name}`);
