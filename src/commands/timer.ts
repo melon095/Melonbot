@@ -70,6 +70,7 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 			name,
 			message: message.join(' '),
 			owner: ctx.channel.Id,
+			enabled: true,
 		});
 
 		if (timer.err) {
