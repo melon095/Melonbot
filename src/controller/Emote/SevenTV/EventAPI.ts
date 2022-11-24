@@ -1,6 +1,7 @@
 import MWebSocket from '../../../Models/Websocket.js';
 import WebSocket from 'ws';
 import { Channel } from './../../../controller/Channel/index.js';
+import gql, { ConnectionPlatform } from './../../../SevenTVGQL.js';
 
 // op -- 0
 // When an event gets fired
@@ -277,33 +278,28 @@ export class SevenTVEvent extends MWebSocket {
 		switch (type) {
 			case 'emote_set.update': {
 				const payload = data.body as SevenTVEmoteSetUpdate;
-				const channel = await Bot.SQL.Query<Database.channels[]>`
-                    SELECT user_id from channels 
-                    WHERE seventv_emote_set = ${payload.id}`;
 
-				if (!channel.length) {
+				const channel = await gql.getUserEmoteSets(payload.id).then((res) => {
+					const t = res.user.connections.find(
+						(c) => c.platform === ConnectionPlatform.TWITCH,
+					);
+
+					if (!t) return null;
+
+					return Bot.Twitch.Controller.TwitchChannelSpecific({ ID: t.id });
+				});
+
+				if (!channel) {
 					super.Log('Channel not found for emote set update', JSON.stringify(payload));
 					return;
 				}
 
-				const _chl = Bot.Twitch.Controller.TwitchChannelSpecific({
-					ID: channel[0].user_id,
-				});
-
-				if (!_chl) {
-					super.Log(
-						'Internal channel not found for emote set update',
-						JSON.stringify(payload),
-					);
-					return;
-				}
-
 				if (typeof payload.pushed !== 'undefined') {
-					this.handleNewEmote(payload, _chl);
+					this.handleNewEmote(payload, channel);
 				} else if (typeof payload.pulled !== 'undefined') {
-					this.handleRemovedEmote(payload, _chl);
+					this.handleRemovedEmote(payload, channel);
 				} else if (typeof payload.updated !== 'undefined') {
-					this.handleUpdatedEmote(payload, _chl);
+					this.handleUpdatedEmote(payload, channel);
 				} else {
 					super.Log(`Received bad data ${JSON.stringify(payload)}`);
 				}
