@@ -332,18 +332,22 @@ export class Channel {
 	 * Will only be enabled if the channel has the setting checked
 	 */
 	async joinEventSub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
-		const eventsub = (await GetSettings(this.User())).Eventsub?.ToBoolean() ?? false;
+		const settings = await GetSettings(this.User());
+
+		const eventsub = settings.Eventsub.ToBoolean();
 		if (!eventsub) return;
 
 		if (!emoteSetID) {
-			try {
-				const e = await this.getEmoteSetID();
-				if (!e) return;
-				emoteSetID = e;
-			} catch (error) {
-				Bot.HandleErrors('channel/joinEventSub', error);
-				return;
-			}
+			const e = settings.SevenTVEmoteSet.ToString();
+			if (!e) return;
+			emoteSetID = {
+				EmoteSet: e,
+				Channel: this.Name,
+			};
+		}
+
+		if (!emoteSetID) {
+			return;
 		}
 
 		Bot.Twitch.Emotes.SevenTVEvent.addChannel(emoteSetID);
@@ -365,13 +369,12 @@ export class Channel {
 	}
 
 	async getEmoteSetID(): Promise<SevenTVChannelIdentifier | void> {
-		const channel = await Bot.Twitch.Controller.GetChannel(this.Id);
-		if (!channel) throw new Error('Channel not found');
-		if (!channel.seventv_emote_set) return;
-		else {
+		const settings = await GetSettings(this.User());
+
+		if (settings.SevenTVEmoteSet) {
 			return {
-				EmoteSet: channel.seventv_emote_set,
-				Channel: channel.name,
+				EmoteSet: settings.SevenTVEmoteSet.ToString(),
+				Channel: this.Name,
 			};
 		}
 	}
@@ -516,7 +519,7 @@ export class Channel {
 
 		if (!settings) return;
 
-		const eventsub = await settings.Eventsub?.ToBoolean();
+		const eventsub = settings.Eventsub.ToBoolean();
 
 		if (eventsub !== undefined) {
 			switch (eventsub) {
@@ -686,7 +689,10 @@ const getStringFromError = (error: Error | string): string => {
 };
 
 export const GetSettings = async (channel: User | Promise<User>): Promise<ChannelSettings> => {
-	const done: ChannelSettings = {};
+	const done: ChannelSettings = {
+		Eventsub: DefaultChannelSetting(),
+		SevenTVEmoteSet: DefaultChannelSetting(),
+	};
 
 	const state = await Bot.Redis.HGetAll(`channel:${(await channel).TwitchUID}:settings`);
 
@@ -695,10 +701,15 @@ export const GetSettings = async (channel: User | Promise<User>): Promise<Channe
 	}
 
 	for (const [key, value] of Object.entries(state)) {
-		done[key] = new ChannelSettingsValue(value);
+		done[key as ChannelSettingsNames] = new ChannelSettingsValue(value);
 	}
 
-	return done;
+	return new Proxy(done, {
+		get: (target, prop) => {
+			if (prop in target) return target[prop as ChannelSettingsNames];
+			return new ChannelSettingsValue('');
+		},
+	});
 };
 
 export const UpdateSetting = async (
@@ -710,13 +721,15 @@ export const UpdateSetting = async (
 
 	const key = `channel:${ID}:settings`;
 
-	await Bot.Redis.HSet(key, name, value.inner);
+	await Bot.Redis.HSet(key, name, value.ToString());
 
 	Bot?.Twitch?.Controller?.TwitchChannelSpecific({ ID })?.ReflectSettings();
 };
 
+export type ChannelSettingsNames = 'Eventsub' | 'SevenTVEmoteSet';
+
 export type ChannelSettings = {
-	[key: string]: ChannelSettingsValue;
+	[key in ChannelSettingsNames]: ChannelSettingsValue;
 };
 
 export class ChannelSettingsValue {
@@ -734,10 +747,6 @@ export class ChannelSettingsValue {
 
 	constructor(protected value: string) {}
 
-	public get inner(): string {
-		return this.value;
-	}
-
 	public ToJSON<Obj extends object>(): Result<Obj, string> {
 		try {
 			return new Ok(JSON.parse(this.value));
@@ -753,4 +762,10 @@ export class ChannelSettingsValue {
 	public ToNumber(): number {
 		return Number(this.value) || 0;
 	}
+
+	public ToString(): string {
+		return this.value;
+	}
 }
+
+const DefaultChannelSetting = () => new ChannelSettingsValue('');

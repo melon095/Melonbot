@@ -24,7 +24,7 @@ declare global {
 		Twitch: {
 			Controller: import('./Twitch.js').default;
 			Emotes: {
-				SevenTVEvent: import('./controller/Emote/SevenTV/EventAPI.js').default;
+				SevenTVEvent: import('./controller/Emote/SevenTV/EventAPI.js').SevenTVEvent;
 			};
 		};
 		User: typeof User;

@@ -18,6 +18,4 @@ export default interface channels {
 	bot_permission: number;
 
 	disabled_commands: string[];
-
-	seventv_emote_set: string | null;
 }

@@ -18,7 +18,7 @@ import { SevenTVEvent } from './controller/Emote/SevenTV/EventAPI.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import ErrorHandler from './ErrorHandler.js';
-import { Channel } from './controller/Channel/index.js';
+import { Channel, GetSettings } from './controller/Channel/index.js';
 import { NChannelFunctions, Sleep } from './tools/tools.js';
 import { RedisSingleton } from './Singletons/Redis/index.js';
 import * as tools from './tools/tools.js';
@@ -116,15 +116,23 @@ export const Setup = {
 			if (channelList.length) {
 				for (const channel of channelList) {
 					console.log(`#Twitch Joining ${channel.name}`);
-					await twitch.client
-						.join(channel.name)
-						.catch((err: string) => console.error(err));
+					try {
+						await twitch.client.join(channel.name);
+					} catch (error) {
+						Bot.HandleErrors(`Joining ${channel.name}`, error);
+						continue;
+					}
 
 					const mode = NChannelFunctions.DatabaseToMode(channel.bot_permission);
 					const user = await Bot.User.Get(channel.user_id, channel.name);
 
 					const newChannel = await Channel.New(user, mode, channel.live);
-					await Channel.WithEventsub(newChannel, channel.seventv_emote_set ?? undefined);
+
+					const emote_set = await GetSettings(user).then(
+						(settings) => settings.SevenTVEmoteSet.ToString() ?? undefined,
+					);
+
+					await Channel.WithEventsub(newChannel, emote_set);
 
 					twitch.channels.push(newChannel);
 
