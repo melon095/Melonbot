@@ -18,12 +18,12 @@ import { SevenTVEvent } from './controller/Emote/SevenTV/EventAPI.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import ErrorHandler from './ErrorHandler.js';
-// import { PM2FILENAME } from './commands/git.js';
 import { Channel } from './controller/Channel/index.js';
 import { NChannelFunctions, Sleep } from './tools/tools.js';
 import { RedisSingleton } from './Singletons/Redis/index.js';
 import * as tools from './tools/tools.js';
 import User from './controller/User/index.js';
+import TimerSingleton from './Singletons/Timers/index.js';
 
 type ProcessType = 'BOT' | 'WEB';
 
@@ -94,6 +94,9 @@ export const Setup = {
 				SevenTVEvent: new SevenTVEvent(),
 			},
 		};
+
+		await TimerSingleton.I().Initialize();
+
 		Bot.Twitch.Controller.InitPromise.then(async () => {
 			// Run once connected to twitch
 			const twitch = Bot.Twitch.Controller;
@@ -128,17 +131,6 @@ export const Setup = {
 					await Sleep(Bot.Config.Verified ? 0.025 : 1);
 				}
 			}
-
-			// git | reset command specific
-			// if (fs.existsSync(PM2FILENAME)) {
-			// 	const controller = Bot.Twitch.Controller;
-			// 	controller.client.say(
-			// 		`#${controller.owner}`,
-			// 		'SeemsGood Restarted!',
-			// 	);
-
-			// 	fs.unlinkSync(PM2FILENAME);
-			// }
 		});
 	},
 };
