@@ -1,6 +1,6 @@
 import DankTwitch from '@kararty/dank-twitch-irc';
 import * as tools from './tools/tools.js';
-import { Channel } from './controller/Channel/index.js';
+import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import EventSubTriggers from './triggers/eventsub/index.js';
@@ -102,14 +102,15 @@ export default class Twitch {
 
 			channel.Banphrase.Handle(Data);
 		});
-		Bot.Redis.on('settings', (Data) => {
+		Bot.Redis.on('settings', async (Data) => {
 			const channel = this.TwitchChannelSpecific({ ID: Data.id });
 			if (!channel) return;
 
-			Bot.User.Get(channel.Id, channel.Name).then(async (user) => {
-				const settings = await user.GetSettings();
-				channel.ReflectNewSettings(settings);
-			});
+			const user = await channel.User();
+
+			for (const [key, value] of Object.entries(Data.inner)) {
+				UpdateSetting(user, key, ChannelSettingsValue.FromUnknown(value));
+			}
 		});
 	}
 

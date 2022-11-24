@@ -3,6 +3,7 @@ import { JWTData } from 'web/index.js';
 import { UserRole } from './../../Typings/models/bot/index.js';
 import Helix from './../../Helix/index.js';
 import type { Ivr } from './../../Typings/types.js';
+import { ChannelSettings, GetSettings } from './../Channel/index.js';
 
 export class GetSafeError extends Error {
 	constructor(message: string) {
@@ -15,11 +16,6 @@ export interface TwitchToken {
 	access_token: string;
 	refresh_token: string;
 	expires_in: number;
-}
-
-export interface UserSettings {
-	Eventsub: boolean;
-	// [key: string]: string | boolean;
 }
 
 export default class User {
@@ -242,20 +238,19 @@ export default class User {
 		return 'ACK';
 	}
 
-	async GetSettings(): Promise<UserSettings> {
-		const DefaultOptions: UserSettings = { Eventsub: false };
-
-		const Options = await Bot.Redis.SGet(`user:${this.TwitchUID}:options`).then((options) => {
-			if (!options) return DefaultOptions;
-			return JSON.parse(options);
+	async GetChannelSettings(): Promise<ChannelSettings | false> {
+		const isIn = await Bot.SQL.Query`
+            SELECT name FROM channels
+            WHERE user_id = ${this.TwitchUID}
+        `.then((res) => {
+			return res.length > 0;
 		});
 
-		return Options;
-	}
+		if (!isIn) {
+			return false;
+		}
 
-	async SetSettings(options: UserSettings): Promise<'ACK'> {
-		await Bot.Redis.SSet(`user:${this.TwitchUID}:options`, JSON.stringify(options));
-		return 'ACK';
+		return GetSettings(this);
 	}
 
 	HasSuperPermission(): boolean {

@@ -54,6 +54,14 @@ export class Err<E> implements Base<never, E> {
 	unwrapOr<T2>(def: () => T2): T2 {
 		return def();
 	}
+
+	static NormalizeError(err: unknown): Err<string> {
+		if (err instanceof Error) {
+			return new Err(err.message);
+		}
+
+		return new Err(String(err));
+	}
 }
 
 export type Result<T, E> = Ok<T> | Err<E>;

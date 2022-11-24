@@ -234,7 +234,7 @@ import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
 			const c = Bot.Twitch.Controller.TwitchChannelSpecific({ ID: channel.user_id });
 
 			c?.joinEventSub({ Channel: channel.name, EmoteSet: default_emote_sets });
-			c?.leaveEventsub({ Channel: channel.name, EmoteSet: channel.seventv_emote_set || '' });
+			c?.leaveEventSub({ Channel: channel.name, EmoteSet: channel.seventv_emote_set || '' });
 		}
 	}, ONE_MINUTE);
 
