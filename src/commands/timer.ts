@@ -2,6 +2,7 @@ import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import { Result, Ok, Err } from './../tools/result.js';
 import got from './../tools/Got.js';
+import Timers from './../Singletons/Timers/index.js';
 
 /** https://github.com/zer0bin-dev/zer0bin */
 type ZeroBinResponse = {
@@ -30,7 +31,7 @@ const Upload = async (content: string): Promise<string> => {
 	return `https://zer0b.in/${resp.data.id}`;
 };
 
-type ACTION_TYPE = 'create' | 'delete' | 'list' | 'enable' | 'disable';
+type ACTION_TYPE = 'create' | 'add' | 'delete' | 'remove' | 'list' | 'enable' | 'disable';
 
 type actionHandler = (
 	ctx: Omit<TCommandContext, 'input'>,
@@ -64,7 +65,7 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 			return new Err('No message provided');
 		}
 
-		const timer = await Bot.Timers.CreateNewTimer({
+		const timer = await Timers.I().CreateNewTimer({
 			interval,
 			name,
 			message: message.join(' '),
@@ -78,6 +79,9 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 
 		return new Ok(`Created timer :)`);
 	},
+	add: async (ctx, args) => {
+		return actionHandlers.create(ctx, args);
+	},
 	delete: async (ctx, args) => {
 		const [name] = args;
 
@@ -85,7 +89,7 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 			return new Err('No name provided');
 		}
 
-		const res = await Bot.Timers.DeleteTimer(ctx.channel.Id, name);
+		const res = await Timers.I().DeleteTimer(ctx.channel.Id, name);
 
 		if (res.err) {
 			return res;
@@ -93,8 +97,11 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 
 		return new Ok(`Deleted timer :)`);
 	},
+	remove: async (ctx, args) => {
+		return actionHandlers.delete(ctx, args);
+	},
 	list: async (ctx) => {
-		const list = await Bot.Timers.GetTimers(ctx.channel.Id);
+		const list = await Timers.I().GetTimers(ctx.channel.Id);
 
 		if (list.err) {
 			return list;
@@ -125,7 +132,7 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 			return new Err('No name provided');
 		}
 
-		const res = await Bot.Timers.EnableTimer(ctx.channel.Id, name);
+		const res = await Timers.I().EnableTimer(ctx.channel.Id, name);
 
 		if (res.err) {
 			return res;
@@ -140,7 +147,7 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 			return new Err('No name provided');
 		}
 
-		const res = await Bot.Timers.DisableTimer(ctx.channel.Id, name);
+		const res = await Timers.I().DisableTimer(ctx.channel.Id, name);
 
 		if (res.err) {
 			return res;
@@ -190,8 +197,8 @@ export default class extends CommandModel {
 	LongDescription = async (prefix: string) => [
 		`This command can be used to disable or enable chat timers.`,
 		`A Timer is a message that is sent every X seconds to a channel.`,
-		`${prefix}timer create <name> <message>`,
-		`${prefix}timer delete <name>`,
+		`${prefix}timer create|add <name> <message>`,
+		`${prefix}timer delete|remove <name>`,
 		`${prefix}timer list`,
 		`${prefix}timer enable <name>`,
 		`${prefix}timer disable <name>`,

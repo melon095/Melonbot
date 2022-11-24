@@ -31,7 +31,6 @@ declare global {
 		Commands: import('./controller/Commands/Handler.js').CommandsHandler;
 		HandleErrors: typeof HandleErrors;
 		ID: string;
-		Timers: import('./Singletons/Timers/index.js').default;
 	};
 	declare namespace Database {
 		export type banphrases = import('./Typings/models/bot/index').banphrases;

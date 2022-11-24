@@ -95,7 +95,7 @@ export const Setup = {
 			},
 		};
 
-		Bot.Timers = await TimerSingleton.I().Initialize();
+		await TimerSingleton.I().Initialize();
 
 		Bot.Twitch.Controller.InitPromise.then(async () => {
 			// Run once connected to twitch
