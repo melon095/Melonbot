@@ -294,7 +294,7 @@ import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
 				});
 			}),
 		);
-	}, FIVE_MINUTES);
+	}, ONE_MINUTE);
 })();
 
 export {};

@@ -217,7 +217,7 @@ export default {
                         }
                     }`,
 					variables: {
-						id,
+						id: id,
 					},
 				}),
 			})
@@ -232,7 +232,9 @@ export default {
 	getUserByEmoteSet: async function (id: string): Promise<GetCurrentUser> {
 		type data = {
 			emoteSet: {
-				id: string;
+				owner: {
+					id: string;
+				};
 			};
 		};
 
@@ -257,7 +259,7 @@ export default {
 			throw data.errors[0].message;
 		}
 
-		return this.getUserEmoteSets(data.data.emoteSet.id);
+		return this.getUserEmoteSets(data.data.emoteSet.owner.id);
 	},
 	SearchEmoteByName: async (
 		emote: string,
