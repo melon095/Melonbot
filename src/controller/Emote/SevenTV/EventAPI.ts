@@ -279,7 +279,7 @@ export class SevenTVEvent extends MWebSocket {
 			case 'emote_set.update': {
 				const payload = data.body as SevenTVEmoteSetUpdate;
 
-				const channel = await gql.getUserEmoteSets(payload.id).then((res) => {
+				const channel = await gql.getUserByEmoteSet(payload.id).then((res) => {
 					const t = res.user.connections.find(
 						(c) => c.platform === ConnectionPlatform.TWITCH,
 					);

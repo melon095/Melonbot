@@ -229,6 +229,34 @@ export default {
 
 		return data.data;
 	},
+	getUserByEmoteSet: async function (id: string): Promise<GetCurrentUser> {
+		type data = {
+			id: string;
+		};
+
+		const data: Base<data> = await api
+			.post('', {
+				body: JSON.stringify({
+					query: `query GetCurrentUser ($id: ObjectID!) {
+                        emoteSet (id: $id) {
+                            owner {
+                                id
+                            }
+                        }
+                    }`,
+					variables: {
+						id,
+					},
+				}),
+			})
+			.json();
+
+		if (data.errors) {
+			throw data.errors[0].message;
+		}
+
+		return this.getUserEmoteSets(data.data.id);
+	},
 	SearchEmoteByName: async (
 		emote: string,
 		filter: EmoteSearchFilter = {},
