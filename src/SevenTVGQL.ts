@@ -231,7 +231,9 @@ export default {
 	},
 	getUserByEmoteSet: async function (id: string): Promise<GetCurrentUser> {
 		type data = {
-			id: string;
+			emoteSet: {
+				id: string;
+			};
 		};
 
 		const data: Base<data> = await api
@@ -255,7 +257,7 @@ export default {
 			throw data.errors[0].message;
 		}
 
-		return this.getUserEmoteSets(data.data.id);
+		return this.getUserEmoteSets(data.data.emoteSet.id);
 	},
 	SearchEmoteByName: async (
 		emote: string,
