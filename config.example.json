@@ -1,38 +1,42 @@
 {
-	"Twitch": {
-		"OAuth": "", // https://twitchapps.com/tmi/
-		"ClientID": "", // https://dev.twitch.tv/
-		"ClientSecret": "" // https://dev.twitch.tv/
-	},
-	"SQL": {
-		"Address": "postgres://user:password@localhost:5432/melonbot"
-	},
-	"EventSub": {
-		"PublicUrl": "https://example.website.root",
-		"Secret": "",
-		"Redis": {
-			// This is required as go-redis doesn't support redis:// address
-			"Address": "localhost:6379",
-			"Username": "default",
-			"Password": "",
-			"DB": 0
-		}
-	},
-	"Redis": {
-		"Address": "redis://password@host:port"
-	},
-	"Development": false,
-	"Verified": false, // If you are verified by twitch
-	"Prefix": "melon",
-	"BotUsername": "", // Username of bot LOWERCASE!!
-	"OwnerUserID": "", // ID of the owner
-	"Website": {
-		"JWTSecret": "Scripts/Secret.EventSubKey.mjs",
-		"WebUrl": "", // Public facing IP/Domain to the website if enabled.
-		"Port": 3000
-	},
-	"SevenTV": {
-		"Bearer": "",
-		"user_id": ""
-	}
+    "Twitch": {
+        "OAuth": "", // https://twitchapps.com/tmi/
+        "ClientID": "", // https://dev.twitch.tv/
+        "ClientSecret": "" // https://dev.twitch.tv/
+    },
+    "SQL": {
+        "Address": "postgres://user:password@localhost:5432/melonbot"
+    },
+    "EventSub": {
+        "PublicUrl": "https://example.website.root",
+        "Secret": "",
+        "Redis": {
+            // This is required as go-redis doesn't support redis:// address
+            "Address": "localhost:6379",
+            "Username": "default",
+            "Password": "",
+            "DB": 0
+        }
+    },
+    "Redis": {
+        "Address": "redis://password@host:port"
+    },
+    "Development": false,
+    "Verified": false, // If you are verified by twitch
+    "Prefix": "melon",
+    "BotUsername": "", // Username of bot LOWERCASE!!
+    "OwnerUserID": "", // ID of the owner
+    "Website": {
+        "JWTSecret": "Scripts/Secret.EventSubKey.mjs",
+        "WebUrl": "", // Public facing IP/Domain to the website if enabled.
+        "Port": 3000
+    },
+    "SevenTV": {
+        "Bearer": "",
+        "user_id": ""
+    },
+    "Spotify": {
+        "ClientID": "",
+        "ClientSecret": ""
+    }
 }

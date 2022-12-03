@@ -2,7 +2,7 @@ import path, { resolve } from 'node:path';
 import cors from 'cors';
 import * as tools from './../tools/tools.js';
 import jwt from 'jsonwebtoken';
-import type { NextFunction, Request, Response } from 'express';
+import type { Response } from 'express';
 
 const SECRET = Buffer.from(Bot.Config.Website.JWTSecret);
 const ISSUER = 'MELONBOT-OAUTH';
@@ -14,7 +14,7 @@ export interface JWTData {
 }
 
 /**
- * Class that handles authentication
+ * Class that handles jwt authentication
  */
 export const Authenticator = new (class {
 	async VerifyJWT(token: string): Promise<JWTData> {
@@ -95,26 +95,26 @@ type HeaderItem = {
 const header: HeaderItem[] = [
 	{
 		name: 'Home',
-		url: '',
+		url: '/',
 	},
 	{
 		name: 'Bot',
-		items: [
-			{ name: 'Commands', url: 'bot/commands' },
-			// { name: 'Channels', url: 'bot/channels' },
-			// { name: 'Suggestions', url: 'bot/suggestions' },
-		],
+		items: [{ name: 'Commands', url: '/bot/commands' }],
 	},
 ];
 
 const authedRoutes: HeaderItem[] = [
 	{
 		name: 'Dashboard',
-		url: 'user/dashboard',
+		url: '/user/dashboard',
+	},
+	{
+		name: 'Login to Spotify',
+		url: '/auth/spotify/',
 	},
 	{
 		name: 'Logout',
-		url: 'user/logout',
+		url: '/user/logout',
 	},
 ];
 
@@ -191,7 +191,7 @@ const authedRoutes: HeaderItem[] = [
 			if (!okay) return;
 		}
 
-		const isAuthed = isAuthedPath(authedRoutes, req.url.slice(1));
+		const isAuthed = isAuthedPath(authedRoutes, req.url);
 
 		if (isAuthed && !res.locals.authUser) {
 			res.redirect('/');
@@ -229,7 +229,6 @@ type WebRequestLog = {
 
 const isAuthedPath = (routes: HeaderItem[], path: string): boolean =>
 	routes.some((item) => {
-		console.log({ item, path });
 		if (item.url === path) return true;
 		if (item.items) return isAuthedPath(item.items, path);
 		return false;

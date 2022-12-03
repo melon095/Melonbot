@@ -65,6 +65,10 @@ export type TConfigFile = {
 		Bearer: string;
 		user_id: string;
 	};
+	Spotify: {
+		ClientID: string;
+		ClientSecret: string;
+	};
 };
 
 export type TStaticDataConfig = {
@@ -87,6 +91,8 @@ export namespace Helix {
 			created_at: string;
 		}[];
 	}
+
+	export type User = Users['data'][0];
 
 	export interface Stream {
 		data: {
