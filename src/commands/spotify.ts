@@ -43,19 +43,14 @@ type SongWhipResponse = {
 };
 
 const getSongWhipURL = async (spotifyURL: string): Promise<SongWhipResponse> => {
-	const { body } = await Got('json')<SongWhipResponse>(
-		'https://songwhip.com/api/songwhip/create',
-		{
-			method: 'POST',
-			json: {
-				url: spotifyURL,
-				country: 'US',
-			},
-			throwHttpErrors: false,
+	return Got('json')<SongWhipResponse>('https://songwhip.com/api/songwhip/create', {
+		method: 'POST',
+		json: {
+			url: spotifyURL,
+			country: 'US',
 		},
-	);
-
-	return body;
+		throwHttpErrors: false,
+	}).json();
 };
 
 export default class extends CommandModel {
@@ -107,7 +102,7 @@ export default class extends CommandModel {
 
 		const spotifyURL = playing.external_urls.spotify;
 
-		const { status, data, error } = await getSongWhipURL(spotifyURL);
+		const { data, error } = await getSongWhipURL(spotifyURL);
 		if (error !== undefined) {
 			Bot.HandleErrors('Songwhip', error);
 
