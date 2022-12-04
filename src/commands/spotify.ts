@@ -32,7 +32,7 @@ type SongWhipResponse = {
 			url: string;
 		}[];
 	};
-	status: boolean;
+	status: 'success' | string;
 };
 
 const getSongWhipURL = async (spotifyURL: string): Promise<SongWhipResponse> => {
@@ -101,7 +101,7 @@ export default class extends CommandModel {
 		const spotifyURL = playing.external_urls.spotify;
 
 		const { status, data } = await getSongWhipURL(spotifyURL);
-		if (!status) {
+		if (status !== 'success') {
 			return {
 				Success: false,
 				Result: 'Failed to get songwhip url.',
