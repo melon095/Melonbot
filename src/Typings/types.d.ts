@@ -189,3 +189,92 @@ export namespace Ivr {
 		}[];
 	}
 }
+
+export namespace SpotifyTypes {
+	export interface Me {
+		country: string;
+		display_name: string;
+		email: string;
+		explicit_content: {
+			filter_enabled: boolean;
+			filter_locked: boolean;
+		};
+		external_urls: {
+			spotify: string;
+		};
+		followers: {
+			href: null;
+			total: number;
+		};
+		href: string;
+		id: string;
+		images: {
+			height: number;
+			url: string;
+			width: number;
+		}[];
+		product: 'premium' | 'free' | 'open';
+		type: 'user';
+		uri: string;
+	}
+
+	export interface Queue {
+		currently_playing: {
+			album: {
+				album_type: 'album' | 'single' | 'compilation';
+				artists: {
+					external_urls: {
+						spotify: string;
+					};
+					href: string;
+					id: string;
+					name: string;
+					type: 'artist';
+					uri: string;
+				}[];
+				available_markets: string[];
+				external_urls: {
+					spotify: string;
+				};
+				href: string;
+				id: string;
+				images: {
+					height: number;
+					url: string;
+					width: number;
+				}[];
+				name: string;
+				type: 'album';
+				uri: string;
+			};
+			artists: {
+				name: string;
+			}[];
+			disc_number: number;
+			duration_ms: number;
+			explicit: boolean;
+			external_ids: {
+				isrc: string;
+			};
+			external_urls: {
+				spotify: string;
+			};
+			href: string;
+			id: string;
+			is_local: boolean;
+			name: string;
+			popularity: number;
+			preview_url: string;
+			track_number: number;
+			type: 'track';
+			uri: string;
+		};
+		queue: unknown[];
+	}
+
+	export interface Token {
+		access_token: string;
+		refresh_token: string;
+		expires_in: number;
+	}
+}

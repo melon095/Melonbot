@@ -1,95 +1,8 @@
 import { AuthenticationMethod } from './../../oauth.js';
 import Got from './../../../tools/Got.js';
 import User from './../../../controller/User/index.js';
-
-declare namespace SpotifyTypes {
-	export interface Me {
-		country: string;
-		display_name: string;
-		email: string;
-		explicit_content: {
-			filter_enabled: boolean;
-			filter_locked: boolean;
-		};
-		external_urls: {
-			spotify: string;
-		};
-		followers: {
-			href: null;
-			total: number;
-		};
-		href: string;
-		id: string;
-		images: {
-			height: number;
-			url: string;
-			width: number;
-		}[];
-		product: 'premium' | 'free' | 'open';
-		type: 'user';
-		uri: string;
-	}
-
-	export interface CurrentlyPlaying {
-		album: {
-			album_type: 'album' | 'single' | 'compilation';
-			artists: {
-				external_urls: {
-					spotify: string;
-				};
-				href: string;
-				id: string;
-				name: string;
-				type: 'artist';
-				uri: string;
-			}[];
-			available_markets: string[];
-			external_urls: {
-				spotify: string;
-			};
-			href: string;
-			id: string;
-			images: {
-				height: number;
-				url: string;
-				width: number;
-			}[];
-			name: string;
-			type: 'album';
-			uri: string;
-		};
-		artists: unknown;
-		disc_number: number;
-		duration_ms: number;
-		explicit: boolean;
-		external_ids: {
-			isrc: string;
-		};
-		external_urls: {
-			spotify: string;
-		};
-		href: string;
-		id: string;
-		is_local: boolean;
-		name: string;
-		popularity: number;
-		preview_url: string;
-		track_number: number;
-		type: 'track';
-		uri: string;
-	}
-
-	export interface Token {
-		access_token: string;
-		refresh_token: string;
-		expires_in: number;
-	}
-}
-
-const SpotifyGot = Got('json').extend({
-	prefixUrl: 'https://api.spotify.com/v1/',
-	throwHttpErrors: false,
-});
+import { SpotifyTypes } from './../../../Typings/types.js';
+import { SpotifyGetValidToken, SpotifyGot } from './../../../tools/spotify.js';
 
 export default (async function () {
 	const RedirectURI = Bot.Config.Website.WebUrl + '/auth/spotify/callback';
@@ -157,35 +70,6 @@ export default (async function () {
 		},
 	);
 
-	const SpotifyGetValidToken = async (user: User) => {
-		const token = await user.Get('spotify').then((x) => {
-			if (!x) return null;
-
-			return JSON.parse(x) as SpotifyTypes.Token;
-		});
-
-		if (!token) return null;
-
-		if (token.expires_in < Date.now()) {
-			try {
-				const newToken = await Strategy.RefreshToken(token.refresh_token);
-
-				await user.Set('spotify', {
-					access_token: newToken.access_token,
-					refresh_token: token.refresh_token,
-					expires_in: Date.now() + newToken.expires_in * 1000,
-				});
-
-				return newToken.access_token;
-			} catch (error) {
-				Bot.HandleErrors('Spotify', error);
-				return null;
-			}
-		}
-
-		return token.access_token;
-	};
-
 	Router.get('/', (req, res) => {
 		const Params = new URLSearchParams({
 			response_type: 'code',
@@ -221,7 +105,7 @@ export default (async function () {
 		const { id, name } = res.locals.authUser as { id: string; name: string };
 		const user = await Bot.User.Get(id, name);
 
-		const token = await SpotifyGetValidToken(user);
+		const token = await SpotifyGetValidToken(user, Strategy.RefreshToken);
 
 		try {
 			const listening = await SpotifyGot('me/player/queue', {

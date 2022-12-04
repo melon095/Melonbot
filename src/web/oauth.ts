@@ -52,6 +52,10 @@ type StrategyGetUserProfile = (
 	authUser?: { id: string; name: string },
 ) => Promise<any>;
 
+export type StrategyRefreshFn = (
+	refresh_token: string,
+) => Promise<Omit<BasicOauthResponse, 'refresh_token'>>;
+
 type StrategyOpts = QueryStrategyOpts | HeaderStrategyOpts;
 
 class Strategy {
