@@ -39,6 +39,7 @@ const getSongWhipURL = async (spotifyURL: string): Promise<SongWhipResponse> => 
 	const { body } = await Got('json')<SongWhipResponse>(
 		'https://songwhip.com/api/songwhip/create',
 		{
+			method: 'POST',
 			json: {
 				url: spotifyURL,
 				country: 'US',
