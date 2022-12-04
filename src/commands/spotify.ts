@@ -65,7 +65,7 @@ export default class extends CommandModel {
 	Flags = [];
 	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		const token = await SpotifyGetValidToken(ctx.user, Strategy.RefreshToken);
+		const token = await SpotifyGetValidToken(ctx.user, Strategy);
 
 		if (!token) {
 			return {
@@ -85,7 +85,7 @@ export default class extends CommandModel {
 
 			return {
 				Success: false,
-				Result: 'Failed to get queue.',
+				Result: 'Failed to get song.',
 			};
 		}
 

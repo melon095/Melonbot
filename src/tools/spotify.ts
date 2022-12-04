@@ -1,9 +1,9 @@
 import { SpotifyTypes } from './../Typings/types.js';
 import User from './../controller/User/index.js';
-import { StrategyRefreshFn } from './../web/oauth.js';
+import Strategy from './../web/oauth.js';
 import Got from './Got.js';
 
-export const SpotifyGetValidToken = async (user: User, refresh: StrategyRefreshFn) => {
+export const SpotifyGetValidToken = async (user: User, oauthStrategy: Strategy) => {
 	const token = await user.Get('spotify').then((x) => {
 		if (!x) return null;
 
@@ -14,7 +14,7 @@ export const SpotifyGetValidToken = async (user: User, refresh: StrategyRefreshF
 
 	if (token.expires_in < Date.now()) {
 		try {
-			const newToken = await refresh(token.refresh_token);
+			const newToken = await oauthStrategy.RefreshToken(token.refresh_token);
 
 			await user.Set('spotify', {
 				access_token: newToken.access_token,
