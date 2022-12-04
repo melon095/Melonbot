@@ -2,7 +2,8 @@ import { Method, Response } from 'got';
 import { TPubRecType } from 'Singletons/Redis/Data.Types.js';
 import { Helix } from './../Typings/types.js';
 import got from './../tools/Got.js';
-import { token } from './../tools/tools.js';
+import { token, UnwrapPromises } from './../tools/tools.js';
+import { Result, Err, Ok } from './../tools/result.js';
 import User from './../controller/User/index.js';
 
 type EventSubQueryStatus =
@@ -59,6 +60,10 @@ interface DefaultEventsubCondition {
 	broadcaster_user_id: string;
 }
 
+interface RequestOpts {
+	CustomHeaders?: Record<string, string>;
+}
+
 const BASE_URL = 'https://api.twitch.tv/helix/';
 
 const _createHeaders = async (): Promise<Record<string, string>> => {
@@ -77,11 +82,16 @@ const _request = async <T>(
 	method: Method,
 	path: string,
 	options: { params?: URLSearchParams; body?: object } = {},
-): Promise<T> => {
+	requestOpts: RequestOpts = {},
+): Promise<Result<T, string>> => {
 	const headers = await _createHeaders();
 	const url = `${BASE_URL}${path}`;
 
 	options.body && (headers['Content-Type'] = 'application/json');
+
+	if (requestOpts.CustomHeaders) {
+		Object.assign(headers, requestOpts.CustomHeaders);
+	}
 
 	const response = await got('default')(url, {
 		method,
@@ -95,11 +105,12 @@ const _request = async <T>(
 			`${path} - Helix request failed with status code ${response.statusCode}`,
 			response.body,
 		);
-		throw '';
+
+		return new Err(response.body);
 	}
 
 	const json = JSON.parse(response.body) as T;
-	return json;
+	return new Ok(json);
 };
 
 export default {
@@ -193,14 +204,17 @@ export default {
 	// 		});
 	// 	},
 	// },
-	Users: async (users: User[]): Promise<Helix.Users> => {
+	Users: async (users: User[], opts: RequestOpts = {}): Promise<Result<Helix.Users, string>> => {
 		const url = new URLSearchParams();
 
 		users.map((u) => url.append('id', u.TwitchUID));
 
-		return await _request('GET', 'users', { params: url });
+		return _request('GET', 'users', { params: url }, opts);
 	},
-	Stream: async (users: User[]): Promise<{ data: Helix.Stream['data']; notLive: User[] }> => {
+	Stream: async (
+		users: User[],
+		opts: RequestOpts = {},
+	): Promise<{ data: Helix.Stream['data']; notLive: User[] }> => {
 		const copy = [...users];
 		const chunks = [];
 
@@ -208,21 +222,28 @@ export default {
 			chunks.push(copy.splice(0, 100));
 		}
 
+		// TODO Clean this up
 		const promises = chunks.map(async (channels) => {
 			const url = new URLSearchParams();
 
 			channels.map((c) => url.append('user_id', c.TwitchUID));
 
-			const res = await _request<Helix.Stream>('GET', 'streams', { params: url });
-			const notLive = channels.filter(
-				(c) => !res.data.find((s) => s.user_id === c.TwitchUID),
-			);
-			return { 0: res, 1: notLive };
-		});
+			const res = await _request<Helix.Stream>('GET', 'streams', { params: url }, opts);
 
-		const results = await Promise.all(promises);
-		const data = results.map((r) => r[0].data).flat();
-		const notLive = results.map((r) => r[1]).flat();
+			if (res.err) {
+				return { 0: { data: [] as Helix.Stream['data'] }, 1: [] as User[] };
+			}
+
+			const notLive = channels.filter(
+				(c) => !res.inner.data.find((s) => s.user_id === c.TwitchUID),
+			);
+
+			return { 0: res.inner.data, 1: notLive };
+		}) as Promise<[Helix.Stream['data'], User[]]>[];
+
+		const result = await Promise.all(promises);
+		const data = result.map((r) => r[0]).flat();
+		const notLive = result.map((r) => r[1]).flat();
 
 		return { data, notLive };
 	},

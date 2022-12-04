@@ -4,7 +4,10 @@ export default (async function () {
 	const { Import } = await import('./../../../tools/tools.js');
 	const { getDirname } = await import('../../../tools/tools.js');
 
-	const subroutes = [['twitch', 'twitch.js']];
+	const subroutes = [
+		['twitch', 'twitch.js'],
+		['spotify', 'spotify.js'],
+	];
 
 	for (const [route, file] of subroutes) {
 		Router.use(`/${route}`, await Import(getDirname(import.meta.url), file));

@@ -202,7 +202,7 @@ export default class User {
 			v: 1,
 		});
 
-		// Expire in 7 das, same as jwt does.
+		// Expire in 7 das, same as cookie does.
 		(await Bot.Redis.SSet(`session:${this.TwitchUID}:${this.Name}`, jwt))(60 * 60 * 24 * 7);
 
 		// Store TwitchToken aswell
@@ -218,8 +218,11 @@ export default class User {
 		}
 
 		const user = await Helix.Users([this]);
+		if (user.err) {
+			return '';
+		}
 
-		const url = user.data[0].profile_image_url;
+		const url = user.unwrap().data[0].profile_image_url;
 
 		// Expire in 30 minutes
 		await (
@@ -255,6 +258,35 @@ export default class User {
 
 	HasSuperPermission(): boolean {
 		return this.Role === 'admin' || this.Role === 'moderator';
+	}
+
+	async Set(option: string, data: object | string | number): Promise<void> {
+		let store;
+		if (typeof data === 'object' || Array.isArray(data)) {
+			store = JSON.stringify(data);
+		} else if (typeof data === 'string') {
+			store = data;
+		} else if (typeof data === 'number') {
+			store = data.toString();
+		} else {
+			throw new Error('Invalid data type');
+		}
+
+		await Bot.Redis.HSet(`user:${this.TwitchUID}:data`, option, store);
+	}
+
+	async Get(option: string): Promise<string | null> {
+		const data = await Bot.Redis.HGetAll(`user:${this.TwitchUID}:data`);
+
+		if (!data) {
+			return null;
+		}
+
+		return data[option] || null;
+	}
+
+	async Delete(option: string): Promise<void> {
+		await Bot.Redis.HDel(`user:${this.TwitchUID}:data`, option);
 	}
 
 	/**

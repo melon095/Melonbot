@@ -1,5 +1,5 @@
 /* eslint-disable no-var */
-import { TConfigFile, TStaticDataConfig } from './Typings/types';
+import { Helix, TConfigFile, TStaticDataConfig } from './Typings/types';
 import HandleErrors from './ErrorHandler.js';
 
 import User from './controller/User/index.js';
@@ -7,7 +7,7 @@ import User from './controller/User/index.js';
 import { RedisSingleton } from './Singletons/Redis/index.js';
 import { RedisEvents } from './Singletons/Redis/Redis.Events.js';
 
-declare interface RS extends RedisSingleton {
+export declare interface RS extends RedisSingleton {
 	on<U extends keyof RedisEvents>(event: U, listener: RedisEvents[U]): ThisParameterType;
 }
 
@@ -32,6 +32,7 @@ declare global {
 		HandleErrors: typeof HandleErrors;
 		ID: string;
 	};
+
 	declare namespace Database {
 		export type banphrases = import('./Typings/models/bot/index').banphrases;
 		export type banphrase_type = import('./Typings/models/bot/index').banphrase_type;

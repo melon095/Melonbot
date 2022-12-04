@@ -19,12 +19,12 @@ append header
                                     a(class="btn nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" href="#") !{route.name}
                                     ul(class="dropdown-menu border border-dark")
                                         each item in route.items
-                                            a(class="dropdown-item" href=`/${item.url}`) !{item.name}
+                                            a(class="dropdown-item" href=`${item.url}`) !{item.name}
                             
                             - }
                             - else {
                                 li(class="nav-item")
-                                    a(class="btn nav-link" href=`/${route.url}`) !{route.name}
+                                    a(class="btn nav-link" href=`${route.url}`) !{route.name}
                             - }
 
                 div(class="navbar-nav")
@@ -33,7 +33,7 @@ append header
                             a(class="btn nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" href="#") Hello !{authUser.name}
                             ul(class="dropdown-menu border border-dark")
                                 each item in authedRoutes
-                                    a(class="dropdown-item" href=`/${item.url}`) !{item.name}
+                                    a(class="dropdown-item" href=`${item.url}`) !{item.name}
                                 
                     - } else {
                         a(class="nav-link" href="/auth/twitch/") Login to Twitch

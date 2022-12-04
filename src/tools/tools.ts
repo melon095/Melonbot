@@ -3,6 +3,7 @@ import { NChannel, TTokenFunction, NCommand } from './../Typings/types';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import Got from './Got.js';
+import { Result } from './result.js';
 
 const VALIDATE_WEBSITE = 'https://id.twitch.tv/oauth2/validate';
 
@@ -305,4 +306,24 @@ export const Unping = async (users: string[], message: string): Promise<string> 
 			return users.includes(x2.toLowerCase()) ? unpingUser(x) : x;
 		})
 		.join(' ');
+};
+
+/**
+ * UnwrapPromise takes in an array of promises and returns an array of resolved, rejected values.
+ */
+export const UnwrapPromises = async <T, E>(promises: Promise<T>[]): Promise<[T[], E[]]> => {
+	const results = await Promise.allSettled(promises);
+
+	const success: T[] = [];
+	const error: E[] = [];
+
+	results.map((result) => {
+		if (result.status === 'fulfilled') {
+			success.push(result.value);
+		} else {
+			error.push(result.reason);
+		}
+	});
+
+	return [success, error];
 };
