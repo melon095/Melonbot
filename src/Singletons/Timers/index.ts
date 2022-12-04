@@ -56,14 +56,12 @@ export default class TimerSingleton {
         `;
 
 		for (const opts of timers) {
-			if (!opts.enabled) {
-				continue;
-			}
-
 			const timers = this._timers.get(opts.owner);
 
 			const timer = new SingleTimer(opts);
-			timer.Start().unwrap();
+			if (opts.enabled) {
+				timer.Start().unwrap();
+			}
 
 			if (!timers) {
 				this._timers.set(opts.owner, new Set([timer]));
