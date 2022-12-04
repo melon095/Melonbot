@@ -27,12 +27,19 @@ const Strategy = new StrategyConstructor(
 
 type SongWhipResponse = {
 	data: {
-		items: {
+		item: {
 			name: string;
 			url: string;
-		}[];
+		};
 	};
 	status: 'success' | string;
+	error: {
+		status: number;
+		message: string;
+		data: {
+			url: string;
+		};
+	};
 };
 
 const getSongWhipURL = async (spotifyURL: string): Promise<SongWhipResponse> => {
@@ -100,25 +107,26 @@ export default class extends CommandModel {
 
 		const spotifyURL = playing.external_urls.spotify;
 
-		const { status, data } = await getSongWhipURL(spotifyURL);
-		if (status !== 'success') {
+		const { status, data, error } = await getSongWhipURL(spotifyURL);
+		if (error !== undefined) {
+			Bot.HandleErrors('Songwhip', error);
+
 			return {
 				Success: false,
 				Result: 'Failed to get songwhip url.',
 			};
 		}
 
-		if (!data.items.length) {
+		if (!data.item) {
 			return {
 				Success: false,
 				Result: 'Songwhip could not find a song.',
 			};
 		}
 
-		const songwhipURL = data.items[0].url;
-
 		const name = playing.name;
 		const artists = playing.artists.map((a) => a.name).join(', ');
+		const songwhipURL = data.item.url;
 
 		return {
 			Success: true,
