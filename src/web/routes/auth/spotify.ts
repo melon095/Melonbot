@@ -28,7 +28,11 @@ export default (async function () {
 		},
 		async (access_token, refresh_token, expires_in, profile, authUser, done) => {
 			if (!profile || !authUser) {
-				done(new Error("Can't find a Twitch or Spotify account, try relogging in again."));
+				done(
+					new Error(
+						"You can't login because this application is not verified by Spotify. ;)",
+					),
+				);
 				return;
 			}
 

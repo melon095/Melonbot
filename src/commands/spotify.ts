@@ -125,7 +125,7 @@ export default class extends CommandModel {
 
 		return {
 			Success: true,
-			Result: `${name} - ${artists} | ${songwhipURL}`,
+			Result: `${name} - ${artists} | https://songwhip.com${songwhipURL}`,
 		};
 	};
 }
