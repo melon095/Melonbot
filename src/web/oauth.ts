@@ -130,7 +130,7 @@ class Strategy {
 			refresh_token,
 		});
 
-		const json = await Got('json')
+		const json = await Got('default')
 			.post(tokenURL, {
 				searchParams,
 				throwHttpErrors: true,
