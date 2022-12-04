@@ -105,25 +105,5 @@ export default (async function () {
     `);
 	});
 
-	Router.get('/me', async (req, res) => {
-		const { id, name } = res.locals.authUser as { id: string; name: string };
-		const user = await Bot.User.Get(id, name);
-
-		const token = await SpotifyGetValidToken(user, Strategy.RefreshToken);
-
-		try {
-			const listening = await SpotifyGot('me/player/queue', {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			}).json();
-			res.json(listening);
-		} catch (error) {
-			Bot.HandleErrors('Spotify/me', error);
-
-			res.status(500).json({ error: 'Something bad just happened' });
-		}
-	});
-
 	return Router;
 })();
