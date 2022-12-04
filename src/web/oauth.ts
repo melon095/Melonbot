@@ -123,7 +123,12 @@ class Strategy {
 	}
 
 	async RefreshToken(refresh_token: string): Promise<Omit<BasicOauthResponse, 'refresh_token'>> {
-		const { tokenURL } = this.opts;
+		const { tokenURL, authenticationMethod } = this.opts;
+
+		if (authenticationMethod === AuthenticationMethod.Query) {
+			// TODO add query refresh token
+			throw new Error('Not implemented for this authentication method');
+		}
 
 		const searchParams = new URLSearchParams({
 			grant_type: 'refresh_token',
@@ -133,7 +138,11 @@ class Strategy {
 		const json = await Got('default')
 			.post(tokenURL, {
 				searchParams,
-				throwHttpErrors: true,
+				throwHttpErrors: false,
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+					...this.opts.headers,
+				},
 			})
 			.json();
 
