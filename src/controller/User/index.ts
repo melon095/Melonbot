@@ -148,6 +148,8 @@ export default class User {
 	}
 
 	static async ResolveUsername(username: string): Promise<User> {
+		username = User.CleanName(username.toLowerCase());
+
 		const cache = User.Cache.get(username);
 
 		if (cache) {
