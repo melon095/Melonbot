@@ -1,6 +1,4 @@
 import { AuthenticationMethod } from './../../oauth.js';
-import Got from './../../../tools/Got.js';
-import User from './../../../controller/User/index.js';
 import { SpotifyTypes } from './../../../Typings/types.js';
 import { SpotifyGetValidToken, SpotifyGot } from './../../../tools/spotify.js';
 import { Err, Ok } from './../../../tools/result.js';
