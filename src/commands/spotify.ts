@@ -2,9 +2,9 @@ import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import { SpotifyGetValidToken, SpotifyGot } from './../tools/spotify.js';
 import Got from './../tools/Got.js';
-import User from 'controller/User/index.js';
 import StrategyConstructor, { AuthenticationMethod } from './../web/oauth.js';
 import { SpotifyTypes } from './../Typings/types.js';
+import { Ok } from './../tools/result.js';
 
 const { ClientID, ClientSecret } = Bot.Config.Spotify;
 const Authorization = 'Basic ' + Buffer.from(`${ClientID}:${ClientSecret}`).toString('base64');
@@ -21,7 +21,9 @@ const Strategy = new StrategyConstructor(
 		},
 		tokenURL: 'https://accounts.spotify.com/api/token',
 	},
-	async (access_token, refresh_token, expires_in, profile, authUser, done) => {},
+	async (access_token, refresh_token, expires_in, profile, authUser) => {
+		return new Ok(null);
+	},
 	async (accessToken, authUser) => {},
 );
 

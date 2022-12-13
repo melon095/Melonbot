@@ -3,6 +3,7 @@ import { Authenticator } from './../../../web/index.js';
 import { GetSafeError } from './../../../controller/User/index.js';
 import HelixAPI from './../../../Helix/index.js';
 import { AuthenticationMethod, CookieOpts } from './../../oauth.js';
+import { Err, Ok } from './../../../tools/result.js';
 
 export default (async function () {
 	const RedirectURI = Bot.Config.Website.WebUrl + '/auth/twitch/callback';
@@ -21,10 +22,9 @@ export default (async function () {
 			clientSecret: Bot.Config.Twitch.ClientSecret,
 			tokenURL: 'https://id.twitch.tv/oauth2/token',
 		},
-		async (access_token, refresh_token, expires_in, profile, authUser, done) => {
+		async (access_token, refresh_token, expires_in, profile, authUser) => {
 			if (!profile) {
-				done(new Error('No profile'));
-				return;
+				return new Err('No profile');
 			}
 
 			const { id, login } = profile as Helix.User;
@@ -34,13 +34,12 @@ export default (async function () {
 				user = await Bot.User.Get(id, login, { throwOnNotFound: true });
 			} catch (error) {
 				if (error instanceof GetSafeError) {
-					done(
+					return new Err(
 						'I have never seen you before, please say something in chat to get started.',
 					);
 				} else {
-					done('There was an error logging you in try again later.');
+					return new Err('There was an error logging you in try again later.');
 				}
-				return;
 			}
 
 			const jwt = await user.SetToken(
@@ -55,7 +54,7 @@ export default (async function () {
 				path: '/',
 			};
 
-			done(null, { cookie });
+			return new Ok({ cookie });
 		},
 		async (accessToken) => {
 			const user = await HelixAPI.Users([], {
