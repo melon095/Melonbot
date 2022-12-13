@@ -3,6 +3,7 @@ import Got from './../../../tools/Got.js';
 import User from './../../../controller/User/index.js';
 import { SpotifyTypes } from './../../../Typings/types.js';
 import { SpotifyGetValidToken, SpotifyGot } from './../../../tools/spotify.js';
+import { Err, Ok } from './../../../tools/result.js';
 
 export default (async function () {
 	const RedirectURI = Bot.Config.Website.WebUrl + '/auth/spotify/callback';
@@ -26,14 +27,11 @@ export default (async function () {
 			},
 			tokenURL: 'https://accounts.spotify.com/api/token',
 		},
-		async (access_token, refresh_token, expires_in, profile, authUser, done) => {
+		async (access_token, refresh_token, expires_in, profile, authUser) => {
 			if (!profile || !authUser) {
-				done(
-					new Error(
-						"You can't login because this application is not verified by Spotify. ;)",
-					),
+				return new Err(
+					"You can't login because this application is not verified by Spotify. ;)",
 				);
-				return;
 			}
 
 			const user = await Bot.User.Get(authUser?.id, authUser?.name, {
@@ -41,8 +39,7 @@ export default (async function () {
 			});
 
 			if (!user) {
-				done('Never seen you before, try talking in chat.');
-				return;
+				return new Err('Never seen you before, try talking in chat.');
 			}
 
 			const unix_expires_in = Date.now() + expires_in * 1000;
@@ -52,7 +49,7 @@ export default (async function () {
 				expires_in: unix_expires_in,
 			});
 
-			done(null);
+			return new Ok(null);
 		},
 		async (accessToken, authUser) => {
 			if (!authUser) {
