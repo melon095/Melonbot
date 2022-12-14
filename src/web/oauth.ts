@@ -1,5 +1,8 @@
 import Got from './../tools/Got.js';
 import type Express from 'express';
+import { Result } from './../tools/result.js';
+
+const MONTH_IN_MS = 1000 * 60 * 60 * 24 * 30;
 
 export enum AuthenticationMethod {
 	'Query' = 'query',
@@ -38,14 +41,15 @@ export interface HeaderStrategyOpts extends BaseStrategyOpts {
 	headers: Record<string, string>;
 }
 
+type StrategyCallbackResult = { cookie?: CookieOpts } | null;
+
 type StrategyCallback = (
 	accessToken: string,
 	refreshToken: string,
 	expires_in: number,
 	profile: any | undefined,
 	authUser: { id: string; name: string } | undefined,
-	done: (arg0: Error | string | null, opts?: { cookie?: CookieOpts }) => void,
-) => void;
+) => Promise<Result<StrategyCallbackResult, Error | string>>;
 
 type StrategyGetUserProfile = (
 	accessToken: string,
@@ -94,35 +98,36 @@ class Strategy {
 			}
 		}
 
-		this.callback(
+		const cbRes = await this.callback(
 			second.access_token,
 			second.refresh_token,
 			second.expires_in,
 			profile,
 			authUser || undefined,
-			(err, opts) => {
-				if (err) {
-					res.render('error', {
-						safeError: err,
-					});
-					return;
-				}
-
-				if (opts?.cookie) {
-					const { name, value, httpOnly, maxAge, path } = opts.cookie;
-					res.cookie(name, value, {
-						httpOnly: httpOnly || true,
-						maxAge: maxAge || 1000 * 60 * 60 * 24 * 30,
-						path: path || '/',
-					});
-				}
-
-				next();
-			},
 		);
+
+		if (cbRes.err) {
+			res.render('error', {
+				safeError: cbRes.inner,
+			});
+			return;
+		}
+
+		const { inner } = cbRes;
+
+		if (inner && inner.cookie) {
+			const { name, value, httpOnly, maxAge, path } = inner.cookie;
+			res.cookie(name, value, {
+				httpOnly: httpOnly || true,
+				maxAge: maxAge || MONTH_IN_MS,
+				path: path || '/',
+			});
+		}
+
+		next();
 	}
 
-	async RefreshToken(refresh_token: string): Promise<Omit<BasicOauthResponse, 'refresh_token'>> {
+	async RefreshToken(refresh_token: string): Promise<ReturnType<StrategyRefreshFn>> {
 		const { tokenURL, authenticationMethod } = this.opts;
 
 		if (authenticationMethod === AuthenticationMethod.Query) {
@@ -146,7 +151,7 @@ class Strategy {
 			})
 			.json();
 
-		return json as Omit<BasicOauthResponse, 'refresh_token'>;
+		return json as ReturnType<StrategyRefreshFn>;
 	}
 }
 
