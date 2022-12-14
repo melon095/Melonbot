@@ -100,7 +100,7 @@ export default class extends CommandModel<PreHandlers> {
 				Result: `Added the emote => ${name}`,
 			};
 		} catch (error) {
-			console.error(`7TV - Failed to add emote - ${error}`);
+			ctx.Log('info', '7TV - Failed to add emote', error);
 			return {
 				Success: false,
 				Result: `Failed to add ${error}`,

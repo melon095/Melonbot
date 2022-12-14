@@ -58,7 +58,7 @@ export default class extends CommandModel {
 						Result: 'Unable to find a user with that name :/',
 					};
 				} else {
-					Bot.HandleErrors('commands/join', error);
+					ctx.Log('error', 'Failed to join channel', error);
 
 					return {
 						Success: false,

@@ -59,7 +59,7 @@ export default class extends CommandModel<PreHandlers> {
 				Result: `I set the alias of ${src.name} to ${dst}`,
 			};
 		} catch (error) {
-			console.error(`7TV - Failed to alias emote - ${error}`);
+			ctx.Log('info', '7TV - Failed to alias emote', error);
 			return {
 				Success: false,
 				Result: `Failed to alias emote - ${error}`,

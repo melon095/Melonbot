@@ -43,7 +43,7 @@ export default class extends CommandModel<PreHandlers> {
 		try {
 			await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.REMOVE, emote.id);
 		} catch (error) {
-			console.error(`7TV - Failed to remove emote - ${error}`);
+			ctx.Log('info', '7TV - Failed to remove emote', error);
 			return {
 				Success: false,
 				Result: `Error removing the emote => ${emote.name}`,

@@ -83,7 +83,7 @@ export default class extends CommandModel {
 		});
 
 		if (statusCode !== 200) {
-			Bot.HandleErrors('Spotify', statusCode, body);
+			ctx.Log('error', 'Failed to get song from spotify.', { statusCode, body });
 
 			return {
 				Success: false,
@@ -106,7 +106,7 @@ export default class extends CommandModel {
 
 		const { data, error } = await getSongWhipURL(spotifyURL);
 		if (error !== undefined) {
-			Bot.HandleErrors('Songwhip', error);
+			ctx.Log('error', 'Failed to get songwhip url.', { error });
 
 			return {
 				Success: false,

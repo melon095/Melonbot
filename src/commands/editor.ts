@@ -62,7 +62,7 @@ export default class extends CommandModel<PreHandlers> {
 			if (err.startsWith('70403')) {
 				return "I don't have permission to set editors";
 			} else {
-				console.error(`7TV - Failed to add editor - ${err}`);
+				ctx.Log('info', '7TV - Failed to add editor', err);
 				return err;
 			}
 		};

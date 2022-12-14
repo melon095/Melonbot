@@ -19,7 +19,12 @@ export type TCommandContext = {
 	user: User;
 	input: string[];
 	data: TContextData;
+	Log: CommandLogFn;
 };
+
+export type CommandLogType = 'info' | 'error';
+
+export type CommandLogFn = (type: CommandLogType, data: string, ...rest: any[]) => void;
 
 /// [ArgType, string]
 export type TArgs = (ArgType | string)[];

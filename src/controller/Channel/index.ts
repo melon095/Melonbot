@@ -11,6 +11,8 @@ import {
 	ParseArgumentsError,
 	ArgsParseResult,
 	SafeResponseError,
+	CommandLogFn,
+	CommandLogType,
 } from '../../Models/Command.js';
 import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
@@ -243,6 +245,7 @@ export class Channel {
 					Params: argsResult.values,
 					User: extras,
 				},
+				Log: CommandLog(command.Name, this.Name),
 			};
 
 			let mods;
@@ -683,9 +686,16 @@ export interface CommandExecutionResult {
 
 const cleanMessage = (message: string): string => message.replace(/(\r\n|\n|\r)/gm, ' ');
 const getStringFromError = (error: Error | string): string => {
-	if (typeof error === 'string') return error;
-	if (error instanceof Error) return error.message;
-	return JSON.stringify(error)?.replace(/(\r\n|\n|\r)/gm, ' ') ?? 'Unknown error';
+	switch (typeof error) {
+		case 'object':
+			if (error instanceof Error) return error.message;
+			return JSON.stringify(error)?.replace(/(\r\n|\n|\r)/gm, ' ') ?? 'Unknown error';
+		case 'string':
+		case 'number':
+			return error;
+		default:
+			return 'Unknown error';
+	}
 };
 
 export const GetSettings = async (channel: User | Promise<User>): Promise<ChannelSettings> => {
@@ -769,3 +779,18 @@ export class ChannelSettingsValue {
 }
 
 const DefaultChannelSetting = () => new ChannelSettingsValue('');
+
+const CommandLog = (name: string, channel: string): CommandLogFn => {
+	return (type: CommandLogType = 'info', data = '', ...rest: any[]) => {
+		switch (type) {
+			case 'info': {
+				console.log(`[Command - ${channel}] ${name}`, data, ...rest);
+				break;
+			}
+			case 'error': {
+				Bot.HandleErrors(`Command/${name}/${channel}`, data, ...rest);
+				break;
+			}
+		}
+	};
+};

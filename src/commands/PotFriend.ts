@@ -36,7 +36,7 @@ export default class extends CommandModel {
 				return slip.advice;
 			})
 			.catch((error) => {
-				Bot.HandleErrors('command/PotFriend', error);
+				ctx.Log('error', 'Failed to query PotFriend', { error });
 				return 'No more advice for today!';
 			});
 
