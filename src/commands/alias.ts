@@ -42,41 +42,29 @@ export default class extends CommandModel<PreHandlers> {
 
 		const dst = ctx.input[1] || '';
 
-		return gql
-			.ModifyEmoteSet(EmoteSet(), ListItemAction.UPDATE, src.id, dst)
-			.then((emotes) => {
-				const identifier: SevenTVChannelIdentifier = {
-					Channel: ctx.channel.Name,
-					EmoteSet: EmoteSet(),
-				};
+		try {
+			const emotes = await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.UPDATE, src.id, dst);
 
-				Bot.Twitch.Emotes.SevenTVEvent.HideNotification(
-					identifier,
-					src?.name || '',
-					'REMOVE',
-				);
-
-				if (dst === '') {
-					const newEmote = emotes.emoteSet.emotes.find((emote) => emote.id === src.id);
-
-					return {
-						Success: true,
-						Result: `I reset the alias of ${src.name} to ${newEmote?.name}`,
-					};
-				}
+			if (dst === '') {
+				const newEmote = emotes.emoteSet.emotes.find((emote) => emote.id === src.id);
 
 				return {
 					Success: true,
-					Result: `I set the alias of ${src.name} to ${dst}`,
+					Result: `I reset the alias of ${src.name} to ${newEmote?.name}`,
 				};
-			})
-			.catch((err) => {
-				console.error(`7TV - Failed to alias emote - ${err}`);
-				return {
-					Success: false,
-					Result: `Failed to alias emote - ${err}`,
-				};
-			});
+			}
+
+			return {
+				Success: true,
+				Result: `I set the alias of ${src.name} to ${dst}`,
+			};
+		} catch (error) {
+			console.error(`7TV - Failed to alias emote - ${error}`);
+			return {
+				Success: false,
+				Result: `Failed to alias emote - ${error}`,
+			};
+		}
 	};
 	LongDescription = async (prefix: string) => [
 		`This command allows you to set the alias of an emote.`,

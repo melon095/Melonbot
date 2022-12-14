@@ -141,7 +141,10 @@ const SEVENTV_EVENTAPI_URL = 'events.7tv.io/v3';
 const PUSH_INTERVAL = 15000;
 const EMOTES: ArrayIdentifier = {};
 
-type EMOTE_TYPE = { type: '+' | '-'; name: string };
+type EMOTE_TYPE = {
+	type: '+' | '-';
+	name: string;
+};
 
 /**
  * ChannelName -- EmoteSetID -- EMOTE_TYPE[]
@@ -163,12 +166,6 @@ function Commit(identifier: SevenTVChannelIdentifier, emote: EMOTE_TYPE) {
 	if (EMOTES[identifier.Channel] === undefined) newArrayIdentifier(identifier);
 
 	EMOTES[identifier.Channel][identifier.EmoteSet].push(emote);
-}
-
-function Remove({ Channel, EmoteSet }: SevenTVChannelIdentifier, emote: EMOTE_TYPE) {
-	EMOTES[Channel][EmoteSet] = EMOTES[Channel][EmoteSet].filter(
-		(e) => e.name !== emote.name && e.type !== emote.type,
-	);
 }
 
 function Push() {
@@ -291,6 +288,11 @@ export class SevenTVEvent extends MWebSocket {
 
 				if (!channel) {
 					super.Log('Channel not found for emote set update', JSON.stringify(payload));
+					return;
+				}
+
+				// Ignore our own updates.
+				if (payload.actor.id === Bot.Config.SevenTV.user_id) {
 					return;
 				}
 
@@ -432,37 +434,5 @@ export class SevenTVEvent extends MWebSocket {
 
 	protected removeFromList({ Channel, EmoteSet }: SevenTVChannelIdentifier): void {
 		this.List = this.List.filter((a) => a.Channel !== Channel && a.EmoteSet !== EmoteSet);
-	}
-
-	HideNotification(
-		identifier: SevenTVChannelIdentifier,
-		emote: string,
-		type: 'ADD' | 'REMOVE',
-	): void {
-		const getEmoteList = (identifier: SevenTVChannelIdentifier) => {
-			if (EMOTES[identifier.Channel]) {
-				if (EMOTES[identifier.Channel][identifier.EmoteSet]) {
-					return EMOTES[identifier.Channel][identifier.EmoteSet];
-				} else {
-					newArrayIdentifier(identifier);
-				}
-			} else {
-				newArrayIdentifier(identifier);
-			}
-			return undefined;
-		};
-
-		if (getEmoteList(identifier) === undefined) return;
-
-		switch (type) {
-			case 'ADD': {
-				Remove(identifier, { type: '+', name: emote });
-				break;
-			}
-			case 'REMOVE': {
-				Remove(identifier, { type: '-', name: emote });
-				break;
-			}
-		}
 	}
 }

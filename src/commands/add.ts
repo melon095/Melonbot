@@ -93,32 +93,19 @@ export default class extends CommandModel<PreHandlers> {
 
 		const name = (ctx.data.Params.alias as string) || emote.name;
 
-		return gql
-			.ModifyEmoteSet(EmoteSet(), ListItemAction.ADD, emote.id, name)
-			.then(() => {
-				const identifier: SevenTVChannelIdentifier = {
-					Channel: ctx.channel.Name,
-					EmoteSet: EmoteSet(),
-				};
-
-				Bot.Twitch.Emotes.SevenTVEvent.HideNotification(
-					identifier,
-					emote?.name || '',
-					'ADD',
-				);
-
-				return {
-					Success: true,
-					Result: `Added the emote => ${name}`,
-				};
-			})
-			.catch((err) => {
-				console.error(`7TV - Failed to add emote - ${err}`);
-				return {
-					Success: false,
-					Result: `Failed to add ${err}`,
-				};
-			});
+		try {
+			await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.ADD, emote.id, name);
+			return {
+				Success: true,
+				Result: `Added the emote => ${name}`,
+			};
+		} catch (error) {
+			console.error(`7TV - Failed to add emote - ${error}`);
+			return {
+				Success: false,
+				Result: `Failed to add ${error}`,
+			};
+		}
 	};
 	LongDescription = async (prefix: string) => [
 		`Add a 7TV emote to your emote set.`,

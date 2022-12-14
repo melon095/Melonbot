@@ -49,12 +49,6 @@ export default class extends CommandModel<PreHandlers> {
 				Result: `Error removing the emote => ${emote.name}`,
 			};
 		}
-		const identifier: SevenTVChannelIdentifier = {
-			Channel: ctx.channel.Name,
-			EmoteSet: EmoteSet(),
-		};
-
-		Bot.Twitch.Emotes.SevenTVEvent.HideNotification(identifier, emote?.name || '', 'REMOVE');
 
 		return {
 			Success: true,
