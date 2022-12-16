@@ -3,88 +3,96 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
+	"time"
 
-	"github.com/JoachimFlottorp/GoCommon/assert"
-	"github.com/JoachimFlottorp/GoCommon/helper/json"
-	"github.com/JoachimFlottorp/GoCommon/log"
+	"github.com/JoachimFlottorp/Melonbot/Golang/Common/models/config"
 	twitch "github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/Providers/Twitch"
-	"github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/config"
 	"github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/server"
 	"go.uber.org/zap"
 )
 
 var (
-	cfg 	= flag.String("config", "./../../config.json", "config file")
-	debug 	= flag.Bool("debug", false, "debug mode")
-	port 	= flag.String("port", "3000", "port")
+	cfg   = flag.String("config", "./../../config.json", "config file")
+	debug = flag.Bool("debug", false, "debug mode")
+	port  = flag.Int("port", 3000, "port")
 )
 
 const (
-	ip = "127.0.0.1"
-
-	version = "EventSub -- 0.0.2"
+	version = "EventSub -- 0.1.0"
 )
 
 func init() {
 	flag.Parse()
 
-	if *debug {
-		log.InitLogger(zap.NewDevelopmentConfig())
-	} else {
-		log.InitLogger(zap.NewProductionConfig())
-	}
-	
 	if cfg == nil {
 		panic("config flag is required")
 	}
 }
 
 func main() {
-	file, err := os.OpenFile(*cfg, os.O_RDONLY, 0)
-	assert.Error(err)
-
-	defer file.Close()
-	
-	conf, err := json.DeserializeStruct[config.Config](file)
-	assert.Error(err, "failed to deserialize config")
+	conf, err := config.ReadConfig(*cfg, *debug)
+	if err != nil {
+		zap.S().Fatal(err)
+	}
+	conf.Port = *port
 
 	validateConfig(conf)
-	
-	url := fmt.Sprintf("%s:%s", ip, *port)
-	
-	server := server.NewServer(url, conf)
 
-	c := twitch.Connect_t{Version: version}
+	doneSig := make(chan os.Signal, 1)
+	signal.Notify(doneSig, syscall.SIGINT, syscall.SIGTERM)
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	
-	ctx, cancel := context.WithCancel(context.Background())
-	
-	var serverDone <-chan struct{}
-	done := make(chan struct{})
+	gCtx, cancel := context.WithCancel(context.Background())
+
+	wg := sync.WaitGroup{}
+
+	done := make(chan any)
 
 	go func() {
-		<-sig
+		<-doneSig
 		cancel()
-		if serverDone != nil {
-			<-serverDone
-		}
 
+		go func() {
+			select {
+			case <-time.After(10 * time.Second):
+			case <-doneSig:
+			}
+			zap.S().Fatal("Forced to shutdown, because the shutdown took too long")
+		}()
+
+		zap.S().Info("Shutting down")
+
+		wg.Wait()
+
+		zap.S().Info("Shutdown complete")
 		close(done)
 	}()
 
+	wg.Add(1)
 
-	serverDone = server.Start(ctx, c)
+	go func() {
+		defer wg.Done()
+
+		server := server.NewServer(gCtx, conf)
+
+		c := twitch.Connect_t{Version: version}
+
+		if err := server.Start(gCtx, c); err != nil {
+			zap.S().Fatal(err)
+		}
+	}()
+
+	zap.S().Info("Ready!")
 
 	<-done
-	
+
 	zap.S().Info("Shutting down")
+
+	os.Exit(0)
 }
 
 func validateConfig(conf *config.Config) {
