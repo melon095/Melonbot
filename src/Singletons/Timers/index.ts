@@ -66,7 +66,7 @@ export default class TimerSingleton {
 			const timers = this._timers.get(opts.owner);
 
 			const timer = new SingleTimer(opts);
-			if (opts.enabled && timer.Titles.includes(currentTitle)) {
+			if (opts.enabled && timer.TitleMatches(currentTitle)) {
 				timer.Start().unwrap();
 			}
 
@@ -212,6 +212,14 @@ export class SingleTimer {
 
 	public ToDatabaseDefinition(): Database.timers {
 		return this.opts;
+	}
+
+	public TitleMatches(title: string): boolean {
+		if (this.Titles.length === 0) {
+			return true;
+		}
+
+		return this.Titles.includes(title);
 	}
 
 	public Start(): Result<null, string> {
