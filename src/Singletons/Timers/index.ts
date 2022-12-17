@@ -24,12 +24,18 @@ export default class TimerSingleton {
 	}
 
 	/**
-	 * Timers where the key is the streamer and the value is the timer
+	 * Timers where the key is the streamer userid and the value is the timer
 	 */
 	private _timers: Map<string, Set<SingleTimer>> = new Map();
 
-	private getTimer(channel: string, name: string): Result<SingleTimer, string> {
-		const timers = this._timers.get(channel);
+	/**
+	 *
+	 * @param userid Channel userid
+	 * @param name Name of the timer
+	 * @returns
+	 */
+	private getTimer(userid: string, name: string): Result<SingleTimer, string> {
+		const timers = this._timers.get(userid);
 
 		if (!timers) {
 			return new Err('No timers found');
@@ -56,10 +62,11 @@ export default class TimerSingleton {
         `;
 
 		for (const opts of timers) {
+			const currentTitle = await Bot.Redis.SGet(`channel:${opts.owner}:title`);
 			const timers = this._timers.get(opts.owner);
 
 			const timer = new SingleTimer(opts);
-			if (opts.enabled) {
+			if (opts.enabled && timer.Titles.includes(currentTitle)) {
 				timer.Start().unwrap();
 			}
 
@@ -98,62 +105,86 @@ export default class TimerSingleton {
 		return new Ok(timer);
 	}
 
-	public async DeleteTimer(channel: string, name: string): Promise<Result<void, string>> {
-		const timers = this._timers.get(channel);
+	public async DeleteTimer(userid: string, name: string): Promise<Result<void, string>> {
+		const timers = this._timers.get(userid);
 		if (!timers) {
 			return new Err('No timers found');
 		}
 
-		const timer = this.getTimer(channel, name).unwrap();
+		const timer = this.getTimer(userid, name).unwrap();
 
 		timer.Stop();
 
 		timers.delete(timer);
 
 		await Bot.SQL.Query`
-            DELETE FROM timers WHERE name = ${name} AND owner = ${channel}
+            DELETE FROM timers WHERE name = ${name} AND owner = ${userid}
         `;
 
 		return new Ok(undefined);
 	}
 
-	public async GetTimers(channel: string): Promise<Result<Set<SingleTimer>, string>> {
-		const timers = this._timers.get(channel);
+	public async GetTimers(userid: string): Promise<Set<SingleTimer>> {
+		const timers = this._timers.get(userid);
 		if (!timers) {
-			return new Err('No timers found');
+			const newSet: Set<SingleTimer> = new Set();
+			this._timers.set(userid, newSet);
+			return newSet;
 		}
 
-		return new Ok(timers);
+		return timers;
 	}
 
-	public async EnableTimer(channel: string, name: string): Promise<Result<null, string>> {
-		const timers = this._timers.get(channel);
+	public async EnableTimer(userid: string, name: string): Promise<Result<null, string>> {
+		const timers = this._timers.get(userid);
 
 		if (!timers) {
 			return new Err('No timers found');
 		}
 
-		const timer = this.getTimer(channel, name).unwrap();
+		const timer = this.getTimer(userid, name).unwrap();
 
 		return timer.Start();
 	}
 
-	public async DisableTimer(channel: string, name: string): Promise<Result<null, string>> {
-		const timers = this._timers.get(channel);
+	public async DisableTimer(userid: string, name: string): Promise<Result<null, string>> {
+		const timers = this._timers.get(userid);
 		if (!timers) {
 			return new Err('No timers found');
 		}
 
-		const timer = this.getTimer(channel, name).unwrap();
+		const timer = this.getTimer(userid, name).unwrap();
 
 		return timer.Stop();
 	}
 }
 
 export class SingleTimer {
+	private static _Log(message: string, timer: SingleTimer) {
+		console.log(`[SingleTimer] ${message} for ${timer.Name} on ${timer.Owner}`);
+	}
+
 	private _intervalCounter: NodeJS.Timeout | null = null;
 
 	public constructor(private opts: Database.timers) {}
+
+	public OnTitleChange(title: string) {
+		if (this.Titles.length === 0) {
+			return;
+		}
+
+		if (this.Titles.includes(title)) {
+			SingleTimer._Log('Title change detected, enabling timer', this);
+			try {
+				this.Start();
+			} catch (e) {
+				SingleTimer._Log(`Error starting timer: ${e}`, this);
+			}
+		} else {
+			SingleTimer._Log('Title change detected, disabling timer', this);
+			this.Stop();
+		}
+	}
 
 	public get UUID(): string {
 		return this.opts.uuid;
@@ -173,6 +204,10 @@ export class SingleTimer {
 
 	public get Message(): string {
 		return this.opts.message;
+	}
+
+	public get Titles(): string[] {
+		return this.opts.titles;
 	}
 
 	public ToDatabaseDefinition(): Database.timers {

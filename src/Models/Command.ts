@@ -75,6 +75,11 @@ export interface ArgsParseResult {
 	values: TParamsContext;
 }
 
+const ArgPrefix = {
+	Short: '-',
+	Long: '--',
+} as const;
+
 export type ModBuilderFn<T extends object = object> = (ctx: TCommandContext) => T;
 
 export type ModBuilderDefault<T extends object = object> = ModBuilderFn<T>;
@@ -180,7 +185,6 @@ export abstract class CommandModel<Mods extends object = object> {
 	 */
 	static ParseArguments(args: string[], params: TArgs[]): ArgsParseResult {
 		const values: TParamsContext = {};
-		let copy = Array.from(args);
 
 		// Fill arguments with default values
 		for (const param of params) {
@@ -196,35 +200,53 @@ export abstract class CommandModel<Mods extends object = object> {
 			}
 		}
 
-		for (const param of params) {
-			const [type, fullName] = param;
-
-			const char = fullName[0];
-
-			const index = [copy.indexOf(`--${fullName}`), copy.indexOf(`-${char}`)].find(
-				(i) => i !== -1,
+		for (let idx = 0; idx < args.length; idx++) {
+			let arg = args[idx];
+			const param = params.find(
+				(p) => ArgPrefix.Long + p[1] === arg || ArgPrefix.Short + p[1][0] === arg,
 			);
 
-			if (index === undefined) continue;
+			if (!param) continue;
+
+			const [type, name] = param;
 
 			if (type === ArgType.Boolean) {
-				values[fullName] = true;
-				copy = copy.filter((arg) => arg !== `--${fullName}` && arg !== `-${char}`);
+				values[name] = true;
+				args = args.filter((a) => a !== arg);
+
 				continue;
 			}
 
-			const value = copy[index + 1];
-			if (value) {
-				values[fullName] = value;
-			} else {
+			const value = args[idx + 1];
+			if (!value) throw new ParseArgumentsError(`Expected value for ${arg}`);
+
+			if (value.startsWith('"') || value.startsWith("'")) {
+				const usedQuote = value[0];
+
+				const end = args.findIndex((a, i) => i > idx && a.endsWith(usedQuote));
+				if (end === -1) {
+					throw new ParseArgumentsError(`Expected end of sentence for ${arg}`);
+				}
+
+				const data = args.slice(idx + 1, end + 1);
+				const len = data.length;
+				const sentence = data.join(' ');
+				values[name] = sentence.slice(1, sentence.length - 1);
+
+				args = args.filter((a, i) => i < idx || i > end);
 				continue;
 			}
 
-			copy = copy.filter((_, i) => i !== index && i !== index + 1);
+			values[name] = value;
+
+			args = args.filter((a, i) => i < idx || i > idx + 1);
+			if (idx < args.length) {
+				idx--;
+			}
 		}
 
 		return {
-			output: copy,
+			output: args,
 			values,
 		};
 	}

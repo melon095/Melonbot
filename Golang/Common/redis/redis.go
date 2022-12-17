@@ -9,11 +9,19 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+const (
+	PubKeyEventSub Key = "EventSub"
+
+	Prefix = "Melonbot:"
+
+	Nil = redis.Nil
+)
+
 type Options struct {
-	Address     string
-	Username 	string 
-	Password 	string
-	DB       	int
+	Address  string
+	Username string
+	Password string
+	DB       int
 }
 
 type Key string
@@ -28,19 +36,18 @@ type PubMessage struct {
 }
 
 type PubJSON interface {
-	Type() Key
+	Type() string
 }
 
 type SendEvent struct {
-	Type Key;
-	Data interface{};
+	Type Key
+	Data interface{}
 }
 
-
-type Instance interface  {
+type Instance interface {
 	// Ping checks if the redis instance is alive
 	Ping(context.Context) error
-	
+
 	// Get returns the value of the key
 	Get(context.Context, Key) (string, error)
 	// Set sets the value of the key
@@ -51,12 +58,10 @@ type Instance interface  {
 	Del(context.Context, Key) error
 	// Expire sets the expiration of the key
 	Expire(context.Context, Key, time.Duration) error
-	
+
 	// Subscribe subscribes to a channel and returns a channel
 	Subscribe(context.Context, Key) chan PubMessage
 	// Publish publish a struct to a channel
-	//
-	// It's important to note that the struct must be json.Marshalable
 	//
 	// Data is sent as {
 	// 	"Type": Key
@@ -64,16 +69,14 @@ type Instance interface  {
 	// }
 	//
 	// This allows the receiver to know what type of data it is receiving
-	// 
+	//
 	// Such as Eventsub, where the type could be "foo" or "bar"
-	// 
+	//
 	// And the data would could be different for each type
 	Publish(context.Context, Key, PubJSON) error
 
 	// Prefix returns the prefix used for all keys
 	Prefix() string
-
-	Client() *redis.Client
 }
 
 type redisInstance struct {
@@ -91,7 +94,7 @@ func Create(ctx context.Context, options Options) (Instance, error) {
 	if err := rds.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
-	
+
 	inst := &redisInstance{
 		client: rds,
 	}
@@ -104,7 +107,7 @@ func (r *redisInstance) formatKey(key Key) string {
 }
 
 func (r *redisInstance) Prefix() string {
-	return "Melonbot:"
+	return Prefix
 }
 
 func (r *redisInstance) Ping(ctx context.Context) error {
@@ -128,17 +131,12 @@ func (r *redisInstance) Expire(ctx context.Context, key Key, expiration time.Dur
 }
 
 func (r *redisInstance) Publish(ctx context.Context, channel Key, data PubJSON) error {
-	var send SendEvent;
-	
-	send.Type = data.Type();
-	send.Data = data
-	
-	s, err := json.SerializeStruct(send)
+	s, err := serializeSendEvent(data)
 	if err != nil {
 		return err
 	}
 
-	return r.client.Publish(ctx, r.Prefix() + channel.String(), s).Err()
+	return r.client.Publish(ctx, r.Prefix()+channel.String(), s).Err()
 }
 
 func (r *redisInstance) Subscribe(ctx context.Context, channel Key) chan PubMessage {
@@ -149,7 +147,7 @@ func (r *redisInstance) Subscribe(ctx context.Context, channel Key) chan PubMess
 		defer pubsub.Close()
 		for {
 			message := <-pubsub.Channel()
-			ch<- PubMessage{
+			ch <- PubMessage{
 				Channel: message.Channel,
 				Payload: message.Payload,
 			}
@@ -157,8 +155,13 @@ func (r *redisInstance) Subscribe(ctx context.Context, channel Key) chan PubMess
 	}()
 
 	return ch
-} 
+}
 
-func (r *redisInstance) Client() *redis.Client {
-	return r.client
+func serializeSendEvent(data PubJSON) ([]byte, error) {
+	var send SendEvent
+
+	send.Type = Key(data.Type())
+	send.Data = data
+
+	return json.SerializeStruct(send)
 }

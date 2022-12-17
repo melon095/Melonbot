@@ -1,15 +1,27 @@
 all: clean build
 
+suffix =
+
+ifeq ($(OS),Windows_NT)
+	suffix = .exe
+endif
+
+file = ./bin/EventSub$(suffix)
+
 build:
-	go build -v -o ./bin/EventSub .
+	go build -v -o $(file) .
 
 run: build
-	chmod a+x ./bin/EventSub
-	./bin/EventSub
+	chmod a+x $(file)
+	$(file)
+
+debug: build
+	chmod a+x $(file)
+	$(file) -debug
 
 run-debug: build
 	chmod a+x ./bin/EventSub
-	./bin/EventSub -debug
+	$(file) -debug
 
 test:
 	go test -v ./...

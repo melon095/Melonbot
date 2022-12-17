@@ -3,7 +3,6 @@ import * as tools from './tools/tools.js';
 import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
-import EventSubTriggers from './triggers/eventsub/index.js';
 import User from './controller/User/index.js';
 
 interface IUserInformation {

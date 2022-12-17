@@ -327,3 +327,7 @@ export const UnwrapPromises = async <T, E>(promises: Promise<T>[]): Promise<[T[]
 
 	return [success, error];
 };
+
+export const UppercaseFirst = (str: string): string => {
+	return str.charAt(0).toUpperCase() + str.slice(1);
+};

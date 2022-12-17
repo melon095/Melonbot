@@ -181,54 +181,91 @@ describe('CommandModel.ParseArguments', () => {
 		});
 	});
 
-	// it('Should parse arguments with values', () => {
-	// 	const input = ['foo', 'bar', '--baz=qux'];
-	// 	const args = [[ArgType.String, 'baz']];
+	it('Can parse sentences', () => {
+		const FOO = 'this is a sentence';
 
-	// 	const result = parser(input, args, {});
+		const input = `hi --foo "${FOO}"`.split(' ');
+		const params = [[ArgType.String, 'foo']];
 
-	// 	expect(result.input).toEqual(['foo', 'bar']);
-	// 	expect(result.values).toEqual({ baz: 'qux' });
-	// });
+		const result = parser(input, params);
 
-	// it('Should handle arguments in the middle of the input', () => {
-	// 	const input = ['foo', '--baz=qux', 'bar'];
-	// 	const args = [[ArgType.String, 'baz']];
+		expect(result).toEqual({
+			output: ['hi'],
+			values: {
+				foo: FOO,
+			},
+		});
+	});
 
-	// 	const result = parser(input, args, {});
+	it('Can parse sentences with quotes', () => {
+		const FOO = 'this is a sentence';
 
-	// 	expect(result.input).toEqual(['foo', 'bar']);
-	// 	expect(result.values).toEqual({ baz: 'qux' });
-	// });
+		const input = `hi --foo '${FOO}'`.split(' ');
+		const params = [[ArgType.String, 'foo']];
 
-	// it('Should handle multiple arguments', () => {
-	// 	const input = ['foo', 'bar', '--baz=qux', '--quux=quuz'];
-	// 	const args = [
-	// 		[ArgType.String, 'baz'],
-	// 		[ArgType.String, 'quux'],
-	// 	];
+		const result = parser(input, params);
 
-	// 	const result = parser(input, args, {});
+		expect(result).toEqual({
+			output: ['hi'],
+			values: {
+				foo: FOO,
+			},
+		});
+	});
 
-	// 	expect(result.input).toEqual(['foo', 'bar']);
-	// 	expect(result.values).toEqual({ baz: 'qux', quux: 'quuz' });
-	// });
+	it('Can not parse sentences with mismatching quotes', () => {
+		const input = `hi --foo "this is a sentence'`.split(' ');
+		const params = [[ArgType.String, 'foo']];
 
-	// it('Should fail on invalid arguments', () => {
-	// 	const input = ['foo', '--baz=qux', 'bar', '--quux'];
-	// 	const args = [[ArgType.String, 'baz']];
+		expect(() => parser(input, params)).toThrow();
+	});
 
-	// 	try {
-	// 		parser(input, args, { allowInvalid: false });
-	// 	} catch (error) {
-	// 		const isError = isCorrectErrorInstance(error);
-	// 		expect(isError).toBe(true);
-	// 		// Only need this because of typescript..
-	// 		if (!isError) {
-	// 			throw error;
-	// 		}
-	// 		expect(error instanceof ParseArgumentsError).toBe(true);
-	// 		expect(error.message).toEqual('Invalid argument: quux');
-	// 	}
-	// });
+	it('Can not parse sentences without an ending quote', () => {
+		const input = `hi --foo "this is a sentence`.split(' ');
+		const params = [[ArgType.String, 'foo']];
+
+		expect(() => parser(input, params)).toThrow();
+	});
+
+	it('Can parse sentences in middle of input', () => {
+		const FOO = 'this is a sentence';
+		const BAR = 'this is another sentence';
+
+		const input = `hi --foo "${FOO}" bye --bar "${BAR}"`.split(' ');
+		const params = [
+			[ArgType.String, 'foo'],
+			[ArgType.String, 'bar'],
+		];
+
+		const result = parser(input, params);
+
+		expect(result).toEqual({
+			output: ['hi', 'bye'],
+			values: {
+				foo: FOO,
+				bar: BAR,
+			},
+		});
+	});
+
+	it('Can parse sentences with commas', () => {
+		const FOO = 'this is a sentence, with commas';
+		const BAR = 'this is another sentence';
+
+		const input = `hi --foo "${FOO}" bye --bar "${BAR}"`.split(' ');
+		const params = [
+			[ArgType.String, 'foo'],
+			[ArgType.String, 'bar'],
+		];
+
+		const result = parser(input, params);
+
+		expect(result).toEqual({
+			output: ['hi', 'bye'],
+			values: {
+				foo: FOO,
+				bar: BAR,
+			},
+		});
+	});
 });
