@@ -1,7 +1,7 @@
 import { createClient, RedisClientType } from 'redis';
 import type { IPubBase, IPing } from './Data.Types.js';
 import { EventEmitter } from 'node:events';
-import HandleEventsub from './../../triggers/eventsub/index.js';
+import HandleEventsub from './EventSub/index.js';
 
 const PREFIX = 'Melonbot:';
 const CHANNELS = ['EventSub', 'banphrase', 'user-update'];

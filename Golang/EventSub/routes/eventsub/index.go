@@ -199,9 +199,10 @@ func (r *EventSubRoute) onChannelUpdate(ctx context.Context, event twitch.EventS
 	currentTitle, err := r.Redis.Get(ctx, redis.Key(fmt.Sprintf("channel:%s:title", channel)))
 	keyNotExist := errors.Is(err, redis.Nil)
 	if err != nil && !keyNotExist {
-		r.Log.Error("Error getting current title: ", err)
+		r.Log.Errorf("Error getting current title: %w", err)
 		return
 	} else if keyNotExist {
+		// TODO: Is this needed.
 		currentTitle = ""
 	}
 
@@ -213,7 +214,7 @@ func (r *EventSubRoute) onChannelUpdate(ctx context.Context, event twitch.EventS
 	r.Log.Debugw("Title is different, updating", "channel", channel, "title", event.Title)
 
 	if err := r.Redis.Set(ctx, redis.Key(fmt.Sprintf("channel:%s:title", channel)), event.Title); err != nil {
-		r.Log.Error("Error setting current title: ", err)
+		r.Log.Errorf("Error setting current title: %w", err)
 		return
 	}
 

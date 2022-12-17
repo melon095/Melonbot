@@ -14,62 +14,6 @@ import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
 	const ONE_HOUR = 1000 * 60 * 60;
 	const FIVE_MINUTES = 1000 * 60 * 5;
 
-	// Every 30 seconds check if a streamer is live.
-	setInterval(async () => {
-		try {
-			const channels = Bot.Twitch.Controller.TwitchChannels.filter(
-				(c) => c.Mode !== 'Bot',
-			).map((c) => {
-				return { TwitchID: c.Id, Name: c.Name };
-			});
-
-			const users = await Bot.User.GetMultiple(channels);
-
-			const streams = await Helix.Stream(users);
-
-			const live = streams.data;
-			const notLive = streams.notLive;
-
-			for (const stream of live) {
-				const channel = Bot.Twitch.Controller.TwitchChannels.find(
-					(c) => c.Id === stream.user_id,
-				);
-				if (!channel) continue;
-
-				Bot.SQL.Query`
-                UPDATE channels 
-                SET live = ${true} 
-                WHERE name = ${channel.Name}`.execute();
-
-				try {
-					channel.UpdateLive();
-				} catch (e) {
-					console.error(e);
-				}
-			}
-
-			for (const stream of notLive) {
-				const channel = Bot.Twitch.Controller.TwitchChannels.find(
-					(c) => c.Id === stream.TwitchUID,
-				);
-				if (!channel) continue;
-
-				Bot.SQL.Query`
-                UPDATE channels 
-                SET live = ${false} 
-                WHERE name = ${channel.Name}`.execute();
-
-				try {
-					channel.UpdateLive();
-				} catch (e) {
-					console.error(e);
-				}
-			}
-		} catch (error) {
-			Bot.HandleErrors('__loops/UpdateLiveStats', error);
-		}
-	}, THIRTY_SECONDS);
-
 	interface ViewerResponse {
 		chatters: ViewerList;
 	}

@@ -15,7 +15,7 @@ const (
 	EventSubSubscriptionVersion = "Twitch-Eventsub-Mubscription-Version"
 
 	EventSubTypeChannelFollow = "channel.follow"
-	EventSubTypeStreamLive    = "stream.online"
+	EventSubTypeStreamOnline  = "stream.online"
 	EventSubTypeStreamOffline = "stream.offline"
 	EventSubTypeChannelUpdate = "channel.update"
 
@@ -131,7 +131,7 @@ type EventSubStreamOnlineEvent struct {
 }
 
 func (e EventSubStreamOnlineEvent) Type() string {
-	return EventSubTypeStreamLive
+	return EventSubTypeStreamOnline
 }
 
 // EventSubStreamOfflineEvent occurs when a stream goes offline

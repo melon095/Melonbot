@@ -51,9 +51,43 @@ func (e *EventSub) HandleEventsubNotification(ctx context.Context, notification 
 			e.onChannelFollow(ctx, event)
 			break
 		}
+	case EventSubTypeStreamOnline:
+		{
+			var event EventSubStreamOnlineEvent
+			err := json.Unmarshal(notification.Event, &event)
+			if err != nil {
+				zap.S().Errorf("Failed to unmarshal event %v error: %v", notification.Event, err)
+				return
+			}
+			e.onStreamLive(ctx, event)
+			break
+		}
+	case EventSubTypeStreamOffline:
+		{
+			var event EventSubStreamOfflineEvent
+			err := json.Unmarshal(notification.Event, &event)
+			if err != nil {
+				zap.S().Errorf("Failed to unmarshal event %v error: %v", notification.Event, err)
+				return
+			}
+			e.onStreamOffline(ctx, event)
+			break
+		}
+	case EventSubTypeChannelUpdate:
+		{
+			var event EventSubChannelUpdateEvent
+			err := json.Unmarshal(notification.Event, &event)
+			if err != nil {
+				zap.S().Errorf("Failed to unmarshal event %v error: %v", notification.Event, err)
+				return
+			}
+			e.onChannelUpdate(ctx, event)
+			break
+		}
 	default:
 		{
-			zap.S().Errorf("Unknown event type %v", notification)
+			str, _ := json.MarshalIndent(notification, "", "  ")
+			zap.S().Errorf("Unknown event type %s", str)
 		}
 	}
 }

@@ -41,6 +41,7 @@ type actionHandler = (
 const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 	create: async (ctx, args) => {
 		const _int = ctx.data.Params.interval as string;
+		const titles = (ctx.data.Params.titles as string).split(',').filter(Boolean);
 		let interval = 60;
 
 		if (_int !== '') {
@@ -65,20 +66,30 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 			return new Err('No message provided');
 		}
 
-		const timer = await Timers.I().CreateNewTimer({
-			interval,
-			name,
-			message: message.join(' '),
-			owner: ctx.channel.Id,
-			enabled: true,
-		});
+		const timer = (
+			await Timers.I().CreateNewTimer({
+				interval,
+				name,
+				message: message.join(' '),
+				owner: ctx.channel.Id,
+				enabled: true,
+				titles: titles,
+			})
+		).unwrap();
 
-		if (timer.err) {
-			// Create new, so we don't copy SingleTimer
-			return new Err(timer.inner);
+		let msg = `Created timer ${name}, Sent every ${interval}s`;
+
+		if (titles.length !== 0) {
+			msg += `, Titles: ${titles.join(', ')}`;
+			const currentTitle = await Bot.Redis.SGet(`channel:${ctx.channel.Id}:title`);
+
+			if (!titles.includes(currentTitle)) {
+				timer.Stop();
+				msg += `, Stopped because title is not in list`;
+			}
 		}
 
-		return new Ok(`Created timer :)`);
+		return new Ok(msg);
 	},
 	add: async (ctx, args) => {
 		return actionHandlers.create(ctx, args);
@@ -104,21 +115,17 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 	list: async (ctx) => {
 		const list = await Timers.I().GetTimers(ctx.channel.Id);
 
-		if (list.err) {
-			return list;
-		}
-
-		if (list.unwrap().size === 0) {
+		if (list.size === 0) {
 			return new Ok('No timers found');
 		}
 
 		const msg = [];
 
-		for (const t of list.unwrap()) {
+		for (const t of list) {
 			msg.push(`${t.Name} - ${t.Interval}s`);
 		}
 
-		if (list.unwrap().size > 5) {
+		if (list.size > 5) {
 			const paste = await Upload(msg.join('\n'));
 
 			return new Ok(`Too many timers to list, uploaded to ${paste}`);
@@ -166,7 +173,10 @@ export default class extends CommandModel {
 	OnlyOffline = false;
 	Aliases = ['timers'];
 	Cooldown = 5;
-	Params = [[ArgType.String, 'interval']];
+	Params = [
+		[ArgType.String, 'interval'],
+		[ArgType.String, 'titles'],
+	];
 	Flags = [];
 	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
@@ -181,14 +191,16 @@ export default class extends CommandModel {
 
 		const [action, ...args] = input as [ACTION_TYPE, ...string[]];
 
-		if (!actionHandlers[action]) {
+		const fn = actionHandlers[action];
+
+		if (!fn) {
 			return {
 				Success: false,
 				Result: `Unknown action ${action}`,
 			};
 		}
 
-		const result = await actionHandlers[action](ctx, args);
+		const result = await fn(ctx, args);
 
 		return {
 			Success: result.err ? false : true,
@@ -208,5 +220,12 @@ export default class extends CommandModel {
 		'',
 		`-i, --interval <interval>`,
 		`The interval in seconds between each message. Default is 60 seconds.`,
+		'',
+		'-t, --titles <title>',
+		'Will only keep the timer alive if the title of the stream is one of the provided titles.',
+		'Commane separated list of titles.',
+		`**Example**: ${prefix}timer create test Test message --titles forsen`,
+		`**Example**: ${prefix}timer create test Test message --titles forsen,forsen2,forsen3`,
+		`**Example**: ${prefix}timer create test Test message --titles "this is a big title,forsen"`,
 	];
 }

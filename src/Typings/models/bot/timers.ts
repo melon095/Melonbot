@@ -5,4 +5,5 @@ export default interface timers {
 	interval: number;
 	message: string;
 	enabled: boolean;
+	titles: string[];
 }
