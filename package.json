@@ -1,65 +1,64 @@
 {
-	"name": "melonbot",
-	"version": "1.0.0",
-	"description": "Cool twitch bot",
-	"private": "true",
-	"type": "module",
-	"scripts": {
-		"test": "jest",
-		"test:eventsub": "make -C Golang/EventSub test",
-		"start:bot": "npm run build:tsc && node --inspect build/bin/master.js",
-		"start:web": "node --inspect build/bin/web.js",
-		"setup": "npm install && npm run build && node build/bin/setup.js",
-		"build:tsc": "tsc -p tsconfig.json",
-		"build:clean": "rimraf ./build",
-		"build:eventsub": "node Scripts/Build.Go.mjs build",
-		"build": "npm run build:clean && npm run build:tsc",
-		"dev:bot": "nodemon -e ts --exec \"npm run start:bot\"",
-		"dev:web": "nodemon -e ts --exec \"npm run build && npm run start:web\"",
-		"format": "prettier --config .prettierrc --write \"src/**/*.ts\" \"src/**/*.d.ts\""
-	},
-	"author": "Joachim Flottorp",
-	"license": "MPL-2.0",
-	"bugs": {
-		"url": "https://github.com/joachimflottorp/melonbot"
-	},
-	"engines": {
-		"node": "^13.2.0 || ^14.13.1 || >=16.0.0"
-	},
-	"homepage": "https://github.com/joachimflottorp/melonbot#readme",
-	"devDependencies": {
-		"@types/cookie-parser": "^1.4.3",
-		"@types/cors": "^2.8.13",
-		"@types/express": "^4.17.15",
-		"@types/humanize-duration": "^3.27.1",
-		"@types/jest": "^27.5.2",
-		"@types/jsonwebtoken": "^8.5.9",
-		"@types/markdown-it": "^12.2.3",
-		"@types/node": "^18.11.15",
-		"@types/string-similarity": "^4.0.0",
-		"@types/ws": "^8.2.2",
-		"jest": "^27.5.1",
-		"nodemon": "^2.0.14",
-		"prettier": "^2.6.0",
-		"rimraf": "^3.0.2",
-		"ts-jest": "^27.1.5",
-		"typescript": "^4.9.4"
-	},
-	"dependencies": {
-		"@kararty/dank-twitch-irc": "^5.0.0",
-		"@melon95/promolve": "^1.0.1",
-		"bson": "^4.6.5",
-		"cookie-parser": "^1.4.6",
-		"cors": "^2.8.5",
-		"express": "^4.18.2",
-		"got": "^12.5.3",
-		"humanize-duration": "^3.27.1",
-		"jsonwebtoken": "^8.5.1",
-		"markdown-it": "^13.0.1",
-		"postgres": "^3.3.2",
-		"pug": "^3.0.2",
-		"redis": "^4.5.1",
-		"string-similarity": "^4.0.4",
-		"ws": "^8.11.0"
-	}
+    "name": "melonbot",
+    "version": "1.0.0",
+    "description": "Cool twitch bot",
+    "private": "true",
+    "type": "module",
+    "scripts": {
+        "test": "jest",
+        "test:eventsub": "make -C Golang/EventSub test",
+        "start:bot": "npm run build:tsc && node --inspect build/bin/master.js",
+        "start:web": "node --inspect build/bin/web.js",
+        "setup": "npm install && npm run build && node build/bin/setup.js",
+        "build:tsc": "tsc -p tsconfig.json",
+        "build:clean": "rimraf ./build",
+        "build": "npm run build:clean && npm run build:tsc",
+        "dev:bot": "nodemon -e ts --exec \"npm run start:bot\"",
+        "dev:web": "nodemon -e ts --exec \"npm run build && npm run start:web\"",
+        "format": "prettier --config .prettierrc --write \"src/**/*.ts\" \"src/**/*.d.ts\""
+    },
+    "author": "Joachim Flottorp",
+    "license": "MPL-2.0",
+    "bugs": {
+        "url": "https://github.com/joachimflottorp/melonbot"
+    },
+    "engines": {
+        "node": "^13.2.0 || ^14.13.1 || >=16.0.0"
+    },
+    "homepage": "https://github.com/joachimflottorp/melonbot#readme",
+    "devDependencies": {
+        "@types/cookie-parser": "^1.4.3",
+        "@types/cors": "^2.8.13",
+        "@types/express": "^4.17.15",
+        "@types/humanize-duration": "^3.27.1",
+        "@types/jest": "^27.5.2",
+        "@types/jsonwebtoken": "^8.5.9",
+        "@types/markdown-it": "^12.2.3",
+        "@types/node": "^18.11.15",
+        "@types/string-similarity": "^4.0.0",
+        "@types/ws": "^8.2.2",
+        "jest": "^27.5.1",
+        "nodemon": "^2.0.14",
+        "prettier": "^2.6.0",
+        "rimraf": "^3.0.2",
+        "ts-jest": "^27.1.5",
+        "typescript": "^4.9.4"
+    },
+    "dependencies": {
+        "@kararty/dank-twitch-irc": "^5.0.0",
+        "@melon95/promolve": "^1.0.1",
+        "bson": "^4.6.5",
+        "cookie-parser": "^1.4.6",
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "got": "^12.5.3",
+        "humanize-duration": "^3.27.1",
+        "jsonwebtoken": "^8.5.1",
+        "markdown-it": "^13.0.1",
+        "postgres": "^3.3.2",
+        "pug": "^3.0.2",
+        "redis": "^4.5.1",
+        "string-similarity": "^4.0.4",
+        "ws": "^8.11.0"
+    }
 }
