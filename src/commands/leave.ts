@@ -1,3 +1,4 @@
+import Helix from './../Helix/index.js';
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
 
@@ -15,8 +16,18 @@ export default class extends CommandModel {
 	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		await Bot.SQL.Query`DELETE FROM channels WHERE user_id = ${ctx.channel.Id}`;
-		Bot.Twitch.Controller.RemoveChannelList(ctx.channel.Name);
 
+		const { channel } = ctx;
+		const subs = channel.EventSubs.GetSubscription();
+
+		if (subs) {
+			await Promise.all(subs.map((sub) => Helix.EventSub.Delete(sub.ID())));
+		}
+
+		const rdsKeys = await Bot.Redis.Keys(`channel:${channel.Id}:*`);
+		await Promise.all(rdsKeys.map((key) => Bot.Redis.SDel(key)));
+
+		Bot.Twitch.Controller.RemoveChannelList(ctx.channel.Name);
 		setTimeout(() => {
 			Bot.Twitch.Controller.client.part(ctx.channel.Name);
 		}, 10000); // Leave after 10 seconds.
