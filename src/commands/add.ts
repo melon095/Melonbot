@@ -1,7 +1,6 @@
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
 import gql, { EmoteSearchFilter, EmoteSet, ListItemAction } from './../SevenTVGQL.js';
-import { ObjectID } from 'bson';
 import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
 import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
 
@@ -13,17 +12,8 @@ const resolveEmote = async (
 	name: string,
 	filters: EmoteSearchFilter,
 	specific: number,
-): Promise<EmoteSet | null> => {
-	if (ObjectID.isValid(name)) {
-		return getEmoteFromID(name);
-	}
-
-	if (IsSevenTVURL(name)) {
-		return getEmoteFromURL(name);
-	}
-
-	return getEmoteFromName(name, filters, specific);
-};
+): Promise<EmoteSet | null> => getEmoteFromID(/\b[a-z\d]{24}\b/i.exec(name)?.toString())
+	?? getEmoteFromName(name, filters, specific);
 
 const getEmoteFromName = async (name: string, filters: EmoteSearchFilter, specific: number) => {
 	return gql.SearchEmoteByName(name, filters).then((res) => {
@@ -38,28 +28,10 @@ const getEmoteFromName = async (name: string, filters: EmoteSearchFilter, specif
 	});
 };
 
-const getEmoteFromID = (name: string) => {
-	try {
-		if (!ObjectID.isValid(name)) return null;
-		return gql.GetEmoteByID(name);
-	} catch {
-		return null;
-	}
-};
-
-const IsSevenTVURL = (url: string) =>
-	/https?:\/\/(?:next\.)?7tv.app\/emotes\/\b6\d[a-f0-9]{22}\b/.test(url);
-
-const getEmoteFromURL = (url: string) => {
-	try {
-		const id = url.split('/').filter(Boolean).pop();
-		if (!id) {
-			return null;
-		}
-		return gql.GetEmoteByID(id);
-	} catch {
-		return null;
-	}
+const getEmoteFromID = (name: string | undefined) => {
+	if (name)
+		return gql.GetEmoteByID(name)
+	return null
 };
 
 export default class extends CommandModel<PreHandlers> {
