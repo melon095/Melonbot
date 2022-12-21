@@ -12,8 +12,9 @@ const resolveEmote = async (
 	name: string,
 	filters: EmoteSearchFilter,
 	specific: number,
-): Promise<EmoteSet | null> => getEmoteFromID(/\b[a-z\d]{24}\b/i.exec(name)?.toString())
-	?? getEmoteFromName(name, filters, specific);
+): Promise<EmoteSet | null> =>
+	getEmoteFromID(/\b[a-z\d]{24}\b/i.exec(name)?.toString()) ??
+	getEmoteFromName(name, filters, specific);
 
 const getEmoteFromName = async (name: string, filters: EmoteSearchFilter, specific: number) => {
 	return gql.SearchEmoteByName(name, filters).then((res) => {
@@ -29,9 +30,8 @@ const getEmoteFromName = async (name: string, filters: EmoteSearchFilter, specif
 };
 
 const getEmoteFromID = (name: string | undefined) => {
-	if (name)
-		return gql.GetEmoteByID(name)
-	return null
+	if (name) return gql.GetEmoteByID(name);
+	return null;
 };
 
 export default class extends CommandModel<PreHandlers> {
