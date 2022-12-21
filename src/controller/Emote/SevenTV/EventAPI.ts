@@ -129,6 +129,8 @@ const Opcodes = {
 	Hello: 1,
 	/** Ping */
 	Heartbeat: 2,
+	/** Server acknowledges our request */
+	ACK: 5,
 	/** Something bad happened, closes connection. */
 	EndOfStream: 7,
 	/** We send, subscribe to event */
@@ -257,6 +259,9 @@ export class SevenTVEvent extends MWebSocket {
 				const d = data.d as SevenTVOpHeartbeat;
 				super.Log('Heartbeat Count: ', d.count);
 				break;
+			}
+			case Opcodes.ACK: {
+				return;
 			}
 			case Opcodes.EndOfStream: {
 				const d = data.d as SevenTVOpEndOfStream;
