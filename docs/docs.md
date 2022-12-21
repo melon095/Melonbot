@@ -51,6 +51,9 @@ If a parameter is given which the command supports it will be shown inside the D
 
 Parameters also support using the first character of the parameter as a prefix, so `--foo <data>` can also be written as `-f <data>`
 
+Parameters also allow sentences by adding "" or '' between the sentence.
+`--foo "this works"`
+
 <b>Important</b>
 
 Don't have two parameters with the first character, this will cause one of them to be overwritten.
