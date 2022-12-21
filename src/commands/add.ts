@@ -69,7 +69,7 @@ export default class extends CommandModel<PreHandlers> {
 			};
 		}
 
-		if (emote === null) {
+		if (!emote) {
 			return {
 				Success: false,
 				Result: 'Could not find a emote',
