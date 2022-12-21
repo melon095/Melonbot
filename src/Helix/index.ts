@@ -1,17 +1,22 @@
-import { Method, Response } from 'got';
-import { TPubRecType } from 'Singletons/Redis/Data.Types.js';
+import { Method } from 'got';
+import { EventsubTypes } from 'Singletons/Redis/Data.Types.js';
 import { Helix } from './../Typings/types.js';
 import got from './../tools/Got.js';
-import { token, UnwrapPromises } from './../tools/tools.js';
+import { token } from './../tools/tools.js';
 import { Result, Err, Ok } from './../tools/result.js';
 import User from './../controller/User/index.js';
 
-type EventSubQueryStatus =
+export type EventSubQueryStatus =
 	| 'enabled'
 	| 'webhook_callback_verification_pending'
 	| 'webhook_callback_verification_failed'
+	| 'notification_failures_exceeded'
 	| 'authorization_revoked'
-	| 'user_removed';
+	| 'moderator_removed'
+	| 'user_removed'
+	| 'version_removed';
+
+export type EventSubFulfilledStatus = 'enabled' | 'webhook_callvack_verification_pending';
 
 interface GetEventsubResponse {
 	data: {
@@ -36,18 +41,17 @@ interface GetEventsubResponse {
 	};
 }
 
-interface CreateEventSubResponse {
+export interface CreateEventSubResponse<T extends object> {
 	data: {
 		id: string;
-		status: EventSubQueryStatus;
-		type: string;
+		status: EventSubFulfilledStatus;
+		type: EventsubTypes;
 		version: string;
-		condition: object; // Dependant on type
+		condition: T;
 		created_at: string;
 		transport: {
-			method: string;
+			method: 'webhook';
 			callback: string;
-			secret: string;
 		};
 		cost: number;
 	}[];
@@ -56,9 +60,38 @@ interface CreateEventSubResponse {
 	max_total_cost: number;
 }
 
-interface DefaultEventsubCondition {
-	broadcaster_user_id: string;
+export class EventSubSubscription {
+	private readonly _id: string;
+	private readonly _status: EventSubFulfilledStatus;
+	private readonly _type: EventsubTypes;
+
+	constructor(id: string, status: EventSubFulfilledStatus, type: EventsubTypes) {
+		this._id = id;
+		this._status = status;
+		this._type = type;
+	}
+
+	public toString(): string {
+		return JSON.stringify({
+			status: this._status,
+			type: this._type,
+		});
+	}
+
+	public toRedis(): [string, string] {
+		return [this._id, this.toString()];
+	}
+
+	public ID = () => this._id;
+	public Status = () => this._status;
+	public Type = () => this._type;
 }
+
+// TODO: Handle different types of conditions.
+export type DefaultEventsubCondition = {
+	type: EventsubTypes;
+	broadcaster_user_id: string;
+};
 
 interface RequestOpts {
 	CustomHeaders?: Record<string, string>;
@@ -114,100 +147,95 @@ const _request = async <T>(
 };
 
 export default {
-	// EventSub: {
-	// 	Create: async function (
-	// 		type: TPubRecType,
-	// 		version: string | '1',
-	// 		condition: DefaultEventsubCondition | object,
-	// 	) {
-	// 		return new Promise((Resolve, Reject) => {
-	// 			const url = `eventsub/subscriptions`;
-	// 			const body = {
-	// 				type,
-	// 				version,
-	// 				condition,
-	// 				transport: {
-	// 					method: 'webhook',
-	// 					callback: Bot.Config.EventSub.PublicUrl + '/eventsub',
-	// 					secret: Bot.Config.EventSub.Secret,
-	// 				},
-	// 			};
+	EventSub: {
+		Create: async function <T extends object = DefaultEventsubCondition>(
+			type: EventsubTypes,
+			condition: T,
+		) {
+			const { PublicUrl, Secret } = Bot.Config.EventSub;
+			if (!PublicUrl || !Secret) {
+				return new Err('EventSub is not configured');
+			}
 
-	// 			_request('POST', url, { body })
-	// 				.then((res: CreateEventSubResponse) => {
-	// 					console.info('Helix: EventSub.Create', {
-	// 						type,
-	// 						condition,
-	// 					});
-	// 					Resolve(res);
-	// 				})
-	// 				.catch(() => Reject());
-	// 		});
-	// 	},
-	// 	Delete: async function (user_id: string): Promise<void> {
-	// 		/*
-	//             TODO:
-	//             Can't filter by a condition.
-	//             Rather track ids internally.
-	//             Crontab which collects all of them.
-	//             Then store them based off the condition.
-	//             Most conditions use broadcaster_user_id. Can just create something simple.
-	//         */
+			const url = `eventsub/subscriptions`;
+			const body = {
+				type,
+				version: '1',
+				condition,
+				transport: {
+					method: 'webhook',
+					callback: PublicUrl + '/eventsub',
+					secret: Secret,
+				},
+			};
 
-	// 		return new Promise((Resolve, Reject) => {
-	// 			Reject(new Error('Not implemented'));
-	// 			// const list: string[] = [];
-	// 			// let pagination = "";
+			return _request<CreateEventSubResponse<T>>('POST', url, { body });
+		},
+		Get: async function (status: EventSubQueryStatus, type: EventsubTypes) {
+			const done: Omit<GetEventsubResponse, 'pagination'> = {
+				data: [],
+				total: 0,
+				total_cost: 0,
+				max_total_cost: 0,
+			};
 
-	// 			// do {
-	// 			//     const res = await this.Get();
+			let pagination = '';
 
-	// 			//     pagination = res.pagination.cursor ??= "";
-	// 			//     res.data.map((e) => list.push(e.id));
+			const makeReq = (pagination: string) => {
+				const params = new URLSearchParams();
 
-	// 			// } while (pagination === ""); // Checks after execution
+				status && params.append('status', status);
+				type && params.append('type', type);
 
-	// 			// const url = new URLSearchParams('eventsub/subscriptions');
+				const url = 'eventsub/subscriptions';
 
-	// 			// url.append('id', id);
+				if (pagination) {
+					params.append('after', pagination);
+				}
 
-	// 			// _request('DELETE', url.toString())
-	// 			// 	.then(() => {
-	// 			//         console.info("Helix: EventSub.Delete", { user_id });
-	// 			//         Resolve()
-	// 			//     })
-	// 			// 	.catch(() => Reject());
-	// 		});
-	// 	},
-	// 	Get: async function (
-	// 		status?: EventSubQueryStatus,
-	// 		type?: TPubRecType,
-	// 		after?: string,
-	// 	): Promise<GetEventsubResponse> {
-	// 		return new Promise((Resolve, Reject) => {
-	// 			const url = new URLSearchParams('eventsub/subscriptions');
+				return _request<GetEventsubResponse>('GET', url, { params });
+			};
 
-	// 			status && url.append('status', status);
-	// 			type && url.append('type', type);
-	// 			after && url.append('after', after);
+			do {
+				const resp = await makeReq(pagination);
 
-	// 			_request('GET', url.toString())
-	// 				.then((res: GetEventsubResponse) => {
-	// 					console.info('Helix: EventSub.Get', {
-	// 						status,
-	// 						type,
-	// 						after,
-	// 					});
-	// 					Resolve(res);
-	// 				})
-	// 				.catch(() => Reject());
-	// 		});
-	// 	},
-	// },
+				if (resp.err) {
+					return resp;
+				}
+
+				const {
+					data,
+					max_total_cost,
+					total,
+					total_cost,
+					pagination: newPagination,
+				} = resp.inner;
+
+				done.data.push(...data);
+				done.max_total_cost = max_total_cost;
+				done.total = total;
+				done.total_cost = total_cost;
+
+				pagination = newPagination?.cursor ?? null;
+			} while (pagination !== null);
+
+			return new Ok(done);
+		},
+		Delete: async function (id: string) {
+			const url = 'eventsub/subscriptions';
+
+			const params = new URLSearchParams();
+			params.append('id', id);
+
+			return _request('DELETE', url, { params });
+		},
+	},
 	Users: async (users: User[], opts: RequestOpts = {}): Promise<Result<Helix.Users, string>> => {
 		const url = new URLSearchParams();
 
 		users.map((u) => url.append('id', u.TwitchUID));
+
+		console.log('Helix Users request: ', { size: users.length });
 
 		return _request('GET', 'users', { params: url }, opts);
 	},

@@ -1,5 +1,12 @@
-import { ChannelSettingsValue, GetSettings, UpdateSetting } from './../controller/Channel/index.js';
+import { EventsubTypes } from './../Singletons/Redis/Data.Types.js';
+import {
+	ChannelSettingsValue,
+	EventSubHandler,
+	GetSettings,
+	UpdateSetting,
+} from './../controller/Channel/index.js';
 import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
+import { CreateEventSubResponse } from './../Helix/index.js';
 
 (async () => {
 	const Got = (await import('./../tools/Got.js')).default;
@@ -10,9 +17,10 @@ import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
 		`https://tmi.twitch.tv/group/user/${stream}/chatters`;
 
 	const THIRTY_SECONDS = 30 * 1000;
-	const ONE_MINUTE = 60 * 1000;
-	const ONE_HOUR = 1000 * 60 * 60;
-	const FIVE_MINUTES = 1000 * 60 * 5;
+	const ONE_MINUTE = THIRTY_SECONDS * 2;
+	const ONE_HOUR = ONE_MINUTE * 60;
+	const FIVE_MINUTES = ONE_MINUTE * 5;
+	const TEN_MINUTES = FIVE_MINUTES * 2;
 
 	interface ViewerResponse {
 		chatters: ViewerList;
@@ -239,6 +247,57 @@ import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
 			}),
 		);
 	}, ONE_MINUTE);
+
+	const VALID_EVENTSUB_TYPES: EventsubTypes[] = [
+		'channel.update',
+		'stream.offline',
+		'stream.online',
+	];
+
+	/**
+	 * Check the current Twitch eventsub subscriptions a channel is subbed to.
+	 * If the channel is missing a specific subscription we will subscribe.
+	 */
+	setTimeout(async () => {
+		const channels = Bot.Twitch.Controller.TwitchChannels;
+
+		await Promise.all(
+			channels.map(async (channel) => {
+				const current = channel.EventSubs.GetSubscription() ?? [];
+
+				const missing = VALID_EVENTSUB_TYPES.filter(
+					(type) => !current.some((sub) => sub.Type() === type),
+				);
+
+				if (missing.length === 0) return;
+
+				const resp = await Promise.all(
+					missing.map((type) =>
+						Helix.EventSub.Create(type, { broadcaster_user_id: channel.Id }),
+					),
+				);
+
+				for (const event of resp) {
+					if (event.err) {
+						console.warn('Failed to subscribe to eventsub', {
+							userid: channel.Id,
+							error: event.err,
+						});
+						continue;
+					}
+
+					for (const data of event.inner.data) {
+						channel.EventSubs.Push(data);
+
+						console.log('Subscribed to eventsub', {
+							userid: channel.Id,
+							type: data.type,
+						});
+					}
+				}
+			}),
+		);
+	}, TEN_MINUTES);
 })();
 
 export {};

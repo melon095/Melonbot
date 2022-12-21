@@ -19,6 +19,15 @@ import TriviaController from './../Trivia/index.js';
 import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
 import User from './../User/index.js';
 import PreHandler from './../../PreHandlers/index.js';
+import Helix, {
+	CreateEventSubResponse,
+	DefaultEventsubCondition,
+	EventSubFulfilledStatus,
+	EventSubSubscription,
+} from './../../Helix/index.js';
+import { RedisSingleton } from './../../Singletons/Redis/index.js';
+import { EventsubTypes } from 'Singletons/Redis/Data.Types';
+import { IPromolve, Promolve } from '@melon95/promolve';
 
 /**
  * Encapsulated data for every channel.
@@ -91,6 +100,11 @@ export class Channel {
 	 */
 	public Trivia: TriviaController | null;
 
+	/**
+	 * @description Keep track of eventsub subscriptions for this channel.
+	 */
+	public EventSubs: EventSubHandler;
+
 	static async WithEventsub(channel: Channel, emoteSetID?: string): Promise<Channel> {
 		let identifier: SevenTVChannelIdentifier | undefined = undefined;
 		if (emoteSetID) {
@@ -107,6 +121,7 @@ export class Channel {
 	static async New(user: User, Mode: NChannel.Mode, Live: boolean): Promise<Channel> {
 		const Channel = new this(user, Mode, Live);
 		await Channel.Initialize();
+		await Channel.EventSubs.Done;
 		return Channel;
 	}
 
@@ -119,8 +134,8 @@ export class Channel {
 		const user = await Bot.User.Get(Creds.user_id, Creds.name);
 
 		await Bot.SQL.Query`
-            INSERT INTO channels (name, user_id, bot_permission) 
-            VALUES (${Creds.name}, ${Creds.user_id}, ${3}) 
+            INSERT INTO channels (name, user_id, bot_permission)
+            VALUES (${Creds.name}, ${Creds.user_id}, ${3})
             ON CONFLICT (user_id) DO NOTHING;`;
 
 		return new this(user, 'Bot', false).Initialize();
@@ -149,6 +164,7 @@ export class Channel {
 
 		// Create callback for the message queue.
 		this.Queue.on('message', (a, b) => this.onQueue(a, b));
+		this.EventSubs = new EventSubHandler(this, Bot.Redis);
 	}
 
 	async say(
@@ -416,7 +432,7 @@ export class Channel {
 
 	private async setupTrivia(): Promise<void> {
 		const filter = await Bot.SQL.Query<Database.channels[]>`
-            SELECT disabled_commands 
+            SELECT disabled_commands
             FROM channels
             WHERE user_id = ${this.Id}`;
 
@@ -459,30 +475,44 @@ export class Channel {
 		try {
 			await Bot.Twitch.Controller.client.join(user.Name);
 			const channel = await Bot.Twitch.Controller.AddChannelList(user);
+			const resp = await Promise.all([
+				Helix.EventSub.Create('channel.update', {
+					broadcaster_user_id: user.TwitchUID,
+				}),
+				Helix.EventSub.Create('stream.offline', {
+					broadcaster_user_id: user.TwitchUID,
+				}),
+				Helix.EventSub.Create('stream.online', {
+					broadcaster_user_id: user.TwitchUID,
+				}),
+			]);
+
+			for (const r of resp) {
+				if (r.err) {
+					console.warn('Failed to create eventsub for channel: ', {
+						user: user.Name,
+						err: r.inner,
+					});
+					continue;
+				}
+
+				for (const event of r.inner.data) {
+					channel.EventSubs.Push(event);
+				}
+			}
 
 			channel.say('ApuApustaja 👋 Hi');
-			// await Helix.EventSub.Create('channel.moderator.add', '1', {
-			// 	broadcaster_user_id: ctx.user.id,
-			// });
-
-			// await Helix.EventSub.Create(
-			// 	'channel.moderator.remove',
-			// 	'1',
-			// 	{
-			// 		broadcaster_user_id: ctx.user.id,
-			// 	},
-			// );
-			return;
 		} catch (err) {
 			Bot.HandleErrors('Join', err);
+			await Bot.Twitch.Controller.client.part(user.Name);
 			throw '';
 		}
 	}
 
 	async updateFilter(): Promise<void> {
 		const [filter] = await Bot.SQL.Query<Database.channels[]>`
-            SELECT disabled_commands 
-            FROM channels 
+            SELECT disabled_commands
+            FROM channels
             WHERE user_id = ${this.Id}`;
 
 		if (!filter) this.Filter = [];
@@ -601,7 +631,6 @@ export class Channel {
 	AutomodMessage(message: string): void {
 		if (this.Queue.hasMessage) {
 			this.say(message, { SkipBanphrase: true });
-			return;
 		}
 	}
 
@@ -794,3 +823,49 @@ const CommandLog = (name: string, channel: string): CommandLogFn => {
 		}
 	};
 };
+
+export class EventSubHandler {
+	private _subscriptions: EventSubSubscription[] = [];
+	private readonly _redisKey = (userid: string) => `channel:${userid}:eventsub`;
+	private isReady: IPromolve<void> = Promolve();
+
+	constructor(private readonly _channel: Channel, private readonly _redis: RedisSingleton) {
+		const key = this._redisKey(this._channel.Id);
+
+		this._redis.HGetAll(key).then((data) => {
+			if (!data) return;
+
+			for (const [lhs, preRhs] of Object.entries(data)) {
+				const rhs = JSON.parse(preRhs) as {
+					status: EventSubFulfilledStatus;
+					type: EventsubTypes;
+				};
+
+				const subscription = new EventSubSubscription(lhs, rhs.status, rhs.type);
+
+				this._subscriptions.push(subscription);
+			}
+
+			this.isReady.resolve();
+		});
+	}
+
+	public get Done() {
+		return this.isReady.promise;
+	}
+
+	public Push<T extends object>({ id, status, type }: CreateEventSubResponse<T>['data'][0]) {
+		const subscription = new EventSubSubscription(id, status, type);
+		const [field, value] = subscription.toRedis();
+
+		this._redis.HSet(this._redisKey(this._channel.Id), field, value).then(() => {
+			this._subscriptions.push(subscription);
+		});
+	}
+
+	public GetSubscription(type?: EventsubTypes): EventSubSubscription[] | null {
+		if (!type) return this._subscriptions;
+
+		return this._subscriptions.filter((sub) => sub.Type() === type);
+	}
+}

@@ -1,10 +1,13 @@
 export type TPubRecType =
+	| 'banphrase'
 	| 'connect'
+	// Reserved for only my channel.
 	| 'channel.follow'
-	| 'stream.online'
-	| 'stream.offline'
 	| 'channel.update'
-	| 'banphrase';
+	| 'stream.online'
+	| 'stream.offline';
+
+export type EventsubTypes = Exclude<TPubRecType, 'connect' | 'banphrase'>;
 
 /**
  * Type is the eventsub type that was emitted

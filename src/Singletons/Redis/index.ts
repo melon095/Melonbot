@@ -195,4 +195,11 @@ export class RedisSingleton extends EventEmitter {
 			.then((ok: number | null) => Boolean(ok))
 			.catch(() => false);
 	}
+
+	public async Keys(pattern: string): Promise<string[]> {
+		return await this._client
+			.KEYS(pattern)
+			.then((keys: string[]) => keys)
+			.catch(() => []);
+	}
 }
