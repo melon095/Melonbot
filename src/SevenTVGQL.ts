@@ -52,7 +52,7 @@ interface GetCurrentUser {
 	};
 }
 
-interface EmoteSet {
+export interface EmoteSet {
 	id: string;
 	name: string;
 }

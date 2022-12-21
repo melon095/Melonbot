@@ -1,17 +1,9 @@
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
-import gql, { EmoteSearchFilter, ListItemAction } from './../SevenTVGQL.js';
+import gql, { EmoteSearchFilter, EmoteSet, ListItemAction } from './../SevenTVGQL.js';
 import { ObjectID } from 'bson';
 import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
 import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
-
-const IsSevenTVURL = (url: string) =>
-	/https?:\/\/(?:next\.)?7tv.app\/emotes\/\b6\d[a-f0-9]{22}\b/.test(url);
-
-type PartialEmote = {
-	name: string;
-	id: string;
-};
 
 type PreHandlers = {
 	SevenTV: Get7TVUserMod;
@@ -21,33 +13,52 @@ const resolveEmote = async (
 	name: string,
 	filters: EmoteSearchFilter,
 	specific: number,
-): Promise<PartialEmote | null> => {
-	const emote = await gql
-		.SearchEmoteByName(name, filters)
-		.then((res) => {
-			const e = res?.emotes?.items;
+): Promise<EmoteSet | null> => {
+	if (ObjectID.isValid(name)) {
+		return getEmoteFromID(name);
+	}
 
-			if (!e || !e.length) return null;
+	if (IsSevenTVURL(name)) {
+		return getEmoteFromURL(name);
+	}
 
+	return getEmoteFromName(name, filters, specific);
+};
+
+const getEmoteFromName = async (name: string, filters: EmoteSearchFilter, specific: number) => {
+	return gql.SearchEmoteByName(name, filters).then((res) => {
+		const e = res?.emotes?.items;
+
+		if (!e || !e.length)
 			if (specific) {
 				return e[specific];
 			}
 
-			return e[0];
-		})
-		.catch(() => null);
+		return e[0];
+	});
+};
 
-	if (emote) return emote;
-
+const getEmoteFromID = (name: string) => {
 	try {
-		if (!ObjectID.isValid(name)) throw '';
-		return gql.GetEmoteByID(name).then((res) => res);
+		if (!ObjectID.isValid(name)) return null;
+		return gql.GetEmoteByID(name);
 	} catch {
-		const id = name.split('/').filter(Boolean).pop();
+		return null;
+	}
+};
+
+const IsSevenTVURL = (url: string) =>
+	/https?:\/\/(?:next\.)?7tv.app\/emotes\/\b6\d[a-f0-9]{22}\b/.test(url);
+
+const getEmoteFromURL = (url: string) => {
+	try {
+		const id = url.split('/').filter(Boolean).pop();
 		if (!id) {
 			return null;
 		}
-		return gql.GetEmoteByID(id).then((res) => res);
+		return gql.GetEmoteByID(id);
+	} catch {
+		return null;
 	}
 };
 
@@ -76,7 +87,7 @@ export default class extends CommandModel<PreHandlers> {
 
 		const specific = parseInt(ctx.input[1]);
 
-		let emote: PartialEmote | null;
+		let emote: EmoteSet | null;
 		try {
 			emote = await resolveEmote(ctx.input[0], filters, specific);
 		} catch (error) {
@@ -89,7 +100,7 @@ export default class extends CommandModel<PreHandlers> {
 		if (emote === null) {
 			return {
 				Success: false,
-				Result: 'Could not find emote',
+				Result: 'Could not find a emote',
 			};
 		}
 
