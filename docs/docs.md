@@ -55,9 +55,6 @@ Parameters also support using the first character of the parameter as a prefix, 
 
 Don't have two parameters with the first character, this will cause one of them to be overwritten.
 
-Arguments also do not (at the moment) support spaces.
-So if someone reading this, know how to fix this. Please make a PR. :D
-
 ```typescript
 data.Params: [key: string]
 ```
