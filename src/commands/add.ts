@@ -40,13 +40,15 @@ const resolveEmote = async (
 	if (emote) return emote;
 
 	try {
-		ObjectID.isValid(name);
-		return gql.GetEmoteByID(name.split('/').filter(Boolean).pop() ?? '').then((res) => res);
-	} catch (_) {
+		if (!ObjectID.isValid(name)) throw '';
 		return gql.GetEmoteByID(name).then((res) => res);
+	} catch {
+		const id = name.split('/').filter(Boolean).pop();
+		if (!id) {
+			return null;
+		}
+		return gql.GetEmoteByID(id).then((res) => res);
 	}
-
-	return null;
 };
 
 export default class extends CommandModel<PreHandlers> {
