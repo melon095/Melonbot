@@ -5,13 +5,15 @@ services:
     build:
       context: ./Golang
       dockerfile: ./EventSub/Dockerfile
+      args:
+        - -debug
     volumes:
       - type: bind
         source: ./config.json
         target: /app/config.json
 
       - type: bind$
-        source: ./Golang/EventSub/db/$
-        target: /app/db/$
+        source: ./Golang/EventSub/db/
+        target: /app/db/
     # Quick access to redis and postgres
     network_mode: host
