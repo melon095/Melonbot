@@ -1,8 +1,8 @@
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
 import gql, { EmoteSearchFilter, EmoteSet, ListItemAction } from './../SevenTVGQL.js';
-import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
 import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
+import { extractSeventTVID } from './../tools/regex.js';
 
 type PreHandlers = {
 	SevenTV: Get7TVUserMod;
@@ -13,8 +13,7 @@ const resolveEmote = async (
 	filters: EmoteSearchFilter,
 	specific: number,
 ): Promise<EmoteSet | null> =>
-	getEmoteFromID(/\b[a-z\d]{24}\b/i.exec(name)?.toString()) ??
-	getEmoteFromName(name, filters, specific);
+	getEmoteFromID(extractSeventTVID(name)) ?? getEmoteFromName(name, filters, specific);
 
 const getEmoteFromName = async (name: string, filters: EmoteSearchFilter, specific: number) => {
 	return gql.SearchEmoteByName(name, filters).then((res) => {

@@ -1,7 +1,7 @@
 import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import gql, { EmoteSearchFilter } from '../SevenTVGQL.js';
-import { ObjectID } from 'bson';
+import { extractSeventTVID } from './../tools/regex.js';
 
 export default class extends CommandModel {
 	Name = '7tv';
@@ -28,15 +28,13 @@ export default class extends CommandModel {
 			};
 		}
 
-		try {
-			if (isEmoteId(first)) {
-				return addEmoteById(first);
-			}
-		} catch {
-			return addEmoteByName(ctx);
+		const id = extractSeventTVID(first);
+
+		if (id) {
+			return getEmoteFromID(id);
 		}
 
-		return addEmoteByName(ctx);
+		return getEmoteFromName(ctx);
 	};
 	LongDescription = async (prefix: string) => [
 		`Searches up to 100 7TV emotes.`,
@@ -52,15 +50,7 @@ export default class extends CommandModel {
 	];
 }
 
-const isEmoteId = (input: string) => {
-	try {
-		return ObjectID.isValid(input);
-	} catch {
-		return false;
-	}
-};
-
-const addEmoteById = async (id: string) => {
+const getEmoteFromID = async (id: string) => {
 	const emote = await gql.GetEmoteByID(id);
 	return {
 		Success: true,
@@ -68,7 +58,7 @@ const addEmoteById = async (id: string) => {
 	};
 };
 
-const addEmoteByName = async (ctx: TCommandContext) => {
+const getEmoteFromName = async (ctx: TCommandContext) => {
 	const filter: EmoteSearchFilter = {};
 	const { exact, index } = ctx.data.Params;
 	if (exact) {
