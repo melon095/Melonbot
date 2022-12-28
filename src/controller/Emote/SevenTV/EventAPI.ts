@@ -165,7 +165,8 @@ function split_array<T>(array: T[], size: number) {
 }
 
 function Commit(identifier: SevenTVChannelIdentifier, emote: EMOTE_TYPE) {
-	if (EMOTES[identifier.Channel]?.[identifier.EmoteSet] === undefined) newArrayIdentifier(identifier);
+	if (EMOTES[identifier.Channel]?.[identifier.EmoteSet] === undefined)
+		newArrayIdentifier(identifier);
 
 	EMOTES[identifier.Channel][identifier.EmoteSet].push(emote);
 }
