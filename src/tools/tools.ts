@@ -49,59 +49,59 @@ export function YMDHMS(): string {
 }
 
 type TSecondsConvertions = {
-    fy: number
-    y: number
-    mo: number
-    d: number
-    h: number
-    m: number
-    s: number
-}
+	fy: number;
+	y: number;
+	mo: number;
+	d: number;
+	h: number;
+	m: number;
+	s: number;
+};
 
 const defaultSecondsConvertions: TSecondsConvertions = {
-    fy: 0,
-    y: 0,
-    mo: 0,
-    d: 0,
-    h: 0,
-    m: 0,
-    s: 0,
-}
+	fy: 0,
+	y: 0,
+	mo: 0,
+	d: 0,
+	h: 0,
+	m: 0,
+	s: 0,
+};
 
 /*
     Uhh made by brian6932 :)
 */
-const secondsConverter = function (this: TSecondsConvertions , input: number): TSecondsConvertions  {
-	input -= 0
-	const y = 31_536_000
-	const mo = 2_629_757
-	const d = 86_400
-	const h = 3_600
-	const m = 60
-	let remainder
+const secondsConverter = function (this: TSecondsConvertions, input: number): TSecondsConvertions {
+	input -= 0;
+	const y = 31_536_000;
+	const mo = 2_629_757;
+	const d = 86_400;
+	const h = 3_600;
+	const m = 60;
+	let remainder;
 
-	this.fy = ~~((input + 62_125_938_000) / y) - (-1)
-	this.y = ~~(input / y)
-	this.mo = ~~((remainder = input - y * this.y) / mo)
-	this.d = ~~((remainder -= mo * this.mo) / d)
-	this.h = ~~((remainder -= d * this.d) / h)
-	this.m = ~~((remainder -= h * this.h) / m)
-	this.s = ~~(input % m)
-	return this
-}
+	this.fy = ~~((input + 62_125_938_000) / y) - -1;
+	this.y = ~~(input / y);
+	this.mo = ~~((remainder = input - y * this.y) / mo);
+	this.d = ~~((remainder -= mo * this.mo) / d);
+	this.h = ~~((remainder -= d * this.d) / h);
+	this.m = ~~((remainder -= h * this.h) / m);
+	this.s = ~~(input % m);
+	return this;
+};
 
 export const SecondsFmt = (input: number, join = ', ', limit = 2): string => {
 	return Object.entries(secondsConverter.call(defaultSecondsConvertions, input))
-		.filter(t => t[1])
+		.filter((t) => t[1])
 		.slice(1)
-		.map(t => t[1] + t[0])
+		.map((t) => t[1] + t[0])
 		.slice(0, limit)
-		.join(join)
-}
+		.join(join);
+};
 
 export const DifferenceFmt = (numToDiff: number, join = ', '): string => {
-	return SecondsFmt(~~(Date.now() * .001) - Number(String(numToDiff).slice(0, 10)), join)
-}
+	return SecondsFmt(~~(Date.now() * 0.001) - Number(String(numToDiff).slice(0, 10)), join);
+};
 
 const createToken = async (): Promise<string | null> => {
 	const scopes: string[] = [
