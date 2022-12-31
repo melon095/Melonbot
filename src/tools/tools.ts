@@ -48,25 +48,60 @@ export function YMDHMS(): string {
 	}`;
 }
 
-export const secondsFormat = (input: number): string => {
-	return [
-		{ y: ~~(input / 31536000) },
-		{ mo: ~~((input % 31536000) / 2630000) },
-		{ d: ~~(((input % 31536000) % 2630000) / 86400) },
-		{ h: ~~((((input % 31536000) % 2630000) % 86400) / 3600) },
-		{ m: ~~(((((input % 31536000) % 2630000) % 86400) % 3600) / 60) },
-		{ s: ~~(input % 60) },
-	]
-		.filter((t) => Object.values(t)[0] !== 0)
-		.map((t) => String(Object.values(t)) + String(Object.keys(t)))
-		.slice(0, 2)
-		.join(`, `);
-};
+type TSecondsConvertions = {
+    fy: number
+    y: number
+    mo: number
+    d: number
+    h: number
+    m: number
+    s: number
+}
 
-export const differenceFormat = (numToDiff: number) =>
-	secondsFormat(
-		parseInt(Date.now().toString().slice(0, 10)) - parseInt(numToDiff.toString().slice(0, 10)),
-	);
+const defaultSecondsConvertions: TSecondsConvertions = {
+    fy: 0,
+    y: 0,
+    mo: 0,
+    d: 0,
+    h: 0,
+    m: 0,
+    s: 0,
+}
+
+/*
+    Uhh made by brian6932 :)
+*/
+const secondsConverter = function (this: TSecondsConvertions , input: number): TSecondsConvertions  {
+	input -= 0
+	const y = 31_536_000
+	const mo = 2_629_757
+	const d = 86_400
+	const h = 3_600
+	const m = 60
+	let remainder
+
+	this.fy = ~~((input + 62_125_938_000) / y) - (-1)
+	this.y = ~~(input / y)
+	this.mo = ~~((remainder = input - y * this.y) / mo)
+	this.d = ~~((remainder -= mo * this.mo) / d)
+	this.h = ~~((remainder -= d * this.d) / h)
+	this.m = ~~((remainder -= h * this.h) / m)
+	this.s = ~~(input % m)
+	return this
+}
+
+export const SecondsFmt = (input: number, join = ', ', limit = 2): string => {
+	return Object.entries(secondsConverter.call(defaultSecondsConvertions, input))
+		.filter(t => t[1])
+		.slice(1)
+		.map(t => t[1] + t[0])
+		.slice(0, limit)
+		.join(join)
+}
+
+export const DifferenceFmt = (numToDiff: number, join = ', '): string => {
+	return SecondsFmt(~~(Date.now() * .001) - Number(String(numToDiff).slice(0, 10)), join)
+}
 
 const createToken = async (): Promise<string | null> => {
 	const scopes: string[] = [
