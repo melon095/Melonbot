@@ -20,7 +20,7 @@ export default class extends CommandModel {
 
 		return {
 			Success: true,
-			Result: [`Pong!`, `Uptime ${tools.humanizeDuration(process.uptime())}`, devBot]
+			Result: [`Pong!`, `Uptime ${tools.SecondsFmt(process.uptime())}`, devBot]
 				.filter(Boolean)
 				.join(' | '),
 		};

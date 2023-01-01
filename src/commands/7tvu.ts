@@ -1,6 +1,6 @@
 import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, CommandResult, TCommandContext } from '../Models/Command.js';
-import { differenceFormat } from './../tools/tools.js';
+import { DifferenceFmt } from './../tools/tools.js';
 import gql, { ConnectionPlatform } from '../SevenTVGQL.js';
 
 type Roles = {
@@ -74,7 +74,7 @@ export default class extends CommandModel {
 			`${user.username} (${id})`,
 			`7TV ID: ${user.id}`,
 			`Roles: ${roleString}`,
-			`Created: ${differenceFormat(new Date(user.created_at).getTime())} ago`,
+			`Created: ${DifferenceFmt(new Date(user.created_at).getTime())} ago`,
 			`Slots: ${slots} / ${max_slots.toString().replace(/\B(?=(\d{3})+(?!\d))/g, `_`)}`,
 		].join(' | ');
 

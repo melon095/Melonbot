@@ -21,7 +21,7 @@ export default (async function () {
 			commits: Number(
 				shell.execSync(`cd ${process.cwd()} && git rev-list --all --count`).toString(),
 			),
-			uptime: tools.humanizeDuration(process.uptime()),
+			uptime: tools.SecondsFmt(process.uptime()),
 			commandsHandled: Number(ch.sum),
 		};
 		res.json(stats);
