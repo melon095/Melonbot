@@ -83,20 +83,18 @@ const getEmoteFromName = async (ctx: TCommandContext) => {
 	}
 
 	if (emotes.items.length > 1) {
-		const intIdx = index ? parseInt(index as string) : 0;
+		const intIdx = index ? parseInt(index as string) : 0 || 0;
 
-		// split the emotes into chunks of 5
 		const chunks = [];
 		for (let i = 0; i < emotes.items.length; i += 5) {
 			chunks.push(emotes.items.slice(i, i + 5));
 		}
 
 		let message;
-		// send based off index
 		if (intIdx < chunks.length) {
 			message = chunks[intIdx]
 				.map((emote) => `${emote.name} - https://7tv.app/emotes/${emote.id}`)
-				.join(' ');
+				.join(' | ');
 		} else {
 			message = `Index out of range (0-${chunks.length - 1})`;
 		}
@@ -106,6 +104,7 @@ const getEmoteFromName = async (ctx: TCommandContext) => {
 			Result: message,
 		};
 	}
+
 	return {
 		Success: true,
 		Result: `'${emotes.items[0].name}' - https://7tv.app/emotes/${emotes.items[0].id}`,
