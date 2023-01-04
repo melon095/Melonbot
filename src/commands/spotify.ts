@@ -76,7 +76,7 @@ export default class extends CommandModel {
 			};
 		}
 
-		const { statusCode, body } = await SpotifyGot('me/player/queue', {
+		const { statusCode, body } = await SpotifyGot('me/player', {
 			headers: {
 				Authorization: `Bearer ${token}`,
 			},
@@ -91,18 +91,19 @@ export default class extends CommandModel {
 			};
 		}
 
-		const queue = JSON.parse(body) as SpotifyTypes.Queue;
+		const queue = JSON.parse(body) as SpotifyTypes.Player;
 
-		const playing = queue.currently_playing;
+		const is_playing = queue.is_playing;
+		const item = queue.item;
 
-		if (!playing) {
+		if (!is_playing) {
 			return {
-				Success: false,
-				Result: 'Nothing is playing.',
+				Success: true,
+				Result: 'No song is currently playing on your spotify.',
 			};
 		}
 
-		const spotifyURL = playing.external_urls.spotify;
+		const spotifyURL = item.external_urls.spotify;
 
 		const { data, error } = await getSongWhipURL(spotifyURL);
 		if (error !== undefined) {
@@ -121,8 +122,8 @@ export default class extends CommandModel {
 			};
 		}
 
-		const name = playing.name;
-		const artists = playing.artists.map((a) => a.name).join(', ');
+		const name = item.name;
+		const artists = item.artists.map((a) => a.name).join(', ');
 		const songwhipURL = data.item.url;
 
 		return {
