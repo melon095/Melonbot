@@ -5,6 +5,7 @@ import got from './../tools/Got.js';
 import { token } from './../tools/tools.js';
 import { Result, Err, Ok } from './../tools/result.js';
 import User from './../controller/User/index.js';
+import { chunkArr } from './../tools/generators.js';
 
 export type EventSubQueryStatus =
 	| 'enabled'
@@ -231,13 +232,39 @@ export default {
 		},
 	},
 	Users: async (users: User[], opts: RequestOpts = {}): Promise<Result<Helix.Users, string>> => {
-		const url = new URLSearchParams();
+		const copy = [...users];
 
-		users.map((u) => url.append('id', u.TwitchUID));
+		const done = [];
 
-		console.log('Helix Users request: ', { size: users.length });
+		for (const users of chunkArr(copy, 100)) {
+			const url = new URLSearchParams();
 
-		return _request('GET', 'users', { params: url }, opts);
+			users.map((u) => url.append('id', u.TwitchUID));
+
+			console.log('Helix Users request: ', { size: users.length });
+
+			const res = await _request<Helix.Users>('GET', 'users', { params: url }, opts);
+
+			if (res.err) {
+				// TODO - don't early return?
+				return res;
+			}
+
+			const { data } = res.inner;
+
+			if (data.length !== users.length) {
+				const missingUsers = users.filter((u) => !data.find((d) => d.id === u.TwitchUID));
+
+				Bot.HandleErrors('Helix Users request returned less users than requested', {
+					missingUsers,
+					data,
+				});
+			}
+
+			done.push(...data);
+		}
+
+		return new Ok({ data: done });
 	},
 	Stream: async (
 		users: User[],

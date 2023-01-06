@@ -32,11 +32,11 @@ export default class User {
 	 */
 	static Cache = new Map<string, User>();
 
-	public readonly ID: number;
-	public readonly Name: string;
-	public readonly TwitchUID: string;
-	public readonly Role: UserRole;
-	public readonly FirstSeen: Date;
+	public ID: number;
+	public Name: string;
+	public TwitchUID: string;
+	public Role: UserRole;
+	public FirstSeen: Date;
 
 	constructor(user: Database.users) {
 		this.ID = user.id;
@@ -98,6 +98,16 @@ export default class User {
 		}
 
 		return Promise.all(users);
+	}
+
+	static async GetEveryone(): Promise<User[]> {
+		// TODO can do this better.
+
+		const users = await Bot.SQL.Query<Database.users[]>`
+            SELECT * FROM users
+        `;
+
+		return users.map((user) => new User(user));
 	}
 
 	static CleanName(name: string) {
@@ -289,6 +299,16 @@ export default class User {
 
 	async Delete(option: string): Promise<void> {
 		await Bot.Redis.HDel(`user:${this.TwitchUID}:data`, option);
+	}
+
+	async UpdateName(newName: string): Promise<void> {
+		await Bot.SQL.Query<Database.users[]>`
+            UPDATE users
+            SET name = ${newName}
+            WHERE twitch_uid = ${this.TwitchUID}
+        `;
+
+		this.Name = newName;
 	}
 
 	/**

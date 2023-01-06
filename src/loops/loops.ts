@@ -1,12 +1,7 @@
 import { EventsubTypes } from './../Singletons/Redis/Data.Types.js';
-import {
-	ChannelSettingsValue,
-	EventSubHandler,
-	GetSettings,
-	UpdateSetting,
-} from './../controller/Channel/index.js';
+import { ChannelSettingsValue, GetSettings, UpdateSetting } from './../controller/Channel/index.js';
 import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
-import { CreateEventSubResponse } from './../Helix/index.js';
+import { Helix } from './../Typings/types.js';
 
 (async () => {
 	const Got = (await import('./../tools/Got.js')).default;
@@ -18,7 +13,8 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 
 	const THIRTY_SECONDS = 30 * 1000;
 	const ONE_MINUTE = THIRTY_SECONDS * 2;
-	const ONE_HOUR = ONE_MINUTE * 60;
+	const THIRTY_MINUTES = ONE_MINUTE * 30;
+	const ONE_HOUR = THIRTY_MINUTES * 2;
 	const FIVE_MINUTES = ONE_MINUTE * 5;
 	const TEN_MINUTES = FIVE_MINUTES * 2;
 
@@ -298,6 +294,51 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 			}),
 		);
 	}, TEN_MINUTES);
+
+	const handleNameChanges = async function () {
+		const users = await Bot.User.GetEveryone();
+
+		const helixUsers = await Helix.Users(users);
+
+		if (helixUsers.err) {
+			Bot.HandleErrors('Failed to fetch helix users', helixUsers.err);
+			return;
+		}
+
+		const helixUsersMap = new Map<string, Helix.User>();
+
+		for (const user of helixUsers.inner.data) {
+			helixUsersMap.set(user.id, user);
+		}
+
+		for (const user of users) {
+			const helixUser = helixUsersMap.get(user.TwitchUID);
+
+			if (!helixUser) {
+				console.warn(`Failed to find ${user.Name} in helix users`);
+				continue;
+			}
+
+			// No name changes
+			if (helixUser.login === user.Name) continue;
+
+			await user.UpdateName(helixUser.login);
+
+			console.log(`Updated ${user.Name} to ${helixUser.login}`);
+
+			const channel = await Bot.Twitch.Controller.TwitchChannelSpecific({
+				ID: user.TwitchUID,
+			});
+
+			if (channel) {
+				channel.UpdateName(helixUser.login);
+			}
+		}
+	};
+
+	setTimeout(handleNameChanges, THIRTY_MINUTES);
+
+	handleNameChanges();
 })();
 
 export {};
