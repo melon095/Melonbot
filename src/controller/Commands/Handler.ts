@@ -4,6 +4,7 @@ import { exit } from 'node:process';
 import { resolve } from 'node:path';
 import { EPermissionLevel } from './../../Typings/enums.js';
 import { Import } from './../../tools/tools.js';
+import { Logger } from './../../logger.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare type Class = new (...args: any[]) => CommandModel;
@@ -19,7 +20,7 @@ export class CommandsHandler {
 		Permission: EPermissionLevel;
 	}[];
 
-	constructor() {
+	constructor(private readonly logger: Logger) {
 		this.commandNameList = [];
 	}
 
@@ -27,7 +28,7 @@ export class CommandsHandler {
 		try {
 			// Read all commands into this.commandData
 			const _cmds_ = await this.FindCommands().catch((e) => {
-				console.error('Unable to read the directory of commands', e);
+				this.logger.Error('Unable to read the directory of commands %O', e);
 				process.exitCode = -1;
 				exit();
 			});
@@ -95,7 +96,7 @@ export class CommandsHandler {
 
 			return;
 		} catch (e) {
-			Bot.HandleErrors('CommandsHandler/initialize', e);
+			this.logger.Error(e as Error, 'CommandsHandler/initialize');
 			return;
 		}
 	}
@@ -110,7 +111,7 @@ export class CommandsHandler {
 		const c = Import(resolve(process.cwd(), 'build/commands'), `${command.Name}.js`)
 			.then((c) => new c())
 			.catch((e) => {
-				Bot.HandleErrors('CommandsHandler/getCommands', e);
+				this.logger.Error(e as Error, 'CommandsHandler/getCommands');
 				return undefined;
 			});
 

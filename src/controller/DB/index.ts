@@ -92,12 +92,12 @@ export class SQLController {
 			.filter(([fileVersion]) => fileVersion > currentVersion);
 
 		for (const [version, name] of migrationsToRun) {
-			console.debug(`Running migration ${version}_${name}`);
+			Bot.Log.Debug('Running migration %d_%s', version, name);
 
 			await this.Conn.begin(async (sql) => {
 				await sql.file(resolve(process.cwd(), 'Migrations', `${version}_${name}`));
 			}).catch((error) => {
-				console.error(`Error running migration ${version}_${name}: ${error}`);
+				Bot.Log.Error(`Error running migration %d_%s %O`, version, name, { error });
 				process.exit(1);
 			});
 

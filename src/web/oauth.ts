@@ -73,7 +73,7 @@ class Strategy {
 		const { code, error, error_description } = req.query;
 
 		if (error || !code) {
-			Bot.HandleErrors(this.opts.name, { error, error_description });
+			Bot.Log.Error(`%s %O`, this.opts.name, { error, error_description });
 			res.render('error', {
 				safeError: 'There was an error logging you in try again later.',
 			});

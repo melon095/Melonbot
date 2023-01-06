@@ -61,7 +61,7 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 
 			await Promise.allSettled(promises);
 		} catch (error) {
-			Bot.HandleErrors('__loops/ViewerList', error);
+			Bot.Log.Error(error as Error, '__loops/ViewerList');
 		}
 	}, ONE_MINUTE);
 
@@ -142,7 +142,7 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 						);
 
 						if (promisedEditors.Failed.length) {
-							console.warn('Failed to resolve usernames for some editors', {
+							Bot.Log.Error('Failed to resolve usernames for some editors %O', {
 								Channel: channel.Name,
 								Failed: promisedEditors.Failed,
 							});
@@ -175,15 +175,13 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 					}
 				});
 
-				// We don't care if we have permission or not to edit the emote-set.
-				// We need the emote-set id to use EventSub
-
-				// This means that they don't have an emote set on twitch,
-				// Or they unlinked twitch.
 				if (!default_emote_sets || default_emote_sets === currentEmoteSet) return;
 
-				console.log(
-					`${channel.Name} new 7TV emote set ${currentEmoteSet} --> ${default_emote_sets}`,
+				Bot.Log.Info(
+					'%s new 7TV emote set %s --> %s',
+					channel.Name,
+					currentEmoteSet,
+					default_emote_sets,
 				);
 
 				await UpdateSetting(
@@ -237,8 +235,11 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 					'SevenTVEmoteSet',
 					new ChannelSettingsValue(emote_set_id),
 				);
-				console.log(
-					`${channel.Name} new 7TV emote set ${currentEmoteSet} --> ${emote_set_id}`,
+				Bot.Log.Info(
+					'%s new 7TV emote set %s --> %s',
+					channel.Name,
+					currentEmoteSet,
+					emote_set_id,
 				);
 				return channel.joinEventSub({
 					Channel: user.Name,
@@ -248,6 +249,7 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 		);
 	}, ONE_MINUTE);
 
+	// Prevent accidently subscribing to channel.follow, (Reserved only for me.)
 	const VALID_EVENTSUB_TYPES: EventsubTypes[] = [
 		'channel.update',
 		'stream.offline',
@@ -279,7 +281,7 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 
 				for (const event of resp) {
 					if (event.err) {
-						console.warn('Failed to subscribe to eventsub', {
+						Bot.Log.Error('Failed to subscribe to eventsub %O', {
 							userid: channel.Id,
 							error: event.err,
 						});
@@ -289,7 +291,7 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 					for (const data of event.inner.data) {
 						channel.EventSubs.Push(data);
 
-						console.log('Subscribed to eventsub', {
+						Bot.Log.Info('Subscribed to eventsub %O', {
 							userid: channel.Id,
 							type: data.type,
 						});

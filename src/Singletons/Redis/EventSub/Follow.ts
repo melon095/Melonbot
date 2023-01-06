@@ -5,20 +5,22 @@ const CHINESE_REGEX = /\p{sc=Han}/u;
 
 export default {
 	Type: () => 'channel.follow',
-	Log: (message: IPubFollow) => console.log('Follow Event', message),
-	Handle: (message: IPubFollow) => {
-		const chl = Bot.Twitch.Controller.TwitchChannelSpecific({
+	Log: (logger, message) => logger.Info('Follow Event %O', message),
+	Handle: (message, logger) => {
+		const channel = Bot.Twitch.Controller.TwitchChannelSpecific({
 			ID: message.broadcaster_user_id,
 		});
 
-		if (!chl) {
-			console.warn('EventSub.Follow: Channel not found', {
-				message,
-			});
+		if (!channel) {
+			logger.Error('No channel found %O', message);
 			return;
 		}
 
-		const thankFn = chl.ModerationModule?.ThankFollow;
+		const thankFn = async (name: string) => {
+			const message = (await channel?.GetSettings()).FollowMessage.ToString() ?? '';
+
+			channel.say(message.replace(/{{name}}/g, name));
+		};
 
 		if (CHINESE_REGEX.test(message.user_name)) {
 			thankFn?.(message.user_login);

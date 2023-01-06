@@ -1,6 +1,7 @@
 /* eslint-disable no-var */
 import { Helix, TConfigFile, TStaticDataConfig } from './Typings/types';
-import HandleErrors from './ErrorHandler.js';
+import { ErrorFunction } from './ErrorHandler.js';
+import { Logger } from './logger.js';
 
 import User from './controller/User/index.js';
 
@@ -29,8 +30,8 @@ declare global {
 		};
 		User: typeof User;
 		Commands: import('./controller/Commands/Handler.js').CommandsHandler;
-		HandleErrors: typeof HandleErrors;
 		ID: string;
+		Log: Logger;
 	};
 
 	declare namespace Database {

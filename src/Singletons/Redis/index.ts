@@ -9,7 +9,7 @@ const CHANNELS = ['EventSub', 'banphrase', 'user-update'];
 export class RedisSingleton extends EventEmitter {
 	private static instance: RedisSingleton;
 
-	public static Factory(address: string): RedisSingleton {
+	public static Get(address: string): RedisSingleton {
 		if (!RedisSingleton.instance) {
 			RedisSingleton.instance = new RedisSingleton(address);
 		}
@@ -24,7 +24,7 @@ export class RedisSingleton extends EventEmitter {
 		super();
 
 		this._client = createClient({
-			url: address,
+			url: this.address,
 		});
 
 		this._client.on('error', (err) => this.OnError(new Error(err)));
@@ -42,7 +42,7 @@ export class RedisSingleton extends EventEmitter {
 	}
 
 	private OnError(err: Error) {
-		Bot.HandleErrors('Redis', err);
+		Bot.Log.Error(err, 'Redis');
 	}
 
 	private _onSubMessage(Data: { Message: string; Channel: string }) {
@@ -54,11 +54,11 @@ export class RedisSingleton extends EventEmitter {
 
 			if (Data.Channel === 'EventSub') {
 				if (!parsed.Type) {
-					console.warn('No type provided for EventSub', parsed);
+					Bot.Log.Warn('No type provided for EventSub %O', parsed);
 					return;
 				}
 
-				HandleEventsub(parsed.Type, parsed.Data);
+				HandleEventsub(parsed.Type, parsed.Data, Bot.Log);
 				return;
 			}
 

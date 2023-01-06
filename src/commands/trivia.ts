@@ -33,13 +33,14 @@ export default class extends CommandModel {
 			};
 		}
 
+		const exclude = ctx.data.Params['exclude'] as string;
+		const include = ctx.data.Params['include'] as string;
+
+		await ctx.channel.Trivia?.start(exclude, include, ctx.user.Name);
+
 		return {
 			Success: true,
-			Result: await ctx.channel.Trivia?.start(
-				ctx.data.Params['exclude'] as string,
-				ctx.data.Params['include'] as string,
-				ctx.user.Name,
-			),
+			Result: '',
 		};
 	};
 	LongDescription = async (prefix: string) => [

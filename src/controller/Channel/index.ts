@@ -14,20 +14,19 @@ import {
 	CommandLogFn,
 	CommandLogType,
 } from '../../Models/Command.js';
-import { ModerationModule } from './../../Modules/Moderation.js';
 import TriviaController from './../Trivia/index.js';
 import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
 import User from './../User/index.js';
 import PreHandler from './../../PreHandlers/index.js';
 import Helix, {
 	CreateEventSubResponse,
-	DefaultEventsubCondition,
 	EventSubFulfilledStatus,
 	EventSubSubscription,
 } from './../../Helix/index.js';
 import { RedisSingleton } from './../../Singletons/Redis/index.js';
 import { EventsubTypes } from 'Singletons/Redis/Data.Types';
 import { IPromolve, Promolve } from '@melon95/promolve';
+import { Logger } from './../../logger.js';
 
 /**
  * Encapsulated data for every channel.
@@ -78,17 +77,12 @@ export class Channel {
 	/**
 	 * @description Last message in channel.
 	 */
-	public LastMessage: string;
+	public LastMessage: string = '';
 
 	/**
 	 * @description
 	 */
 	public UserCooldowns: Record<number, TUserCooldown[]>;
-
-	/**
-	 * @description If the bot is moderator enable to moderation module for this chat.
-	 */
-	public ModerationModule: ModerationModule | null;
 
 	/**
 	 * @description Commands which can't be run in the channel.
@@ -104,6 +98,11 @@ export class Channel {
 	 * @description Keep track of eventsub subscriptions for this channel.
 	 */
 	public EventSubs: EventSubHandler;
+
+	/**
+	 * @description Global pino.js logger.
+	 */
+	public Logger: Logger;
 
 	static async WithEventsub(channel: Channel, emoteSetID?: string): Promise<Channel> {
 		let identifier: SevenTVChannelIdentifier | undefined = undefined;
@@ -149,13 +148,7 @@ export class Channel {
 		this.Banphrase = new Banphrase(user);
 		this.Live = Live;
 		this.Queue = new MessageScheduler();
-		this.LastMessage = '';
 		this.UserCooldowns = {};
-		if (Mode === 'Moderator') {
-			this.ModerationModule = new ModerationModule(this);
-		} else {
-			this.ModerationModule = null;
-		}
 
 		this.Filter = [];
 		this.Trivia = null;
@@ -165,6 +158,7 @@ export class Channel {
 		// Create callback for the message queue.
 		this.Queue.on('message', (a, b) => this.onQueue(a, b));
 		this.EventSubs = new EventSubHandler(this, Bot.Redis);
+		this.Logger = Bot.Log.WithCategory('Channel', { channel: this.Name });
 	}
 
 	async say(
@@ -261,7 +255,7 @@ export class Channel {
 					Params: argsResult.values,
 					User: extras,
 				},
-				Log: CommandLog(command.Name, this.Name),
+				Log: CommandLog(this.Logger, command.Name, this.Name),
 			};
 
 			let mods;
@@ -271,7 +265,7 @@ export class Channel {
 				if (error instanceof SafeResponseError) {
 					this.say(`❗ ${user.Name}: ${error.message}`, { SkipBanphrase: true });
 				} else {
-					Bot.HandleErrors('PreHandler', error);
+					this.Logger.Error(error as Error, 'PreHandler');
 
 					this.say(`❗ ${user.Name}: An error occurred while running the command :(`, {
 						SkipBanphrase: true,
@@ -307,7 +301,7 @@ export class Channel {
 					});
 				})
 				.catch((error) => {
-					Bot.HandleErrors('command/run/catch', error);
+					this.Logger.Error(error as Error, 'command/run/catch');
 
 					if (user.HasSuperPermission()) {
 						this.say(`❗ ${user.Name}: ${getStringFromError(error)}`, {
@@ -335,7 +329,7 @@ export class Channel {
 			Bot.SQL
 				.Query`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`.execute();
 		} catch (e) {
-			Bot.HandleErrors('channel/tryCommand/catch', e);
+			this.Logger.Error(e as Error, 'channel/tryCommand/catch');
 			this.say('BrokeBack command failed', {
 				SkipBanphrase: true,
 			});
@@ -379,7 +373,7 @@ export class Channel {
 				if (!e) return;
 				emoteSetID = e;
 			} catch (error) {
-				Bot.HandleErrors('channel/leaveEventSub', error);
+				this.Logger.Error(error as Error, 'channel/leaveEventSub');
 				return;
 			}
 		}
@@ -411,8 +405,7 @@ export class Channel {
 				if (!banned) {
 					client.privmsg(this.Name, message);
 				} else {
-					console.log({
-						What: 'Received bad word in channel',
+					this.Logger.Warn('Banphrase triggered %O', {
 						Channel: this.Name,
 						Message: message,
 						Reason: reason,
@@ -422,7 +415,7 @@ export class Channel {
 				}
 			})
 			.catch((error) => {
-				Bot.HandleErrors('banphraseCheck', error);
+				this.Logger.Error(error as Error, 'banphraseCheck');
 				client.privmsg(
 					this.Name,
 					'PoroSad unable to verify message against banphrase api.',
@@ -468,7 +461,7 @@ export class Channel {
 
 			await Promise.all(queries);
 		}).catch((error) => {
-			Bot.HandleErrors('channel/join', error);
+			Bot.Log.Error(error as Error, 'channel/join');
 			throw '';
 		});
 
@@ -489,7 +482,7 @@ export class Channel {
 
 			for (const r of resp) {
 				if (r.err) {
-					console.warn('Failed to create eventsub for channel: ', {
+					Bot.Log.Error('Failed to create eventsub for channel %O', {
 						user: user.Name,
 						err: r.inner,
 					});
@@ -503,7 +496,7 @@ export class Channel {
 
 			channel.say('ApuApustaja 👋 Hi');
 		} catch (err) {
-			Bot.HandleErrors('Join', err);
+			Bot.Log.Error(err as Error, 'Join');
 			await Bot.Twitch.Controller.client.part(user.Name);
 			throw '';
 		}
@@ -547,6 +540,10 @@ export class Channel {
 		) as string[];
 	}
 
+	public async GetSettings(): Promise<ChannelSettings> {
+		return GetSettings(this.User());
+	}
+
 	public async ReflectSettings(): Promise<void> {
 		const settings = await GetSettings(this.User());
 
@@ -572,8 +569,7 @@ export class Channel {
 		Bot.SQL.Query`UPDATE channels SET bot_permission = ${3} WHERE user_id = ${
 			this.Id
 		}`.execute();
-		this.ModerationModule = new ModerationModule(this);
-		console.info("Channel '" + this.Name + "' is now set as Moderator.");
+		this.Logger.Info('is now set as Moderator.');
 	}
 
 	setVip(): void {
@@ -583,8 +579,7 @@ export class Channel {
 		Bot.SQL.Query`UPDATE channels SET bot_permission = ${2} WHERE user_id = ${
 			this.Id
 		}`.execute();
-		this.ModerationModule = null;
-		console.info("Channel '" + this.Name + "' is now set as VIP.");
+		this.Logger.Info('is now set as VIP.');
 	}
 
 	// Norman meaning.. Normal. WutFace
@@ -595,8 +590,7 @@ export class Channel {
 		Bot.SQL.Query`UPDATE channels SET bot_permission = ${1} WHERE user_id = ${
 			this.Id
 		}`.execute();
-		this.ModerationModule = null;
-		console.info("Channel '" + this.Name + "' is now set as Norman.");
+		this.Logger.Info('is now set as Norman.');
 	}
 
 	async UpdateLive(): Promise<void> {
@@ -641,7 +635,7 @@ export class Channel {
 	}
 
 	private async InitiateTrivia(): Promise<void> {
-		this.Trivia = new TriviaController();
+		this.Trivia = new TriviaController(this.Logger);
 
 		this.Trivia.on('ready', (category: string, question: string, hasHint: boolean) => {
 			this.say(
@@ -731,6 +725,7 @@ export const GetSettings = async (channel: User | Promise<User>): Promise<Channe
 	const done: ChannelSettings = {
 		Eventsub: DefaultChannelSetting(),
 		SevenTVEmoteSet: DefaultChannelSetting(),
+		FollowMessage: DefaultChannelSetting(),
 	};
 
 	const state = await Bot.Redis.HGetAll(`channel:${(await channel).TwitchUID}:settings`);
@@ -765,7 +760,7 @@ export const UpdateSetting = async (
 	Bot?.Twitch?.Controller?.TwitchChannelSpecific({ ID })?.ReflectSettings();
 };
 
-export type ChannelSettingsNames = 'Eventsub' | 'SevenTVEmoteSet';
+export type ChannelSettingsNames = 'Eventsub' | 'SevenTVEmoteSet' | 'FollowMessage';
 
 export type ChannelSettings = {
 	[key in ChannelSettingsNames]: ChannelSettingsValue;
@@ -809,15 +804,17 @@ export class ChannelSettingsValue {
 
 const DefaultChannelSetting = () => new ChannelSettingsValue('');
 
-const CommandLog = (name: string, channel: string): CommandLogFn => {
+const CommandLog = (logger: Logger, name: string, channel: string): CommandLogFn => {
+	// TODO: Error class handling.
+
 	return (type: CommandLogType = 'info', data = '', ...rest: any[]) => {
 		switch (type) {
 			case 'info': {
-				console.log(`[Command - ${channel}] ${name}`, data, ...rest);
+				logger.Info(`[Command - %s] %s %O %O`, channel, name, data, ...rest);
 				break;
 			}
 			case 'error': {
-				Bot.HandleErrors(`Command/${name}/${channel}`, data, ...rest);
+				logger.Error(`[Command/%s/%s] %O %O`, name, channel, data, ...rest);
 				break;
 			}
 		}

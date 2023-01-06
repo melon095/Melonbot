@@ -57,6 +57,7 @@ export default (async function () {
 			return new Ok({ cookie });
 		},
 		async (accessToken) => {
+			// This will fetch the user associated with the access token
 			const user = await HelixAPI.Users([], {
 				CustomHeaders: { Authorization: `Bearer ${accessToken}` },
 			});

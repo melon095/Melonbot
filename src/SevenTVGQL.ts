@@ -3,6 +3,7 @@ import Got from './tools/Got.js';
 import { TCommandContext } from './Models/Command.js';
 import User from './controller/User/index.js';
 import { GetSettings } from './controller/Channel/index.js';
+import { Logger } from 'logger.js';
 
 const url = 'https://7tv.io/v3/gql';
 
@@ -160,11 +161,11 @@ export enum ListItemAction {
 }
 
 export default {
-	setup: () => {
+	setup: (Bearer: string) => {
 		api = Got('json').extend({
 			prefixUrl: url,
 			headers: {
-				Authorization: `Bearer ${Bot.Config.SevenTV.Bearer}`,
+				Authorization: `Bearer ${Bearer}`,
 			},
 			hooks: {
 				beforeError: [
@@ -174,16 +175,19 @@ export default {
 							const { body } = response;
 							try {
 								const json = JSON.parse(body as string);
-								Bot.HandleErrors('Error on 7TV GQL:', {
+								Bot.Log.Error('7TV GQL Error %O', {
 									input: error.options.body,
 									errors: JSON.stringify(json.errors),
 									code: response.statusCode,
 								});
-							} catch (_) {
-								console.warn('7TV GQL Most likely recevied an Cloudflare issue', {
-									input: error.options.body,
-									code: response.statusCode,
-								});
+							} catch {
+								Bot.Log.Warn(
+									'7TV GQL Most likely recevied an Cloudflare issue %O',
+									{
+										input: error.options.body,
+										code: response.statusCode,
+									},
+								);
 							}
 						}
 						return error;

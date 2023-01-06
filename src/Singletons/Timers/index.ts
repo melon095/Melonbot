@@ -1,3 +1,4 @@
+import { Logger } from './../../logger.js';
 import { Result, Err, Ok } from './../../tools/result.js';
 
 type TimerOptions = Omit<Database.timers, 'uuid'>;
@@ -15,12 +16,17 @@ const TimerToDatabase = async (timer: TimerOptions): Promise<Database.timers> =>
 
 export default class TimerSingleton {
 	private static instance: TimerSingleton;
+	private readonly logger: Logger;
 	public static I(): TimerSingleton {
 		if (!TimerSingleton.instance) {
 			TimerSingleton.instance = new TimerSingleton();
 		}
 
 		return TimerSingleton.instance;
+	}
+
+	private constructor() {
+		this.logger = Bot.Log.WithCategory('TimerSingleton');
 	}
 
 	/**
@@ -77,7 +83,7 @@ export default class TimerSingleton {
 			}
 		}
 
-		console.log(`[TimerSingleton] Initialized with ${timers.length} timers`);
+		this.logger.Info(`[TimerSingleton] Initialized with %d timers`, timers.length);
 
 		return this;
 	}
@@ -161,7 +167,7 @@ export default class TimerSingleton {
 
 export class SingleTimer {
 	private static _Log(message: string, timer: SingleTimer) {
-		console.log(`[SingleTimer] ${message} for ${timer.Name} on ${timer.Owner}`);
+		Bot.Log.Info(`[SingleTimer] %s for %s on %s`, message, timer.Name, timer.Owner);
 	}
 
 	private _intervalCounter: NodeJS.Timeout | null = null;
@@ -231,7 +237,7 @@ export class SingleTimer {
 			const channel = Bot.Twitch.Controller.TwitchChannelSpecific({ ID: this.Owner });
 
 			if (!channel) {
-				Bot.HandleErrors('Timer', 'Channel not found: ' + this.opts.uuid);
+				Bot.Log.Error('Timer: Channel not found %s', this.opts.uuid);
 				return;
 			}
 

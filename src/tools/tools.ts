@@ -2,50 +2,8 @@ import { NChannel, TTokenFunction, NCommand } from './../Typings/types';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import Got from './Got.js';
-import { Result } from './result.js';
 
 const VALIDATE_WEBSITE = 'https://id.twitch.tv/oauth2/validate';
-
-export function convertHMS(timeInSeconds: number): string | undefined {
-	try {
-		const hours = Math.floor(timeInSeconds / 3600); // get hours
-		const minutes = Math.floor((timeInSeconds - hours * 3600) / 60); // get minutes
-		const seconds = timeInSeconds - hours * 3600 - minutes * 60; //  get seconds
-		// add 0 if value < 10; Example: 2 => 02
-		let returnValue = '';
-		if (hours < 10) {
-			returnValue += '0' + hours;
-		}
-		if (minutes < 10) {
-			returnValue += ':0' + minutes;
-		}
-		if (seconds < 10) {
-			returnValue += ':0' + seconds;
-		}
-		return returnValue;
-	} catch (err) {
-		console.error(err);
-	}
-}
-
-export function YMD(): string {
-	const date = new Date();
-	return `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${(
-		'0' + date.getDate()
-	).slice(-2)}`;
-}
-
-export function YMDHMS(): string {
-	const date = new Date();
-	const hours = date.getHours();
-	const minutes = date.getMinutes();
-	const seconds = date.getSeconds();
-	return `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${(
-		'0' + date.getDate()
-	).slice(-2)} ${hours < 10 ? '0' + hours : hours}:${minutes < 10 ? '0' + minutes : minutes}:${
-		seconds < 10 ? '0' + seconds : seconds
-	}`;
-}
 
 type TSecondsConvertions = {
 	fy: number;
@@ -124,7 +82,7 @@ const createToken = async (): Promise<string | null> => {
 	const json = JSON.parse(body);
 
 	if (statusCode >= 400) {
-		Bot.HandleErrors('tools/createToken', new Error(json));
+		Bot.Log.Error('tools/createToken %o', json);
 		return null;
 	}
 
@@ -162,7 +120,7 @@ export const token = {
 		if (token.statusCode === 200) return { status: 'OK', token: apptoken, error: '' };
 
 		const body = JSON.parse(token.body);
-		Bot.HandleErrors('tools/token/Bot', new Error(body));
+		Bot.Log.Error('tools/token/Bot %o', body);
 		const newToken = await createToken();
 
 		if (!newToken) return { status: 'ERROR', token: '', error: 'No token' };

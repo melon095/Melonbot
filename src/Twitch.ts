@@ -4,6 +4,7 @@ import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Chann
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
+import { Logger } from './logger.js';
 
 interface IUserInformation {
 	data: [
@@ -37,7 +38,7 @@ export default class Twitch {
 	private initFlags: [boolean, boolean] = [false, false];
 	private InitReady: IPromolve<boolean> = Promolve<boolean>();
 
-	private constructor() {
+	private constructor(private readonly logger: Logger) {
 		this.InitFulfill();
 
 		this.client = new DankTwitch.ChatClient({
@@ -50,14 +51,14 @@ export default class Twitch {
 			},
 		});
 		this.client.on('ready', () => {
-			console.log('Twitch client ready');
+			this.logger.Info('Twitch client ready');
 			this.initFlags[0] = true;
 		});
 
 		this.client.on('PRIVMSG', (msg) => this.MessageHandler(msg));
 
 		this.client.on('error', (error) => {
-			console.log({ error });
+			this.logger.Error(error, 'TMI Error');
 
 			if (
 				error instanceof DankTwitch.SayError &&
@@ -67,14 +68,11 @@ export default class Twitch {
 					error.message.includes('Bad response message') &&
 					error.message.includes('@msg-id=msg_rejected_mandatory')
 				) {
-					const _chl = this.TwitchChannelSpecific({
+					this.TwitchChannelSpecific({
 						Name: error.failedChannelName,
-					});
-					if (_chl) {
-						_chl.AutomodMessage(
-							'A message that was about to be posted was blocked by automod',
-						);
-					}
+					})?.AutomodMessage(
+						'A message that was about to be posted was blocked by automod',
+					);
 				}
 			}
 		});
@@ -86,8 +84,8 @@ export default class Twitch {
 		import('./loops/loops.js');
 	}
 
-	static async Init() {
-		const t = new Twitch();
+	static async Init(logger: Logger) {
+		const t = new Twitch(logger);
 
 		await t.SetOwner();
 
@@ -164,29 +162,6 @@ export default class Twitch {
 		}
 	}
 
-	// Whisper a user, if the bot is allowed to (Verified)
-	async Whisper(User: IWhisperUser, Message: string): Promise<void> {
-		const a = () => `@${User.Username}, New message! 📬 👉 ${Message}`;
-		if (!Bot.Config.Verified) {
-			console.error('Tried to whisper without being verified', { User, Message });
-			return;
-		}
-
-		this.client
-			.whisper(User.Username, a())
-			// Not allowed to whisper, rate limited.
-			.catch((err) => {
-				// Not important error from twitch.
-				if (!Array.isArray(err)) {
-					console.error(
-						`[Whisper - ${User.Username}] ${new Error(err)}. Message: ${Message}`,
-					);
-				} else {
-					console.error(`[Whisper] ${err}`);
-				}
-			});
-	}
-
 	private async SetOwner(): Promise<void> {
 		try {
 			const owner = await Bot.Redis.SGet('Owner');
@@ -228,7 +203,7 @@ export default class Twitch {
 
 			this.initFlags[1] = true;
 		} catch (e) {
-			Bot.HandleErrors('Twitch/SetOwner', e);
+			Bot.Log.Error(e as Error, 'Twitch/SetOwner');
 		}
 	}
 
@@ -272,7 +247,7 @@ export default class Twitch {
 
 			channel.tryCommand(user, input, commandName, msg);
 		} catch (error) {
-			Bot.HandleErrors('Twitch/MessageHandler', error as Error);
+			Bot.Log.Error(error as Error, 'Twitch/MessageHandler');
 		}
 	}
 }

@@ -32,7 +32,7 @@ export default class extends CommandModel {
 					fs.readFileSync(path.join(process.cwd() + '/config.json'), 'utf-8'),
 				);
 				env.addConfig(config);
-				SevenTV.setup();
+				SevenTV.setup(Bot.Config.SevenTV.Bearer);
 				break;
 			}
 			default: {

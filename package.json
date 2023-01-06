@@ -53,6 +53,8 @@
         "got": "^12.5.3",
         "jsonwebtoken": "^9.0.0",
         "markdown-it": "^13.0.1",
+        "pino": "^8.8.0",
+        "pino-pretty": "^9.1.1",
         "postgres": "^3.3.2",
         "pug": "^3.0.2",
         "redis": "^4.5.1",

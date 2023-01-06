@@ -1,20 +1,46 @@
-// TODO Improve this.
-export default function ErrorHandler<T>(Category: string, Err: T, ...args: string[]): void {
-	if (Err instanceof Error) {
-		if (!Err.message) return;
-		try {
-			Bot.SQL.Query`INSERT INTO error_logs (error_message) VALUES (${Err.message})`.execute();
-		} catch (e) {
-			console.error(e);
+export type ErrorFunction = <T>(Category: string, Err: T, ...args: string[]) => void;
+
+const Insert = (err: string | number) => {
+	Bot.SQL.Query`INSERT INTO error_logs (error_message) VALUES (${err})`.execute();
+};
+
+export default function () {
+	return function <T>(Category: string, Err: T, ...args: string[]): void {
+		if (Err instanceof Error) {
+			try {
+				Insert(Err.message);
+			} catch (error) {
+				Bot.Log.Error('Error while inserting error into database %O', error);
+			}
 		}
-	} else if (typeof Err === 'object') {
-		Bot.SQL.Query`INSERT INTO error_logs (error_message) VALUES (${JSON.stringify(
+
+		switch (typeof Err) {
+			case 'object': {
+				Insert(JSON.stringify(Err, null, 2));
+				break;
+			}
+			case 'number':
+			case 'string': {
+				Insert(Err);
+				break;
+			}
+			default: {
+				Bot.Log.Error('Error Handler: Unknown Error Type');
+			}
+		}
+
+		const opts: { Err: T; args?: string } = {
 			Err,
-		)})`.execute();
-	} else if (typeof Err === 'string') {
-		Bot.SQL.Query`INSERT INTO error_logs (error_message) VALUES (${Err})`.execute();
-	} else {
-		console.warn('Error Handler: Unknown Error Type');
-	}
-	console.error({ Category, Err, args: args.join(' ') });
+		};
+
+		if (args) {
+			opts['args'] = args.join(' ');
+		}
+
+		if (opts.Err instanceof Error) {
+			Bot.Log.Error(opts.Err, `${Category} %s`, opts.args);
+		} else {
+			Bot.Log.Error(`${Category} %O`, opts);
+		}
+	};
 }

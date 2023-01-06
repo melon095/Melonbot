@@ -24,7 +24,7 @@ export const SpotifyGetValidToken = async (user: User, oauthStrategy: Strategy) 
 
 			return newToken.access_token;
 		} catch (error) {
-			Bot.HandleErrors('Spotify', error);
+			Bot.Log.Error(error as Error, 'Spotify');
 			return null;
 		}
 	}

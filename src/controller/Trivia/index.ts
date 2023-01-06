@@ -1,6 +1,9 @@
 import EventEmitter from 'node:events';
 import got from './../../tools/Got.js';
 import similarity from 'string-similarity';
+import { Logger } from './../../logger.js';
+
+const API_URL = 'https://api.gazatu.xyz/trivia/questions';
 
 type Res = {
 	question: string;
@@ -31,7 +34,7 @@ export default class TriviaController extends EventEmitter {
 
 	private invoker: string;
 
-	constructor() {
+	constructor(private logger: Logger) {
 		super();
 		this.id = 0;
 		this.question = '';
@@ -42,8 +45,8 @@ export default class TriviaController extends EventEmitter {
 		this.invoker = '';
 	}
 
-	async start(exclude: string, include: string, invoker: string): Promise<string> {
-		if (this.block || this.initiated) return Promise.resolve('');
+	async start(exclude: string, include: string, invoker: string): Promise<void> {
+		if (this.block || this.initiated) return;
 
 		this.block = true;
 
@@ -55,37 +58,40 @@ export default class TriviaController extends EventEmitter {
 
 		if (include !== '') uri.append('include', include);
 
-		console.log(`https://api.gazatu.xyz/trivia/questions?${uri.toString()}`);
+		this.logger.Info(`Trivia: ${API_URL}?${uri.toString()}`);
 
-		got('json')(`https://api.gazatu.xyz/trivia/questions?${uri.toString()}`)
-			.then((res) => {
-				const json = JSON.parse(res.body);
+		const { statusCode, body } = await got('json')(API_URL, {
+			searchParams: uri,
+			throwHttpErrors: false,
+		});
 
-				const data = json[0] as Res;
-				console.log(data);
+		if (statusCode !== 200) {
+			this.logger.Error(`Trivia: %d %s`, statusCode, body);
+			this.emitFail();
+			this.block = false;
+			return;
+		}
 
-				this.question = data.question;
-				this.answer = data.answer;
-				this.category = data.category;
+		const json = JSON.parse(body);
 
-				// Expect that hint2 will only contain data when hint1 is null.
-				if (data.hint1 !== null && data.hint1.length > 0) {
-					this.hints[0] = data.hint1;
-					if (data.hint2 !== null && data.hint2.length > 0) this.hints[1] = data.hint2;
-				}
+		const data = json[0] as Res;
+		this.logger.Debug('%O', data);
 
-				this.invoker = invoker;
-				this.initiated = true;
-				this.emitReady();
-				this.block = false;
-				// this.lastrun = Date.now() + (this.cooldown)
-			})
-			.catch((res) => {
-				console.log(res);
-				Bot.HandleErrors('Trivia', res);
-				this.emitFail();
-			});
-		return Promise.resolve('');
+		this.question = data.question;
+		this.answer = data.answer;
+		this.category = data.category;
+
+		// Expect that hint2 will only contain data when hint1 is null.
+		if (data.hint1 !== null && data.hint1.length > 0) {
+			this.hints[0] = data.hint1;
+			if (data.hint2 !== null && data.hint2.length > 0) this.hints[1] = data.hint2;
+		}
+
+		this.invoker = invoker;
+		this.initiated = true;
+		this.emitReady();
+		this.block = false;
+		// this.lastrun = Date.now() + (this.cooldown)
 	}
 
 	tryAnswer(user: string, attempt: string): void {

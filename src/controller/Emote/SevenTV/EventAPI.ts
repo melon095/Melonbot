@@ -2,6 +2,7 @@ import MWebSocket from '../../../Models/Websocket.js';
 import WebSocket from 'ws';
 import { Channel } from './../../../controller/Channel/index.js';
 import gql, { ConnectionPlatform } from './../../../SevenTVGQL.js';
+import { Logger } from './../../../logger.js';
 
 // op -- 0
 // When an event gets fired
@@ -220,8 +221,8 @@ const createMessage = (code: number, data: object): string => JSON.stringify({ o
 export class SevenTVEvent extends MWebSocket {
 	public List: SevenTVChannelIdentifier[];
 
-	constructor() {
-		super('7TV', SEVENTV_EVENTAPI_URL);
+	constructor(logger: Logger) {
+		super('7TV', SEVENTV_EVENTAPI_URL, { logger });
 		this.List = [];
 
 		setInterval(() => {
@@ -379,7 +380,7 @@ export class SevenTVEvent extends MWebSocket {
 
 	override ErrorListener(e: WebSocket.ErrorEvent): Error {
 		const error = new Error(`${e.message} ${e.error}`);
-		Bot.HandleErrors(this.category, error);
+		super.Log('%s %s', e.message, e.error);
 		return error;
 	}
 

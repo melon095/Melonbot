@@ -4,15 +4,15 @@ import { UppercaseFirst } from './../../../tools/tools.js';
 
 export default {
 	Type: () => 'stream.online',
-	Log: ({ broadcaster_user_login, type }: IPubStreamOnline) =>
-		console.log(`[${broadcaster_user_login}] Is now online! (${UppercaseFirst(type)})`),
-	Handle: async ({ broadcaster_user_id }: IPubStreamOnline) => {
+	Log: (logger, { broadcaster_user_login, type }) =>
+		logger.Info(`[%s] Is now online! (%s)`, broadcaster_user_login, UppercaseFirst(type)),
+	Handle: async ({ broadcaster_user_id }, logger) => {
 		const channel = Bot.Twitch.Controller.TwitchChannelSpecific({
 			ID: broadcaster_user_id,
 		});
 
 		if (!channel) {
-			console.warn('EventSub.StreamOnline: Channel not found', {
+			logger.Warn('EventSub.StreamOnline: Channel not found %O', {
 				broadcaster_user_id,
 			});
 			return;
