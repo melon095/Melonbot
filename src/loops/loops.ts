@@ -301,14 +301,9 @@ import { UnpingUser } from './../tools/tools.js';
 
 		const helixUsers = await Helix.Users(users);
 
-		if (helixUsers.err) {
-			Bot.HandleErrors('Failed to fetch helix users', helixUsers.err);
-			return;
-		}
-
 		const helixUsersMap = new Map<string, Helix.User>();
 
-		for (const user of helixUsers.inner.data) {
+		for (const user of helixUsers.data) {
 			helixUsersMap.set(user.id, user);
 		}
 
@@ -322,6 +317,8 @@ import { UnpingUser } from './../tools/tools.js';
 
 			// No name changes
 			if (helixUser.login === user.Name) continue;
+
+			console.log({ helixUser, user });
 
 			await user.UpdateName(helixUser.login);
 

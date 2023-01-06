@@ -231,55 +231,52 @@ export default {
 			return _request('DELETE', url, { params });
 		},
 	},
-	Users: async (users: User[], opts: RequestOpts = {}): Promise<Result<Helix.Users, string>> => {
+	Users: async (users: User[], opts: RequestOpts = {}): Promise<Helix.Users> => {
 		const copy = [...users];
 
-		const done = [];
+		const done: Helix.User[] = [];
 
-		for (const users of chunkArr(copy, 100)) {
-			const url = new URLSearchParams();
+		await Promise.all(
+			[...chunkArr(copy, 100)].map(async (chunk) => {
+				const url = new URLSearchParams();
 
-			users.map((u) => url.append('id', u.TwitchUID));
+				chunk.map((u) => url.append('id', u.TwitchUID));
 
-			console.log('Helix Users request: ', { size: users.length });
+				console.log('Helix Users request: ', { size: users.length });
 
-			const res = await _request<Helix.Users>('GET', 'users', { params: url }, opts);
+				const res = await _request<Helix.Users>('GET', 'users', { params: url }, opts);
 
-			if (res.err) {
-				// TODO - don't early return?
-				return res;
-			}
+				if (res.err) {
+					return;
+				}
 
-			const { data } = res.inner;
+				const { data } = res.inner;
 
-			if (data.length !== users.length) {
-				const missingUsers = users
-					.filter((u) => !data.find((d) => d.id === u.TwitchUID))
-					.map((u) => u.toString());
+				if (data.length !== chunk.length) {
+					process.nextTick(() => {
+						// Usually means, banned or a manually deactivated account
 
-				Bot.HandleErrors('Helix Users request returned less users than requested', {
-					missingUsers,
-				});
-			}
+						const missingUsers = chunk
+							.filter((u) => !data.find((d) => d.id === u.TwitchUID))
+							.map((u) => u.toString());
 
-			done.push(...data);
-		}
+						Bot.HandleErrors('Helix Users request returned less users than requested', {
+							missingUsers,
+						});
+					});
+				}
 
-		return new Ok({ data: done });
+				done.push(...data);
+			}),
+		);
+
+		return { data: done };
 	},
 	Stream: async (
 		users: User[],
 		opts: RequestOpts = {},
 	): Promise<{ data: Helix.Stream['data']; notLive: User[] }> => {
-		const copy = [...users];
-		const chunks = [];
-
-		while (copy.length > 0) {
-			chunks.push(copy.splice(0, 100));
-		}
-
-		// TODO Clean this up
-		const promises = chunks.map(async (channels) => {
+		const promises = [...chunkArr(users, 100)].map(async (channels) => {
 			const url = new URLSearchParams();
 
 			channels.map((c) => url.append('user_id', c.TwitchUID));

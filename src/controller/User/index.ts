@@ -230,11 +230,11 @@ export default class User {
 		}
 
 		const user = await Helix.Users([this]);
-		if (user.err) {
+		if (!user.data.length) {
 			return '';
 		}
 
-		const url = user.unwrap().data[0].profile_image_url;
+		const url = user.data[0].profile_image_url;
 
 		// Expire in 30 minutes
 		await (
@@ -302,21 +302,50 @@ export default class User {
 	}
 
 	async UpdateName(newName: string): Promise<void> {
-		await Bot.SQL.Query<Database.users[]>`
-            UPDATE users
-            SET name = ${newName}
-            WHERE twitch_uid = ${this.TwitchUID}
-        `;
+		await Bot.SQL.Transaction(async (sql) => {
+			const users = await sql<Database.users[]>`
+                SELECT * FROM users
+                WHERE twitch_uid = ${this.TwitchUID}
+                ORDER BY first_seen ASC
+            `;
 
-		this.Name = newName;
+			if (users.length > 1) {
+				console.log(
+					`!!! ${this.Name} changed name to ${newName} but there are multiple accounts with the same twitch_uid (${this.TwitchUID})`,
+				);
+
+				await sql<Database.users[]>`
+                    DELETE FROM users
+                    WHERE twitch_uid = ${this.TwitchUID}
+                    AND id != ${users[0].id}
+                `;
+
+				await sql<Database.users[]>`
+                    UPDATE users
+                    SET name = ${newName}
+                    WHERE id = ${users[0].id}
+                `;
+
+				this.Name = newName;
+				return;
+			}
+
+			await sql<Database.users[]>`
+                UPDATE users
+                SET name = ${newName}
+                WHERE id = ${this.ID}
+            `;
+
+			this.Name = newName;
+		});
 	}
 
 	/**
-	 * User((1) melon095:146910710 - admin - 2021-05-01T20:00:00.000Z)
+	 * User((1) melon095 : 146910710 - admin - 1/4/2021)
 	 */
 	toString() {
-		return `User((${this.ID}) ${this.Name}:${this.TwitchUID} - ${
+		return `User((${this.ID}) ${this.Name} : ${this.TwitchUID} - ${
 			this.Role
-		} - ${this.FirstSeen.toLocaleDateString()})`;
+		} - ${this.FirstSeen.toLocaleDateString('no-NB')})`;
 	}
 }
