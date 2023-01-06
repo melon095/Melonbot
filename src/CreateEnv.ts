@@ -97,49 +97,51 @@ export const Setup = {
 
 		await TimerSingleton.I().Initialize();
 
-		Bot.Twitch.Controller.InitPromise.then(async () => {
-			// Run once connected to twitch
-			const twitch = Bot.Twitch.Controller;
+		await Bot.Twitch.Controller.InitPromise;
 
-			Bot.Twitch.Emotes.SevenTVEvent.Connect();
+		const twitch = Bot.Twitch.Controller;
 
-			const self = await Channel.CreateBot();
+		Bot.Twitch.Emotes.SevenTVEvent.Connect();
 
-			await twitch.client.join(Bot.Config.BotUsername);
-			twitch.channels.push(self);
+		const self = await Channel.CreateBot();
 
-			// Join all channels
-			const channelList = await Bot.SQL.Query<Database.channels[]>`
+		await twitch.client.join(Bot.Config.BotUsername);
+		twitch.channels.push(self);
+
+		// Join all channels
+		const channelList = await Bot.SQL.Query<Database.channels[]>`
                 SELECT * FROM channels 
                 WHERE name NOT LIKE ${Bot.Config.BotUsername}`;
 
-			if (channelList.length) {
-				for (const channel of channelList) {
-					console.log(`#Twitch Joining ${channel.name}`);
-					try {
-						await twitch.client.join(channel.name);
-					} catch (error) {
-						Bot.HandleErrors(`Joining ${channel.name}`, error);
-						continue;
-					}
-
-					const mode = NChannelFunctions.DatabaseToMode(channel.bot_permission);
-					const user = await Bot.User.Get(channel.user_id, channel.name);
-
-					const newChannel = await Channel.New(user, mode, channel.live);
-
-					const emote_set = await GetSettings(user).then(
-						(settings) => settings.SevenTVEmoteSet.ToString() ?? undefined,
-					);
-
-					await Channel.WithEventsub(newChannel, emote_set);
-
-					twitch.channels.push(newChannel);
-
-					await Sleep(Bot.Config.Verified ? 0.025 : 1);
+		if (channelList.length) {
+			for (const channel of channelList) {
+				console.log(`#Twitch Joining ${channel.name}`);
+				try {
+					await twitch.client.join(channel.name);
+				} catch (error) {
+					Bot.HandleErrors(`Joining ${channel.name}`, error);
+					continue;
 				}
+
+				const mode = NChannelFunctions.DatabaseToMode(channel.bot_permission);
+				const user = await Bot.User.Get(channel.user_id, channel.name);
+
+				const newChannel = await Channel.New(user, mode, channel.live);
+
+				const emote_set = await GetSettings(user).then(
+					(settings) => settings.SevenTVEmoteSet.ToString() ?? undefined,
+				);
+
+				await Channel.WithEventsub(newChannel, emote_set);
+
+				twitch.channels.push(newChannel);
+
+				await Sleep(Bot.Config.Verified ? 0.025 : 1);
 			}
-		});
+		}
+
+		// Spawn loops after everything is setup
+		await import('./loops/loops.js');
 	},
 };
 

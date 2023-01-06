@@ -82,8 +82,6 @@ export default class Twitch {
 		this.client.connect();
 
 		this._setupRedisCallbacks();
-
-		import('./loops/loops.js');
 	}
 
 	static async Init() {
@@ -185,6 +183,14 @@ export default class Twitch {
 					console.error(`[Whisper] ${err}`);
 				}
 			});
+	}
+
+	async TryRejoin(name: string): Promise<void> {
+		const channel = this.TwitchChannelSpecific({ Name: name });
+		if (!channel) return;
+
+		this.client.join(name);
+		await channel.joinEventSub();
 	}
 
 	private async SetOwner(): Promise<void> {

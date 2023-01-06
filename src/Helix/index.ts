@@ -2,9 +2,10 @@ import { Method } from 'got';
 import { EventsubTypes } from 'Singletons/Redis/Data.Types.js';
 import { Helix } from './../Typings/types.js';
 import got from './../tools/Got.js';
-import { token } from './../tools/tools.js';
+import { Sleep, token } from './../tools/tools.js';
 import { Result, Err, Ok } from './../tools/result.js';
 import User from './../controller/User/index.js';
+import { chunkArr } from './../tools/generators.js';
 
 export type EventSubQueryStatus =
 	| 'enabled'
@@ -230,28 +231,42 @@ export default {
 			return _request('DELETE', url, { params });
 		},
 	},
-	Users: async (users: User[], opts: RequestOpts = {}): Promise<Result<Helix.Users, string>> => {
-		const url = new URLSearchParams();
+	Users: async (users: User[], opts: RequestOpts = {}): Promise<Helix.Users> => {
+		const copy = [...users];
 
-		users.map((u) => url.append('id', u.TwitchUID));
+		const done: Helix.User[] = [];
 
-		console.log('Helix Users request: ', { size: users.length });
+		await Promise.all(
+			[...chunkArr(copy, 100)].map(async (chunk, i) => {
+				const url = new URLSearchParams();
 
-		return _request('GET', 'users', { params: url }, opts);
+				chunk.map((u) => url.append('id', u.TwitchUID));
+
+				console.log('Helix Users request: ', { size: chunk.length });
+
+				const res = await _request<Helix.Users>('GET', 'users', { params: url }, opts);
+
+				if (res.err) {
+					return;
+				}
+
+				const { data } = res.inner;
+
+				done.push(...data);
+
+				// Rate limit ... 0, 500, 1000, etc. Unsure if this is a good way to do it.
+				// 150 requests per second is the limit, this should be fine.
+				await Sleep(i * 500);
+			}),
+		);
+
+		return { data: done };
 	},
 	Stream: async (
 		users: User[],
 		opts: RequestOpts = {},
 	): Promise<{ data: Helix.Stream['data']; notLive: User[] }> => {
-		const copy = [...users];
-		const chunks = [];
-
-		while (copy.length > 0) {
-			chunks.push(copy.splice(0, 100));
-		}
-
-		// TODO Clean this up
-		const promises = chunks.map(async (channels) => {
+		const promises = [...chunkArr(users, 100)].map(async (channels) => {
 			const url = new URLSearchParams();
 
 			channels.map((c) => url.append('user_id', c.TwitchUID));

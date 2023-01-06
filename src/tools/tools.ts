@@ -303,15 +303,14 @@ export const Import = async (folder: string, route: string) =>
 		await import(join('file://', folder, route))
 	).default;
 
+export const UnpingUser = (user: string) => `${user[0]}\u{E0000}${user.slice(1)}`;
 export const Unping = async (users: string[], message: string): Promise<string> => {
-	const unpingUser = (user: string) => `${user[0]}\u{E0000}${user.slice(1)}`;
-
 	return message
 		.split(' ')
 		.map((x) => {
 			const x2 = x.replace(/[@#.,:;?!.,:;\s]/gm, '');
 
-			return users.includes(x2.toLowerCase()) ? unpingUser(x) : x;
+			return users.includes(x2.toLowerCase()) ? UnpingUser(x) : x;
 		})
 		.join(' ');
 };
