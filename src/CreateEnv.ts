@@ -140,6 +140,9 @@ export const Setup = {
 				}
 			}
 		});
+
+		// Spawn loops after everything is setup
+		await import('./loops/loops.js');
 	},
 };
 

@@ -82,8 +82,6 @@ export default class Twitch {
 		this.client.connect();
 
 		this._setupRedisCallbacks();
-
-		import('./loops/loops.js');
 	}
 
 	static async Init() {
