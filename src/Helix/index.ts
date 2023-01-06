@@ -2,7 +2,7 @@ import { Method } from 'got';
 import { EventsubTypes } from 'Singletons/Redis/Data.Types.js';
 import { Helix } from './../Typings/types.js';
 import got from './../tools/Got.js';
-import { token } from './../tools/tools.js';
+import { Sleep, token } from './../tools/tools.js';
 import { Result, Err, Ok } from './../tools/result.js';
 import User from './../controller/User/index.js';
 import { chunkArr } from './../tools/generators.js';
@@ -252,17 +252,10 @@ export default {
 
 				const { data } = res.inner;
 
-				// if (data.length !== chunk.length) {
-				// 	process.nextTick(() => {
-				// 		const missingUsers = chunk
-				// 			.filter((u) => !data.find((d) => d.id === u.TwitchUID))
-				// 			.map((u) => u.toString());
-
-				// 		console.log('Found banned users: ', missingUsers);
-				// 	});
-				// }
-
 				done.push(...data);
+
+				// Rate limit ...
+				await Sleep(500);
 			}),
 		);
 
