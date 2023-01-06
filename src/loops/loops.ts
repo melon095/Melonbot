@@ -297,6 +297,7 @@ import { UnpingUser } from './../tools/tools.js';
 	}, TEN_MINUTES);
 
 	const handleNameChanges = async function () {
+		const botChannel = Bot.Twitch.Controller.TwitchChannelSpecific({ ID: Bot.ID });
 		const users = await Bot.User.GetEveryone();
 
 		const helixUsers = await Helix.Users(users);
@@ -311,7 +312,7 @@ import { UnpingUser } from './../tools/tools.js';
 			const helixUser = helixUsersMap.get(user.TwitchUID);
 
 			if (!helixUser) {
-				console.warn(`Failed to find ${user.Name} in helix users`);
+				console.warn(`Found banned user ${user.Name} (${user.TwitchUID})`);
 				continue;
 			}
 
@@ -320,9 +321,15 @@ import { UnpingUser } from './../tools/tools.js';
 
 			console.log({ helixUser, user });
 
-			await user.UpdateName(helixUser.login);
+			console.log(`Updating ${user.toString()} to ${helixUser.login}`);
 
-			console.log(`Updated ${user.toString()} to ${helixUser.login}`);
+			await botChannel?.say(
+				`Updating ${UnpingUser(user.toString())} to ${UnpingUser(
+					helixUser.login,
+				)} FeelsDankMan`,
+			);
+
+			await user.UpdateName(helixUser.login);
 
 			const channel = Bot.Twitch.Controller.TwitchChannelSpecific({
 				ID: user.TwitchUID,
@@ -331,14 +338,6 @@ import { UnpingUser } from './../tools/tools.js';
 			if (channel) {
 				channel.UpdateName(helixUser.login);
 			}
-
-			const botChannel = Bot.Twitch.Controller.TwitchChannelSpecific({ ID: Bot.ID });
-
-			await botChannel?.say(
-				`Updated ${UnpingUser(user.toString())} to ${UnpingUser(
-					helixUser.login,
-				)} FeelsDankMan`,
-			);
 		}
 	};
 

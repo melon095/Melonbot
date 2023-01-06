@@ -242,7 +242,7 @@ export default {
 
 				chunk.map((u) => url.append('id', u.TwitchUID));
 
-				console.log('Helix Users request: ', { size: users.length });
+				console.log('Helix Users request: ', { size: chunk.length });
 
 				const res = await _request<Helix.Users>('GET', 'users', { params: url }, opts);
 
@@ -252,19 +252,15 @@ export default {
 
 				const { data } = res.inner;
 
-				if (data.length !== chunk.length) {
-					process.nextTick(() => {
-						// Usually means, banned or a manually deactivated account
+				// if (data.length !== chunk.length) {
+				// 	process.nextTick(() => {
+				// 		const missingUsers = chunk
+				// 			.filter((u) => !data.find((d) => d.id === u.TwitchUID))
+				// 			.map((u) => u.toString());
 
-						const missingUsers = chunk
-							.filter((u) => !data.find((d) => d.id === u.TwitchUID))
-							.map((u) => u.toString());
-
-						Bot.HandleErrors('Helix Users request returned less users than requested', {
-							missingUsers,
-						});
-					});
-				}
+				// 		console.log('Found banned users: ', missingUsers);
+				// 	});
+				// }
 
 				done.push(...data);
 			}),
