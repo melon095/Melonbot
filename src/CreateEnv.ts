@@ -103,7 +103,6 @@ export const Setup = {
 		await TimerSingleton.I().Initialize();
 
 		await Bot.Twitch.Controller.InitPromise;
-		// Run once connected to twitch
 		const twitch = Bot.Twitch.Controller;
 
 		Bot.Twitch.Emotes.SevenTVEvent.Connect();
@@ -144,6 +143,9 @@ export const Setup = {
 				await Sleep(Bot.Config.Verified ? 0.025 : 1);
 			}
 		}
+
+		// Spawn loops after everything is setup
+		await import('./loops/loops.js');
 	},
 };
 

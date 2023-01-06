@@ -1,12 +1,8 @@
 import { EventsubTypes } from './../Singletons/Redis/Data.Types.js';
-import {
-	ChannelSettingsValue,
-	EventSubHandler,
-	GetSettings,
-	UpdateSetting,
-} from './../controller/Channel/index.js';
+import { ChannelSettingsValue, GetSettings, UpdateSetting } from './../controller/Channel/index.js';
 import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
-import { CreateEventSubResponse } from './../Helix/index.js';
+import { Helix } from './../Typings/types.js';
+import { UnpingUser } from './../tools/tools.js';
 
 (async () => {
 	const Got = (await import('./../tools/Got.js')).default;
@@ -18,7 +14,8 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 
 	const THIRTY_SECONDS = 30 * 1000;
 	const ONE_MINUTE = THIRTY_SECONDS * 2;
-	const ONE_HOUR = ONE_MINUTE * 60;
+	const THIRTY_MINUTES = ONE_MINUTE * 30;
+	const ONE_HOUR = THIRTY_MINUTES * 2;
 	const FIVE_MINUTES = ONE_MINUTE * 5;
 	const TEN_MINUTES = FIVE_MINUTES * 2;
 
@@ -300,6 +297,55 @@ import { CreateEventSubResponse } from './../Helix/index.js';
 			}),
 		);
 	}, TEN_MINUTES);
+
+	const handleNameChanges = async function () {
+		const botChannel = Bot.Twitch.Controller.TwitchChannelSpecific({ ID: Bot.ID });
+		const users = await Bot.User.GetEveryone();
+
+		const helixUsers = await Helix.Users(users);
+
+		const helixUsersMap = new Map<string, Helix.User>();
+
+		for (const user of helixUsers.data) {
+			helixUsersMap.set(user.id, user);
+		}
+
+		for (const user of users) {
+			const helixUser = helixUsersMap.get(user.TwitchUID);
+
+			if (!helixUser) {
+				console.warn(`Found banned user ${user.Name} (${user.TwitchUID})`);
+				continue;
+			}
+
+			// No name changes
+			if (helixUser.login === user.Name) continue;
+
+			console.log({ helixUser, user });
+
+			console.log(`Updating ${user.toString()} to ${helixUser.login}`);
+
+			await botChannel?.say(
+				`Updating ${UnpingUser(user.toString())} to ${UnpingUser(
+					helixUser.login,
+				)} FeelsDankMan`,
+			);
+
+			await user.UpdateName(helixUser.login);
+
+			const channel = Bot.Twitch.Controller.TwitchChannelSpecific({
+				ID: user.TwitchUID,
+			});
+
+			if (channel) {
+				channel.UpdateName(helixUser.login);
+			}
+		}
+	};
+
+	setTimeout(handleNameChanges, THIRTY_MINUTES);
+
+	handleNameChanges();
 })();
 
 export {};

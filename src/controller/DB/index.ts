@@ -68,6 +68,10 @@ export class SQLController {
 		return this.Conn;
 	}
 
+	get Transaction() {
+		return this.Conn.begin;
+	}
+
 	async RunMigration(): Promise<MigrationResult> {
 		await createDefaultMigrationTable(this);
 		const currentVersion = await getCurrentVersion(this);

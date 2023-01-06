@@ -593,6 +593,13 @@ export class Channel {
 		this.Logger.Info('is now set as Norman.');
 	}
 
+	async UpdateName(newName: string): Promise<void> {
+		this.Name = newName;
+		await Bot.SQL.Query`UPDATE channels SET name = ${newName} WHERE user_id = ${this.Id}`;
+
+		await Bot.Twitch.Controller.TryRejoin(newName);
+	}
+
 	async UpdateLive(): Promise<void> {
 		this.Live = await tools.Live(this.Id);
 		return;

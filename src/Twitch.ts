@@ -80,8 +80,6 @@ export default class Twitch {
 		this.client.connect();
 
 		this._setupRedisCallbacks();
-
-		import('./loops/loops.js');
 	}
 
 	static async Init(logger: Logger) {
@@ -160,6 +158,14 @@ export default class Twitch {
 		} else {
 			throw new Error('No ID or Name provided');
 		}
+	}
+
+	async TryRejoin(name: string): Promise<void> {
+		const channel = this.TwitchChannelSpecific({ Name: name });
+		if (!channel) return;
+
+		this.client.join(name);
+		await channel.joinEventSub();
 	}
 
 	private async SetOwner(): Promise<void> {

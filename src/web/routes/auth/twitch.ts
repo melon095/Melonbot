@@ -62,11 +62,11 @@ export default (async function () {
 				CustomHeaders: { Authorization: `Bearer ${accessToken}` },
 			});
 
-			if (user.err) {
-				throw new Error(user.inner);
+			if (!user.data.length) {
+				return new Err('No user data');
 			}
 
-			return user.inner.data[0];
+			return user.data[0];
 		},
 	);
 
