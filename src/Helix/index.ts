@@ -237,7 +237,7 @@ export default {
 		const done: Helix.User[] = [];
 
 		await Promise.all(
-			[...chunkArr(copy, 100)].map(async (chunk) => {
+			[...chunkArr(copy, 100)].map(async (chunk, i) => {
 				const url = new URLSearchParams();
 
 				chunk.map((u) => url.append('id', u.TwitchUID));
@@ -254,8 +254,9 @@ export default {
 
 				done.push(...data);
 
-				// Rate limit ...
-				await Sleep(500);
+				// Rate limit ... 0, 500, 1000, etc. Unsure if this is a good way to do it.
+				// 150 requests per second is the limit, this should be fine.
+				await Sleep(i * 500);
 			}),
 		);
 
