@@ -253,10 +253,12 @@ export default {
 			const { data } = res.inner;
 
 			if (data.length !== users.length) {
-				const missingUsers = users.filter((u) => !data.find((d) => d.id === u.TwitchUID));
+				const missingUsers = users
+					.filter((u) => !data.find((d) => d.id === u.TwitchUID))
+					.map((u) => u.toString());
 
 				Bot.HandleErrors('Helix Users request returned less users than requested', {
-					users: missingUsers.every((u) => u.toString()),
+					missingUsers,
 				});
 			}
 

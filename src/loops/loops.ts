@@ -324,7 +324,7 @@ import { Helix } from './../Typings/types.js';
 
 			await user.UpdateName(helixUser.login);
 
-			console.log(`Updated ${user.Name} to ${helixUser.login}`);
+			console.log(`Updated ${user.toString()} to ${helixUser.login}`);
 
 			const channel = await Bot.Twitch.Controller.TwitchChannelSpecific({
 				ID: user.TwitchUID,
