@@ -2,6 +2,7 @@ import { EventsubTypes } from './../Singletons/Redis/Data.Types.js';
 import { ChannelSettingsValue, GetSettings, UpdateSetting } from './../controller/Channel/index.js';
 import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
 import { Helix } from './../Typings/types.js';
+import { UnpingUser } from './../tools/tools.js';
 
 (async () => {
 	const Got = (await import('./../tools/Got.js')).default;
@@ -326,13 +327,21 @@ import { Helix } from './../Typings/types.js';
 
 			console.log(`Updated ${user.toString()} to ${helixUser.login}`);
 
-			const channel = await Bot.Twitch.Controller.TwitchChannelSpecific({
+			const channel = Bot.Twitch.Controller.TwitchChannelSpecific({
 				ID: user.TwitchUID,
 			});
 
 			if (channel) {
 				channel.UpdateName(helixUser.login);
 			}
+
+			const botChannel = Bot.Twitch.Controller.TwitchChannelSpecific({ ID: Bot.ID });
+
+			await botChannel?.say(
+				`Updated ${UnpingUser(user.toString())} to ${UnpingUser(
+					helixUser.login,
+				)} FeelsDankMan`,
+			);
 		}
 	};
 

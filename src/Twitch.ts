@@ -187,6 +187,14 @@ export default class Twitch {
 			});
 	}
 
+	async TryRejoin(name: string): Promise<void> {
+		const channel = this.TwitchChannelSpecific({ Name: name });
+		if (!channel) return;
+
+		this.client.join(name);
+		await channel.joinEventSub();
+	}
+
 	private async SetOwner(): Promise<void> {
 		try {
 			const owner = await Bot.Redis.SGet('Owner');
