@@ -606,6 +606,8 @@ export class Channel {
 		await Bot.SQL.Query`UPDATE channels SET name = ${newName} WHERE user_id = ${this.Id}`;
 
 		await Bot.Twitch.Controller.TryRejoin(this, newName);
+
+		await this.say('FeelsDankMan TeaTime');
 	}
 
 	async UpdateLive(): Promise<void> {
