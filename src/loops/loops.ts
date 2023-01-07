@@ -336,7 +336,7 @@ import { UnpingUser } from './../tools/tools.js';
 			});
 
 			if (channel) {
-				channel.UpdateName(helixUser.login);
+				await channel.UpdateName(helixUser.login);
 			}
 		}
 	};
