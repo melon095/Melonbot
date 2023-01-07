@@ -185,12 +185,10 @@ export default class Twitch {
 			});
 	}
 
-	async TryRejoin(name: string): Promise<void> {
-		const channel = this.TwitchChannelSpecific({ Name: name });
-		if (!channel) return;
-
-		this.client.join(name);
+	async TryRejoin(channel: Channel, name: string): Promise<void> {
+		await this.client.join(name);
 		await channel.joinEventSub();
+		channel.UpdateMode('Write'); // TODO: Check database?
 	}
 
 	private async SetOwner(): Promise<void> {

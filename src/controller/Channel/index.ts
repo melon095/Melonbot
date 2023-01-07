@@ -399,6 +399,8 @@ export class Channel {
 	}
 
 	private async onQueue(message: string, options: ChannelTalkOptions): Promise<void> {
+		if (this.Mode === 'Read') return;
+
 		const client = Bot.Twitch.Controller.client;
 
 		if (options.SkipBanphrase) {
@@ -603,12 +605,19 @@ export class Channel {
 		this.Name = newName;
 		await Bot.SQL.Query`UPDATE channels SET name = ${newName} WHERE user_id = ${this.Id}`;
 
-		await Bot.Twitch.Controller.TryRejoin(newName);
+		await Bot.Twitch.Controller.TryRejoin(this, newName);
+
+		await this.say('FeelsDankMan TeaTime');
 	}
 
 	async UpdateLive(): Promise<void> {
 		this.Live = await tools.Live(this.Id);
 		return;
+	}
+
+	async UpdateMode(mode: NChannel.Mode): Promise<void> {
+		this.Mode = mode;
+		this.Cooldown = tools.NChannelFunctions.ModeToCooldown(mode) ?? 1250;
 	}
 
 	setMode(mode: NChannel.Mode): void {

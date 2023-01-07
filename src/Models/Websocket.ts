@@ -38,7 +38,7 @@ export default abstract class MWebSocket implements IWebsocket {
 	}
 
 	async Connect(): Promise<boolean> {
-		return new Promise((Resolve) => {
+		return new Promise((Resolve, Reject) => {
 			this.ws = new WebSocket(this.address);
 
 			this.ws.addEventListener('open', () => Resolve(this.OpenListener()));
@@ -49,7 +49,7 @@ export default abstract class MWebSocket implements IWebsocket {
 
 			this.ws.addEventListener('message', (e) => this.MessageListener(e));
 
-			this.ws.addEventListener('error', (e) => this.ErrorListener(e));
+			this.ws.addEventListener('error', (e) => Reject(this.ErrorListener(e)));
 		});
 	}
 
