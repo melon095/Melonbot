@@ -399,6 +399,8 @@ export class Channel {
 	}
 
 	private async onQueue(message: string, options: ChannelTalkOptions): Promise<void> {
+		if (this.Mode === 'Read') return;
+
 		const client = Bot.Twitch.Controller.client;
 
 		if (options.SkipBanphrase) {

@@ -117,6 +117,7 @@ export const Setup = {
 			for (const channel of channelList) {
 				let mode = NChannelFunctions.DatabaseToMode(channel.bot_permission);
 				const user = await Bot.User.Get(channel.user_id, channel.name);
+				let doEventsub = true;
 
 				console.log(`#Twitch Joining ${channel.name}`);
 				try {
@@ -124,14 +125,17 @@ export const Setup = {
 				} catch (error) {
 					Bot.HandleErrors(`Joining ${channel.name}`, error);
 					mode = 'Read'; // We want to create a channel object, but since we can't join, we set the mode to read
+					doEventsub = false;
 				}
 				const newChannel = await Channel.New(user, mode, channel.live);
 
-				const emote_set = await GetSettings(user).then(
-					(settings) => settings.SevenTVEmoteSet.ToString() ?? undefined,
-				);
+				if (doEventsub) {
+					const emote_set = await GetSettings(user).then(
+						(settings) => settings.SevenTVEmoteSet.ToString() ?? undefined,
+					);
 
-				await Channel.WithEventsub(newChannel, emote_set);
+					await Channel.WithEventsub(newChannel, emote_set);
+				}
 
 				twitch.channels.push(newChannel);
 
