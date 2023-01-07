@@ -611,6 +611,11 @@ export class Channel {
 		return;
 	}
 
+	async UpdateMode(mode: NChannel.Mode): Promise<void> {
+		this.Mode = mode;
+		this.Cooldown = tools.NChannelFunctions.ModeToCooldown(mode) ?? 1250;
+	}
+
 	setMode(mode: NChannel.Mode): void {
 		this.Mode = mode;
 	}
