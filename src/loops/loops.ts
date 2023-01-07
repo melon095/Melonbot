@@ -341,7 +341,7 @@ import { UnpingUser } from './../tools/tools.js';
 		}
 	};
 
-	setTimeout(handleNameChanges, THIRTY_MINUTES);
+	setInterval(handleNameChanges, THIRTY_MINUTES);
 
 	handleNameChanges();
 })();
