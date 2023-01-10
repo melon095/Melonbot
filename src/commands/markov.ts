@@ -45,7 +45,7 @@ export default class extends CommandModel {
 		const res = await makeReq(channel, seed);
 
 		if (!res.success) {
-			ctx.Log('error', 'Failed to query markov', { res });
+			ctx.Log('error', 'Failed to query markov', res);
 
 			return {
 				Success: false,
