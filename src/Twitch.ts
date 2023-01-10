@@ -79,6 +79,12 @@ export default class Twitch {
 			}
 		});
 
+		this.client.on('PING', async () => {
+			const before = Date.now();
+			await this.client.ping();
+			await Bot.Redis.SSet('Latency', String(Date.now() - before));
+		});
+
 		this.client.connect();
 
 		this._setupRedisCallbacks();
@@ -274,7 +280,13 @@ export default class Twitch {
 				return;
 			}
 
-			channel.tryCommand(user, input, commandName, msg);
+			const result = await channel.tryCommand(user, input, commandName, msg);
+
+			if (!result || !result.message) {
+				return;
+			}
+
+			channel.say(result.message, result.flags);
 		} catch (error) {
 			Bot.HandleErrors('Twitch/MessageHandler', error as Error);
 		}
