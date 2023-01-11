@@ -4,13 +4,13 @@ import { SpotifyGetValidToken, SpotifyGot } from './../tools/spotify.js';
 import Got from './../tools/Got.js';
 import StrategyConstructor, { AuthenticationMethod } from './../web/oauth.js';
 import { SpotifyTypes } from './../Typings/types.js';
-import { Ok } from './../tools/result.js';
+import { Err, Ok } from './../tools/result.js';
 
 const { ClientID, ClientSecret } = Bot.Config.Spotify;
 const Authorization = 'Basic ' + Buffer.from(`${ClientID}:${ClientSecret}`).toString('base64');
 
 // TODO: Get rid of this.
-const Strategy = new StrategyConstructor(
+const Strategy = new StrategyConstructor<SpotifyTypes.Me>(
 	{
 		name: 'Spotify',
 		redirectURL: '',
@@ -22,9 +22,9 @@ const Strategy = new StrategyConstructor(
 		tokenURL: 'https://accounts.spotify.com/api/token',
 	},
 	async (access_token, refresh_token, expires_in, profile, authUser) => {
-		return new Ok(null);
+		return new Err(new Error('Not implemented'));
 	},
-	async (accessToken, authUser) => {},
+	async (accessToken, authUser) => new Err(new Error('Not implemented')),
 );
 
 type SongWhipResponse = {

@@ -215,7 +215,7 @@ const authedRoutes: HeaderItem[] = [
 
 	app.get('*', (req, res) => res.status(404).render('404'));
 
-	app.listen(port, () => console.info('Listening...'));
+	app.listen(port, () => console.info('Listening...', { port }));
 })();
 
 type WebRequestLog = {

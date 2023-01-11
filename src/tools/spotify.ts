@@ -3,7 +3,10 @@ import User from './../controller/User/index.js';
 import Strategy from './../web/oauth.js';
 import Got from './Got.js';
 
-export const SpotifyGetValidToken = async (user: User, oauthStrategy: Strategy) => {
+export const SpotifyGetValidToken = async (
+	user: User,
+	oauthStrategy: Strategy<SpotifyTypes.Me>,
+) => {
 	const token = await user.Get('spotify').then((x) => {
 		if (!x) return null;
 

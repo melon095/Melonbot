@@ -1,6 +1,6 @@
 import Got from './../tools/Got.js';
 import type Express from 'express';
-import { Result } from './../tools/result.js';
+import { Ok, Result } from './../tools/result.js';
 
 const MONTH_IN_MS = 1000 * 60 * 60 * 24 * 30;
 
@@ -43,18 +43,18 @@ export interface HeaderStrategyOpts extends BaseStrategyOpts {
 
 type StrategyCallbackResult = { cookie?: CookieOpts } | null;
 
-type StrategyCallback = (
+type StrategyCallback<P, T extends Result<P, Error>> = (
 	accessToken: string,
 	refreshToken: string,
 	expires_in: number,
-	profile: any | undefined,
+	profile: T | undefined,
 	authUser: { id: string; name: string } | undefined,
 ) => Promise<Result<StrategyCallbackResult, Error | string>>;
 
-type StrategyGetUserProfile = (
+type StrategyGetUserProfile<P, T extends Result<P, Error> = Result<P, Error>> = (
 	accessToken: string,
 	authUser?: { id: string; name: string },
-) => Promise<any>;
+) => Promise<T>;
 
 export type StrategyRefreshFn = (
 	refresh_token: string,
@@ -62,11 +62,11 @@ export type StrategyRefreshFn = (
 
 type StrategyOpts = QueryStrategyOpts | HeaderStrategyOpts;
 
-class Strategy {
+class Strategy<P, T extends Result<P, Error> = Result<P, Error>> {
 	constructor(
 		private opts: StrategyOpts,
-		private callback: StrategyCallback,
-		private userProfile?: StrategyGetUserProfile,
+		private callback: StrategyCallback<P, T>,
+		private userProfile?: StrategyGetUserProfile<P, T>,
 	) {}
 
 	async authenticate(req: Express.Request, res: Express.Response, next: Express.NextFunction) {
@@ -85,7 +85,7 @@ class Strategy {
 			...opts,
 		});
 
-		let profile = undefined;
+		let profile: T | undefined = undefined;
 		const authUser = res.locals?.authUser;
 		if (this.userProfile) {
 			try {
@@ -96,15 +96,31 @@ class Strategy {
 				});
 				return;
 			}
+
+			if (profile?.err) {
+				res.render('error', {
+					safeError: profile.inner,
+				});
+				Bot.HandleErrors(this.opts.name, profile.inner);
+			}
 		}
 
-		const cbRes = await this.callback(
-			second.access_token,
-			second.refresh_token,
-			second.expires_in,
-			profile,
-			authUser || undefined,
-		);
+		let cbRes;
+		try {
+			cbRes = await this.callback(
+				second.access_token,
+				second.refresh_token,
+				second.expires_in,
+				profile,
+				authUser || undefined,
+			);
+		} catch (error) {
+			Bot.HandleErrors(this.opts.name, error);
+			res.render('error', {
+				safeError: 'There was an error logging you in try again later.',
+			});
+			return;
+		}
 
 		if (cbRes.err) {
 			res.render('error', {

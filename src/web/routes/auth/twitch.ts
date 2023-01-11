@@ -3,7 +3,7 @@ import { Authenticator } from './../../../web/index.js';
 import { GetSafeError } from './../../../controller/User/index.js';
 import HelixAPI from './../../../Helix/index.js';
 import { AuthenticationMethod, CookieOpts } from './../../oauth.js';
-import { Err, Ok } from './../../../tools/result.js';
+import { Err, Ok, Result } from './../../../tools/result.js';
 
 export default (async function () {
 	const RedirectURI = Bot.Config.Website.WebUrl + '/auth/twitch/callback';
@@ -13,7 +13,7 @@ export default (async function () {
 
 	const StrategyConstructor = (await import('./../../oauth.js')).default;
 
-	const Strategy = new StrategyConstructor(
+	const Strategy = new StrategyConstructor<Helix.User>(
 		{
 			name: 'Twitch',
 			redirectURL: RedirectURI,
@@ -22,12 +22,17 @@ export default (async function () {
 			clientSecret: Bot.Config.Twitch.ClientSecret,
 			tokenURL: 'https://id.twitch.tv/oauth2/token',
 		},
-		async (access_token, refresh_token, expires_in, profile, authUser) => {
+		async (access_token, refresh_token, expires_in, profile) => {
 			if (!profile) {
 				return new Err('No profile');
 			}
 
-			const { id, login } = profile as Helix.User;
+			if (profile.err) {
+				Bot.HandleErrors('Twitch', profile.err);
+				return new Err('There was an error logging you in try again later.');
+			}
+
+			const { id, login } = profile.inner;
 
 			let user;
 			try {
@@ -57,15 +62,23 @@ export default (async function () {
 			return new Ok({ cookie });
 		},
 		async (accessToken) => {
-			const user = await HelixAPI.Users([], {
-				CustomHeaders: { Authorization: `Bearer ${accessToken}` },
-			});
+			// TODO: Forced to use a Raw request, rather than Users due to Users method only working if the array is not empty.
 
-			if (!user.data.length) {
-				return new Err('No user data');
+			const user = await HelixAPI.Raw<Helix.Users>()(
+				'GET',
+				'users',
+				{},
+				{
+					CustomHeaders: { Authorization: `Bearer ${accessToken}` },
+				},
+			);
+
+			if (user.err) {
+				Bot.HandleErrors('Twitch', user.err);
+				return new Err(new Error('There was an error logging you in try again later.'));
 			}
 
-			return user.data[0];
+			return new Ok(user.inner.data[0]);
 		},
 	);
 

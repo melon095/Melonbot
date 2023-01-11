@@ -14,7 +14,7 @@ export default (async function () {
 
 	const StrategyConstructor = (await import('./../../oauth.js')).default;
 
-	const Strategy = new StrategyConstructor(
+	const Strategy = new StrategyConstructor<SpotifyTypes.Me>(
 		{
 			name: 'Spotify',
 			redirectURL: RedirectURI,
@@ -62,10 +62,10 @@ export default (async function () {
 			});
 
 			if (statusCode !== 200) {
-				return null;
+				return new Err(new Error('Failed to get user profile'));
 			}
 
-			return JSON.parse(body) as SpotifyTypes.Me;
+			return new Ok(JSON.parse(body));
 		},
 	);
 
