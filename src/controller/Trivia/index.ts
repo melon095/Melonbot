@@ -75,7 +75,7 @@ export default class TriviaController extends EventEmitter {
 		const json = JSON.parse(body);
 
 		const data = json[0] as Res;
-		Bot.Log.Debug('%O', data);
+		Bot.Log.Info('Trivia: %O', data);
 
 		this.question = data.question;
 		this.answer = data.answer;

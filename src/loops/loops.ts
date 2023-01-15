@@ -322,8 +322,7 @@ import { UnpingUser } from './../tools/tools.js';
 				continue;
 			}
 
-			Bot.Log.Debug('%O', { helixUser, user });
-
+			Bot.Log.Info('%O', { helixUser, user });
 			Bot.Log.Info(`Updating ${user.toString()} to ${helixUser.login}`);
 
 			await botChannel?.say(

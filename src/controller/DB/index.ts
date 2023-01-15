@@ -96,7 +96,7 @@ export class SQLController {
 			.filter(([fileVersion]) => fileVersion > currentVersion);
 
 		for (const [version, name] of migrationsToRun) {
-			Bot.Log.Debug('Running migration %d_%s', version, name);
+			Bot.Log.Info('Running migration %d_%s', version, name);
 
 			await this.Conn.begin(async (sql) => {
 				await sql.file(resolve(process.cwd(), 'Migrations', `${version}_${name}`));
