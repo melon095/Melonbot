@@ -31,12 +31,11 @@ export type WebsocketOpts = {
 
 type LogFunc = (msg: string, ...args: any[]) => void;
 
-export default abstract class MWebSocket implements IWebsocket {
+export default abstract class Websocket implements IWebsocket {
 	ws: WebSocket | null = null;
 	address: string;
 	category: string;
 	manualExit = false;
-	_LogFn: LogFunc;
 
 	constructor(category: string, ip: string, opts?: WebsocketOpts) {
 		if (!opts) opts = { secure: true };
@@ -45,8 +44,6 @@ export default abstract class MWebSocket implements IWebsocket {
 		if (opts.port) this.address += `:${opts.port}`;
 
 		this.category = category;
-
-		this._LogFn = opts.logger ? opts.logger.Info : console.log;
 	}
 
 	async Connect(): Promise<boolean> {
@@ -117,9 +114,9 @@ export default abstract class MWebSocket implements IWebsocket {
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	Log(msg: string, ...args: any[]): void {
-		const LCSUCCESS = `\x1b[32m[%s] [%s]\x1b[0m %s`; //green
 		const date = new Date(Date.now()).toLocaleTimeString();
-		this._LogFn(`%s %s %s %s %O`, LCSUCCESS, this.category, date, msg, args ?? '');
+
+		Bot.Log.Info('[%s] [%s] %s %O', this.category, date, msg, args ?? {});
 	}
 
 	abstract OpenListener(): boolean;

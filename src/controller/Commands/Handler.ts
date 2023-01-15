@@ -20,7 +20,7 @@ export class CommandsHandler {
 		Permission: EPermissionLevel;
 	}[];
 
-	constructor(private readonly logger: Logger) {
+	constructor() {
 		this.commandNameList = [];
 	}
 
@@ -28,7 +28,7 @@ export class CommandsHandler {
 		try {
 			// Read all commands into this.commandData
 			const _cmds_ = await this.FindCommands().catch((e) => {
-				this.logger.Error('Unable to read the directory of commands %O', e);
+				Bot.Log.Error('Unable to read the directory of commands %O', e);
 				process.exitCode = -1;
 				exit();
 			});
@@ -96,7 +96,7 @@ export class CommandsHandler {
 
 			return;
 		} catch (e) {
-			this.logger.Error(e as Error, 'CommandsHandler/initialize');
+			Bot.Log.Error(e as Error, 'CommandsHandler/initialize');
 			return;
 		}
 	}
@@ -111,7 +111,7 @@ export class CommandsHandler {
 		const c = Import(resolve(process.cwd(), 'build/commands'), `${command.Name}.js`)
 			.then((c) => new c())
 			.catch((e) => {
-				this.logger.Error(e as Error, 'CommandsHandler/getCommands');
+				Bot.Log.Error(e as Error, 'CommandsHandler/getCommands');
 				return undefined;
 			});
 

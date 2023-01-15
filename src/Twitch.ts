@@ -38,7 +38,7 @@ export default class Twitch {
 	private initFlags: [boolean, boolean] = [false, false];
 	private InitReady: IPromolve<boolean> = Promolve<boolean>();
 
-	private constructor(private readonly logger: Logger) {
+	private constructor() {
 		this.InitFulfill();
 
 		this.client = new DankTwitch.ChatClient({
@@ -51,14 +51,14 @@ export default class Twitch {
 			},
 		});
 		this.client.on('ready', () => {
-			this.logger.Info('Twitch client ready');
+			Bot.Log.Info('Twitch client ready');
 			this.initFlags[0] = true;
 		});
 
 		this.client.on('PRIVMSG', (msg) => this.MessageHandler(msg));
 
 		this.client.on('error', (error) => {
-			this.logger.Error(error, 'TMI Error');
+			Bot.Log.Error(error, 'TMI Error');
 
 			if (
 				error instanceof DankTwitch.SayError &&
@@ -88,8 +88,8 @@ export default class Twitch {
 		this._setupRedisCallbacks();
 	}
 
-	static async Init(logger: Logger) {
-		const t = new Twitch(logger);
+	static async Init() {
+		const t = new Twitch();
 
 		await t.SetOwner();
 

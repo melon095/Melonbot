@@ -28,16 +28,16 @@ export interface IEventSubHandler<M extends object> {
 	 * Type in correlation to the redis pubsub event
 	 */
 	Type(): TPubRecType;
-	Log?(logger: Logger, arg1: M): void;
-	Handle(arg0: M, arg1: Logger): Promise<void> | void;
+	Log?(arg0: M): void;
+	Handle(arg0: M): Promise<void> | void;
 }
 
-export default async <M extends object>(Type: TPubRecType, Handle: M, logger: Logger) => {
+export default async <M extends object>(Type: TPubRecType, Handle: M) => {
 	await ready.promise;
 
 	const handler = handlers[Type];
 	if (handler.Log) {
-		handler.Log(logger, Handle);
+		handler.Log(Handle);
 	}
 
 	if (!handler.Handle) {
@@ -45,8 +45,8 @@ export default async <M extends object>(Type: TPubRecType, Handle: M, logger: Lo
 	}
 
 	try {
-		await handler.Handle(Handle, logger);
+		await handler.Handle(Handle);
 	} catch (error) {
-		logger.Error(error as Error, `EventSub/Handler/${Type}`);
+		Bot.Log.Error(error as Error, `EventSub/Handler/${Type}`);
 	}
 };

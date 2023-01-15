@@ -9,8 +9,8 @@ import { Logger } from './../../../logger.js';
 
 export default {
 	Type: () => 'channel.update',
-	Log: (logger, { broadcaster_user_login, title }) =>
-		logger.Info('[%s] Updated their title to: %s', broadcaster_user_login, title),
+	Log: ({ broadcaster_user_login, title }) =>
+		Bot.Log.Info('[%s] Updated their title to: %s', broadcaster_user_login, title),
 	Handle: async ({ broadcaster_user_id, title }) => {
 		const timers = await TimerSingleton.I().GetTimers(broadcaster_user_id);
 

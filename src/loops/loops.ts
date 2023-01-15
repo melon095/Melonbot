@@ -314,16 +314,17 @@ import { UnpingUser } from './../tools/tools.js';
 			const helixUser = helixUsersMap.get(user.TwitchUID);
 
 			if (!helixUser) {
-				console.warn(`Found banned user ${user.Name} (${user.TwitchUID})`);
 				continue;
 			}
 
 			// No name changes
-			if (helixUser.login === user.Name) continue;
+			if (helixUser.login === user.Name) {
+				continue;
+			}
 
-			console.log({ helixUser, user });
+			Bot.Log.Debug('%O', { helixUser, user });
 
-			console.log(`Updating ${user.toString()} to ${helixUser.login}`);
+			Bot.Log.Info(`Updating ${user.toString()} to ${helixUser.login}`);
 
 			await botChannel?.say(
 				`Updating ${UnpingUser(user.toString())} to ${UnpingUser(

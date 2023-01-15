@@ -23,11 +23,7 @@
 	process.on('SIGUSR2', exitHandler.bind(null));
 
 	process.on('unhandledRejection', async (err, promise) => {
-		if (Bot?.Log?.Error) {
-			Bot.Log.Error(err as Error, 'Unhandled rejection %O', { promise });
-		} else {
-			console.error(err as Error, 'Unhandled rejection %O', { promise });
-		}
+		console.error('Unhandled rejection', { err, promise });
 	});
 
 	Setup.All('BOT').then(() => Setup.Bot());

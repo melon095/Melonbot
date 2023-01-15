@@ -26,7 +26,7 @@ export default class TimerSingleton {
 	}
 
 	private constructor() {
-		this.logger = Bot.Log.WithCategory('TimerSingleton');
+		this.logger = Bot.Log;
 	}
 
 	/**

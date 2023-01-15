@@ -1,4 +1,4 @@
-import MWebSocket from '../../../Models/Websocket.js';
+import WebsocketImpl from '../../../Models/Websocket.js';
 import WebSocket from 'ws';
 import { Channel } from './../../../controller/Channel/index.js';
 import gql, { ConnectionPlatform } from './../../../SevenTVGQL.js';
@@ -218,11 +218,11 @@ function Push() {
 
 const createMessage = (code: number, data: object): string => JSON.stringify({ op: code, d: data });
 
-export class SevenTVEvent extends MWebSocket {
+export class SevenTVEvent extends WebsocketImpl {
 	public List: SevenTVChannelIdentifier[];
 
-	constructor(logger: Logger) {
-		super('7TV', SEVENTV_EVENTAPI_URL, { logger });
+	constructor() {
+		super('7TV', SEVENTV_EVENTAPI_URL);
 		this.List = [];
 
 		setInterval(() => {

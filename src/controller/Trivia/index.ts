@@ -34,7 +34,7 @@ export default class TriviaController extends EventEmitter {
 
 	private invoker: string;
 
-	constructor(private logger: Logger) {
+	constructor() {
 		super();
 		this.id = 0;
 		this.question = '';
@@ -58,7 +58,7 @@ export default class TriviaController extends EventEmitter {
 
 		if (include !== '') uri.append('include', include);
 
-		this.logger.Info(`Trivia: ${API_URL}?${uri.toString()}`);
+		Bot.Log.Info(`Trivia: ${API_URL}?${uri.toString()}`);
 
 		const { statusCode, body } = await got('json')(API_URL, {
 			searchParams: uri,
@@ -66,7 +66,7 @@ export default class TriviaController extends EventEmitter {
 		});
 
 		if (statusCode !== 200) {
-			this.logger.Error(`Trivia: %d %s`, statusCode, body);
+			Bot.Log.Error(`Trivia: %d %s`, statusCode, body);
 			this.emitFail();
 			this.block = false;
 			return;
@@ -75,7 +75,7 @@ export default class TriviaController extends EventEmitter {
 		const json = JSON.parse(body);
 
 		const data = json[0] as Res;
-		this.logger.Debug('%O', data);
+		Bot.Log.Debug('%O', data);
 
 		this.question = data.question;
 		this.answer = data.answer;

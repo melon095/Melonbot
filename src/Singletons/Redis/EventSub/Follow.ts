@@ -5,14 +5,14 @@ const CHINESE_REGEX = /\p{sc=Han}/u;
 
 export default {
 	Type: () => 'channel.follow',
-	Log: (logger, message) => logger.Info('Follow Event %O', message),
-	Handle: (message, logger) => {
+	Log: (message) => Bot.Log.Info('Follow Event %O', message),
+	Handle: (message) => {
 		const channel = Bot.Twitch.Controller.TwitchChannelSpecific({
 			ID: message.broadcaster_user_id,
 		});
 
 		if (!channel) {
-			logger.Error('No channel found %O', message);
+			Bot.Log.Error('No channel found %O', message);
 			return;
 		}
 

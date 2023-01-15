@@ -58,7 +58,7 @@ export class RedisSingleton extends EventEmitter {
 					return;
 				}
 
-				HandleEventsub(parsed.Type, parsed.Data, Bot.Log);
+				HandleEventsub(parsed.Type, parsed.Data);
 				return;
 			}
 

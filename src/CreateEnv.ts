@@ -76,7 +76,7 @@ export const Setup = {
 		await redis.Connect();
 
 		Bot.Redis = redis;
-		Bot.Commands = new CommandsHandler(Bot.Log);
+		Bot.Commands = new CommandsHandler();
 		await Bot.Commands.initialize().catch(() => {
 			process.exit();
 		});
@@ -94,9 +94,9 @@ export const Setup = {
 		}
 		// Create Twitch objects
 		Bot.Twitch = {
-			Controller: await Twitch.Init(Bot.Log.WithCategory('Twitch')),
+			Controller: await Twitch.Init(),
 			Emotes: {
-				SevenTVEvent: new SevenTVEvent(Bot.Log.WithCategory('7TV Websocket')),
+				SevenTVEvent: new SevenTVEvent(),
 			},
 		};
 

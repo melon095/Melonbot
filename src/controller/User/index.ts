@@ -310,8 +310,11 @@ export default class User {
             `;
 
 			if (users.length > 1) {
-				console.log(
-					`!!! ${this.Name} changed name to ${newName} but there are multiple accounts with the same twitch_uid (${this.TwitchUID})`,
+				Bot.Log.Warn(
+					'%s changed name to %s but there are multiple accounts with the same twitch_uid (%s)',
+					this.Name,
+					newName,
+					this.TwitchUID,
 				);
 
 				await sql<Database.users[]>`

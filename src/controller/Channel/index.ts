@@ -99,11 +99,6 @@ export class Channel {
 	 */
 	public EventSubs: EventSubHandler;
 
-	/**
-	 * @description Global pino.js logger.
-	 */
-	public Logger: Logger;
-
 	static async WithEventsub(channel: Channel, emoteSetID?: string): Promise<Channel> {
 		let identifier: SevenTVChannelIdentifier | undefined = undefined;
 		if (emoteSetID) {
@@ -158,7 +153,6 @@ export class Channel {
 		// Create callback for the message queue.
 		this.Queue.on('message', (a, b) => this.onQueue(a, b));
 		this.EventSubs = new EventSubHandler(this, Bot.Redis);
-		this.Logger = Bot.Log.WithCategory('Channel', { channel: this.Name });
 	}
 
 	async say(
@@ -258,7 +252,7 @@ export class Channel {
 					Params: argsResult.values,
 					User: extras,
 				},
-				Log: CommandLog(this.Logger, command.Name, this.Name),
+				Log: CommandLog(command.Name, this.Name),
 			};
 
 			let mods: object;
@@ -268,7 +262,7 @@ export class Channel {
 				if (error instanceof SafeResponseError) {
 					this.say(`❗ ${user.Name}: ${error.message}`, { SkipBanphrase: true });
 				} else {
-					this.Logger.Error(error as Error, 'PreHandler');
+					Bot.Log.Error(error as Error, 'PreHandler');
 
 					this.say(`❗ ${user.Name}: An error occurred while running the command :(`, {
 						SkipBanphrase: true,
@@ -299,7 +293,7 @@ export class Channel {
 
 					return [result, data.Result];
 				} catch (error) {
-					this.Logger.Error(error as Error, 'command/run/catch');
+					Bot.Log.Error(error as Error, 'command/run/catch');
 
 					if (user.HasSuperPermission()) {
 						this.say(
@@ -342,7 +336,7 @@ export class Channel {
 				},
 			};
 		} catch (e) {
-			this.Logger.Error(e as Error, 'channel/tryCommand/catch');
+			Bot.Log.Error(e as Error, 'channel/tryCommand/catch');
 			this.say('BrokeBack command failed', {
 				SkipBanphrase: true,
 			});
@@ -386,7 +380,7 @@ export class Channel {
 				if (!e) return;
 				emoteSetID = e;
 			} catch (error) {
-				this.Logger.Error(error as Error, 'channel/leaveEventSub');
+				Bot.Log.Error(error as Error, 'channel/leaveEventSub');
 				return;
 			}
 		}
@@ -420,7 +414,7 @@ export class Channel {
 				if (!banned) {
 					client.privmsg(this.Name, message);
 				} else {
-					this.Logger.Warn('Banphrase triggered %O', {
+					Bot.Log.Warn('Banphrase triggered %O', {
 						Channel: this.Name,
 						Message: message,
 						Reason: reason,
@@ -430,7 +424,7 @@ export class Channel {
 				}
 			})
 			.catch((error) => {
-				this.Logger.Error(error as Error, 'banphraseCheck');
+				Bot.Log.Error(error as Error, 'banphraseCheck');
 				client.privmsg(
 					this.Name,
 					'PoroSad unable to verify message against banphrase api.',
@@ -584,7 +578,7 @@ export class Channel {
 		Bot.SQL.Query`UPDATE channels SET bot_permission = ${3} WHERE user_id = ${
 			this.Id
 		}`.execute();
-		this.Logger.Info('is now set as Moderator.');
+		Bot.Log.Info('%s is now set as Moderator.', this.Name);
 	}
 
 	setVip(): void {
@@ -594,7 +588,7 @@ export class Channel {
 		Bot.SQL.Query`UPDATE channels SET bot_permission = ${2} WHERE user_id = ${
 			this.Id
 		}`.execute();
-		this.Logger.Info('is now set as VIP.');
+		Bot.Log.Info('%s is now set as VIP.', this.Name);
 	}
 
 	// Norman meaning.. Normal. WutFace
@@ -605,7 +599,7 @@ export class Channel {
 		Bot.SQL.Query`UPDATE channels SET bot_permission = ${1} WHERE user_id = ${
 			this.Id
 		}`.execute();
-		this.Logger.Info('is now set as Norman.');
+		Bot.Log.Info('%s is now set as Norman.', this.Name);
 	}
 
 	async UpdateName(newName: string): Promise<void> {
@@ -664,7 +658,7 @@ export class Channel {
 	}
 
 	private async InitiateTrivia(): Promise<void> {
-		this.Trivia = new TriviaController(this.Logger);
+		this.Trivia = new TriviaController();
 
 		this.Trivia.on('ready', (category: string, question: string, hasHint: boolean) => {
 			this.say(
@@ -833,17 +827,17 @@ export class ChannelSettingsValue {
 
 const DefaultChannelSetting = () => new ChannelSettingsValue('');
 
-const CommandLog = (logger: Logger, name: string, channel: string): CommandLogFn => {
+const CommandLog = (name: string, channel: string): CommandLogFn => {
 	// TODO: Error class handling.
 
 	return (type: CommandLogType = 'info', data = '', ...rest: any[]) => {
 		switch (type) {
 			case 'info': {
-				logger.Info(`[Command - %s] %s %O %O`, channel, name, data, ...rest);
+				Bot.Log.Info(`[Command - %s] %s %O %O`, channel, name, data, ...rest);
 				break;
 			}
 			case 'error': {
-				logger.Error(`[Command/%s/%s] %O %O`, name, channel, data, ...rest);
+				Bot.Log.Error(`[Command/%s/%s] %O %O`, name, channel, data, ...rest);
 				break;
 			}
 		}
