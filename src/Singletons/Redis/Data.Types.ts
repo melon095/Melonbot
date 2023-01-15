@@ -55,7 +55,7 @@ export const EStreamType = {
 export type IPubStreamOnline = IPubBroadcasterData & {
 	ID: string;
 	// TODO: Move into helper module
-	type: typeof EStreamType[keyof typeof EStreamType];
+	type: (typeof EStreamType)[keyof typeof EStreamType];
 	started_at: string;
 };
 

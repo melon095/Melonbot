@@ -16,13 +16,13 @@ export default class extends CommandModel {
 	PreHandlers = [];
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		const devBot = Bot.Config.Development ? ' Development Bot' : ' ';
+		const tmiDelay = 'Delay to TMI ' + (await Bot.Redis.SGet('Latency')) + ' ms';
+
+		const input = ['Pong', `Uptime ${tools.SecondsFmt(process.uptime())}`, tmiDelay];
 
 		return {
 			Success: true,
-			Result: [`Pong!`, `Uptime ${tools.SecondsFmt(process.uptime())}`, devBot]
-				.filter(Boolean)
-				.join(' | '),
+			Result: input.filter(Boolean).join(' | '),
 		};
 	};
 }

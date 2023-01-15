@@ -77,6 +77,12 @@ export default class Twitch {
 			}
 		});
 
+		this.client.on('PING', async () => {
+			const before = Date.now();
+			await this.client.ping();
+			await Bot.Redis.SSet('Latency', String(Date.now() - before));
+		});
+
 		this.client.connect();
 
 		this._setupRedisCallbacks();
@@ -160,12 +166,10 @@ export default class Twitch {
 		}
 	}
 
-	async TryRejoin(name: string): Promise<void> {
-		const channel = this.TwitchChannelSpecific({ Name: name });
-		if (!channel) return;
-
-		this.client.join(name);
+	async TryRejoin(channel: Channel, name: string): Promise<void> {
+		await this.client.join(name);
 		await channel.joinEventSub();
+		channel.UpdateMode('Write'); // TODO: Check database?
 	}
 
 	private async SetOwner(): Promise<void> {
@@ -251,7 +255,13 @@ export default class Twitch {
 				return;
 			}
 
-			channel.tryCommand(user, input, commandName, msg);
+			const result = await channel.tryCommand(user, input, commandName, msg);
+
+			if (!result || !result.message) {
+				return;
+			}
+
+			channel.say(result.message, result.flags);
 		} catch (error) {
 			Bot.Log.Error(error as Error, 'Twitch/MessageHandler');
 		}

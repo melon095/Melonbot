@@ -200,7 +200,7 @@ export class Channel {
 		input: string[],
 		commandName: string,
 		extras: DankTwitch.PrivmsgMessage,
-	): Promise<void> {
+	): Promise<{ message: string; flags: ChannelTalkOptions } | void> {
 		try {
 			const command = await Bot.Commands.get(commandName);
 
@@ -242,7 +242,10 @@ export class Channel {
 					this.say(`❗ ${user.Name}: ${error.message}`, { SkipBanphrase: true });
 					return;
 				} else {
-					throw error;
+					this.say(`❗ ${user.Name}: An error occurred while parsing arguments.`, {
+						SkipBanphrase: true,
+					});
+					return;
 				}
 			}
 
@@ -258,7 +261,7 @@ export class Channel {
 				Log: CommandLog(this.Logger, command.Name, this.Name),
 			};
 
-			let mods;
+			let mods: object;
 			try {
 				mods = await PreHandler.Fetch(ctx, command.PreHandlers);
 			} catch (error) {
@@ -275,10 +278,10 @@ export class Channel {
 				return;
 			}
 
-			command
-				.Execute(ctx, mods)
-				.then((data) => {
-					const CommandLogResult: CommandExecutionResult = {
+			const doExecution = async (): Promise<[CommandExecutionResult, string]> => {
+				try {
+					const data = await command.Execute(ctx, mods);
+					const result: CommandExecutionResult = {
 						user_id: user.TwitchUID,
 						username: user.Name,
 						channel: this.Id,
@@ -288,32 +291,30 @@ export class Channel {
 						command: command.Name,
 					};
 
-					this.logCommandExecution(CommandLogResult);
-
-					if (!data.Result || !data.Result.length) return;
+					if (!data.Result || !data.Result.length) return [result, ''];
 
 					if (command.Ping) data.Result = `@${user.Name}, ${data.Result}`;
 
 					if (!data.Success) data.Result = `❗ ${data.Result}`;
 
-					this.say(data.Result, {
-						SkipBanphrase: command.Flags.includes(ECommandFlags.NO_BANPHRASE),
-					});
-				})
-				.catch((error) => {
+					return [result, data.Result];
+				} catch (error) {
 					this.Logger.Error(error as Error, 'command/run/catch');
 
 					if (user.HasSuperPermission()) {
-						this.say(`❗ ${user.Name}: ${getStringFromError(error)}`, {
-							SkipBanphrase: true,
-						});
+						this.say(
+							`❗ ${user.Name}: ${getStringFromError(error as string | Error)}`,
+							{
+								SkipBanphrase: true,
+							},
+						);
 					} else {
 						this.say('PoroSad Command Failed...', {
 							SkipBanphrase: true,
 						});
 					}
 
-					const Result: CommandExecutionResult = {
+					const result: CommandExecutionResult = {
 						user_id: user.TwitchUID,
 						username: user.Name,
 						channel: this.Id,
@@ -323,11 +324,23 @@ export class Channel {
 						command: command.Name,
 					};
 
-					this.logCommandExecution(Result);
-				});
+					return [result, ''];
+				}
+			};
 
-			Bot.SQL
-				.Query`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`.execute();
+			const [result, toSay] = await doExecution();
+
+			this.logCommandExecution(result);
+
+			await Bot.SQL
+				.Query`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`;
+
+			return {
+				message: toSay,
+				flags: {
+					SkipBanphrase: command.HasFlag(ECommandFlags.NO_BANPHRASE),
+				},
+			};
 		} catch (e) {
 			this.Logger.Error(e as Error, 'channel/tryCommand/catch');
 			this.say('BrokeBack command failed', {
@@ -393,6 +406,8 @@ export class Channel {
 	}
 
 	private async onQueue(message: string, options: ChannelTalkOptions): Promise<void> {
+		if (this.Mode === 'Read') return;
+
 		const client = Bot.Twitch.Controller.client;
 
 		if (options.SkipBanphrase) {
@@ -494,7 +509,7 @@ export class Channel {
 				}
 			}
 
-			channel.say('ApuApustaja 👋 Hi');
+			channel.say('FeelsDankMan 👋 Hi');
 		} catch (err) {
 			Bot.Log.Error(err as Error, 'Join');
 			await Bot.Twitch.Controller.client.part(user.Name);
@@ -597,12 +612,19 @@ export class Channel {
 		this.Name = newName;
 		await Bot.SQL.Query`UPDATE channels SET name = ${newName} WHERE user_id = ${this.Id}`;
 
-		await Bot.Twitch.Controller.TryRejoin(newName);
+		await Bot.Twitch.Controller.TryRejoin(this, newName);
+
+		await this.say('FeelsDankMan TeaTime');
 	}
 
 	async UpdateLive(): Promise<void> {
 		this.Live = await tools.Live(this.Id);
 		return;
+	}
+
+	async UpdateMode(mode: NChannel.Mode): Promise<void> {
+		this.Mode = mode;
+		this.Cooldown = tools.NChannelFunctions.ModeToCooldown(mode) ?? 1250;
 	}
 
 	setMode(mode: NChannel.Mode): void {

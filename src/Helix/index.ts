@@ -234,12 +234,10 @@ export default {
 		},
 	},
 	Users: async (users: User[], opts: RequestOpts = {}): Promise<Helix.Users> => {
-		const copy = [...users];
-
 		const done: Helix.User[] = [];
 
 		await Promise.all(
-			[...chunkArr(copy, 100)].map(async (chunk, i) => {
+			[...chunkArr(users, 100)].map(async (chunk, i) => {
 				const url = new URLSearchParams();
 
 				chunk.map((u) => url.append('id', u.TwitchUID));
@@ -292,4 +290,5 @@ export default {
 
 		return { data, notLive };
 	},
+	Raw: <T>() => _request<T>,
 };
