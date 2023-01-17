@@ -85,7 +85,7 @@ interface Connections {
 	};
 }
 
-interface ChangeEmoteInset {
+export interface ChangeEmoteInset {
 	emoteSet: {
 		id: string;
 		emotes: {
@@ -537,10 +537,11 @@ export default {
 		}
 		return data.data;
 	},
-	isAllowedToModify: async function (ctx: TCommandContext): Promise<ModifyData> {
-		const emoteSet = (
-			await GetSettings(ctx.channel.User()).then((x) => x.SevenTVEmoteSet)
-		).ToString();
+	isAllowedToModify: async function (
+		channelUser: User,
+		invokerUser: User /*ctx: TCommandContext*/,
+	): Promise<ModifyData> {
+		const emoteSet = (await GetSettings(channelUser).then((x) => x.SevenTVEmoteSet)).ToString();
 
 		if (!emoteSet) {
 			return {
@@ -549,9 +550,9 @@ export default {
 			};
 		}
 
-		const suser = await this.GetUser(await ctx.channel.User()).catch(() => null);
+		const user = await this.GetUser(channelUser).catch(() => null);
 
-		if (!suser) {
+		if (!user) {
 			return {
 				okay: false,
 				message: "You don't seem to have a 7TV profile.",
@@ -567,7 +568,10 @@ export default {
 			};
 		}
 
-		if (ctx.channel.Id !== ctx.user.TwitchUID && !editors.includes(ctx.user.Name)) {
+		if (
+			channelUser.TwitchUID !== invokerUser.TwitchUID &&
+			!editors.includes(invokerUser.Name)
+		) {
 			return {
 				okay: false,
 				message: 'You are not an editor of this channel :/',
@@ -578,7 +582,7 @@ export default {
 			okay: true,
 			message: '',
 			emote_set: emoteSet,
-			user_id: suser.id,
+			user_id: user.id,
 		};
 	},
 };

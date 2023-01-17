@@ -296,3 +296,23 @@ export const UnwrapPromises = async <T, E>(promises: Promise<T>[]): Promise<[T[]
 export const UppercaseFirst = (str: string): string => {
 	return str.charAt(0).toUpperCase() + str.slice(1);
 };
+
+/**
+ * Returns a tuple of [success, error]
+ */
+export const ExtractAllSettledPromises = <S, E>(
+	promises: PromiseSettledResult<S>[],
+): [S[], E[]] => {
+	const success: S[] = [];
+	const error: E[] = [];
+
+	promises.map((result) => {
+		if (result.status === 'fulfilled') {
+			success.push(result.value);
+		} else {
+			error.push(result.reason);
+		}
+	});
+
+	return [success, error];
+};

@@ -9,7 +9,12 @@ export interface Get7TVUserMod {
 export default {
 	Name: () => 'SevenTV',
 	Build: async (ctx: TCommandContext): Promise<Get7TVUserMod> => {
-		const { message, okay, emote_set, user_id } = await gql.isAllowedToModify(ctx);
+		const channel = await ctx.channel.User();
+
+		const { message, okay, emote_set, user_id } = await gql.isAllowedToModify(
+			channel,
+			ctx.user,
+		);
 
 		if (!okay) {
 			throw new SafeResponseError('7TV', message);
