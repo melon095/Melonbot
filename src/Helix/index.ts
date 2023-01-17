@@ -135,8 +135,10 @@ const _request = async <T>(
 	});
 
 	if (response.statusCode >= 400) {
-		Bot.HandleErrors(
-			`${path} - Helix request failed with status code ${response.statusCode}`,
+		Bot.Log.Warn(
+			`%s - Helix request failed with status code %d - %s`,
+			path,
+			response.statusCode,
 			response.body,
 		);
 
@@ -240,7 +242,7 @@ export default {
 
 				chunk.map((u) => url.append('id', u.TwitchUID));
 
-				console.log('Helix Users request: ', { size: chunk.length });
+				Bot.Log.Info('Helix Users request %O', { size: chunk.length });
 
 				const res = await _request<Helix.Users>('GET', 'users', { params: url }, opts);
 

@@ -73,7 +73,7 @@ class Strategy<P, T extends Result<P, Error> = Result<P, Error>> {
 		const { code, error, error_description } = req.query;
 
 		if (error || !code) {
-			Bot.HandleErrors(this.opts.name, { error, error_description });
+			Bot.Log.Error(`%s %O`, this.opts.name, { error, error_description });
 			res.render('error', {
 				safeError: 'There was an error logging you in try again later.',
 			});
@@ -101,7 +101,7 @@ class Strategy<P, T extends Result<P, Error> = Result<P, Error>> {
 				res.render('error', {
 					safeError: profile.inner,
 				});
-				Bot.HandleErrors(this.opts.name, profile.inner);
+				Bot.Log.Error(profile.inner, '[%s]: Failed to fetch profile', this.opts.name);
 			}
 		}
 
@@ -115,7 +115,7 @@ class Strategy<P, T extends Result<P, Error> = Result<P, Error>> {
 				authUser || undefined,
 			);
 		} catch (error) {
-			Bot.HandleErrors(this.opts.name, error);
+			Bot.Log.Error(error as Error, `[%s]: Failed to handle callback`, this.opts.name);
 			res.render('error', {
 				safeError: 'There was an error logging you in try again later.',
 			});

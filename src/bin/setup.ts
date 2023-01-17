@@ -18,13 +18,12 @@ import { RedisSingleton } from './../Singletons/Redis/index.js';
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
 	global.Bot = {};
-	Bot.HandleErrors = ErrorHandler;
 	Bot.Config = JSON.parse(fs.readFileSync(process.cwd() + '/config.json', 'utf-8'));
 	Bot.SQL = SQLController.New();
 	const migration = await Bot.SQL.RunMigration();
 	console.log(`Migrated from version ${migration.OldVersion} to ${migration.NewVersion}`);
 
-	Bot.Redis = RedisSingleton.Factory(Bot.Config.Redis.Address);
+	Bot.Redis = RedisSingleton.Get(Bot.Config.Redis.Address);
 	await Bot.Redis.Connect();
 
 	// Generate the bots auth token

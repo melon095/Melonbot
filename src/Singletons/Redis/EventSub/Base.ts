@@ -2,6 +2,7 @@ import { IPubBase, TPubRecType } from 'Singletons/Redis/Data.Types.js';
 import Promolve from '@melon95/promolve';
 import fs from 'node:fs/promises';
 import { getDirname } from './../../../tools/tools.js';
+import { Logger } from './../../../logger.js';
 
 const ready = Promolve<void>();
 const handlers: Record<string, IEventSubHandler<object>> = {};
@@ -38,9 +39,14 @@ export default async <M extends object>(Type: TPubRecType, Handle: M) => {
 	if (handler.Log) {
 		handler.Log(Handle);
 	}
+
+	if (!handler.Handle) {
+		return;
+	}
+
 	try {
 		await handler.Handle(Handle);
 	} catch (error) {
-		Bot.HandleErrors(`EventSub/Handler/${Type}`, error);
+		Bot.Log.Error(error as Error, `EventSub/Handler/${Type}`);
 	}
 };

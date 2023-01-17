@@ -1,3 +1,4 @@
+import { Logger } from 'logger.js';
 import WebSocket from 'ws';
 import { Sleep } from './../tools/tools.js';
 
@@ -22,13 +23,21 @@ interface IWebsocket {
 	OnReconnect: () => void;
 }
 
-export default abstract class MWebSocket implements IWebsocket {
+export type WebsocketOpts = {
+	port?: number;
+	secure?: boolean;
+	logger?: Logger;
+};
+
+type LogFunc = (msg: string, ...args: any[]) => void;
+
+export default abstract class Websocket implements IWebsocket {
 	ws: WebSocket | null = null;
 	address: string;
 	category: string;
 	manualExit = false;
 
-	constructor(category: string, ip: string, opts?: { port?: number; secure?: boolean }) {
+	constructor(category: string, ip: string, opts?: WebsocketOpts) {
 		if (!opts) opts = { secure: true };
 
 		this.address = `${opts.secure ? 'wss' : 'ws'}://${ip}`;
@@ -105,9 +114,9 @@ export default abstract class MWebSocket implements IWebsocket {
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	Log(msg: string, ...args: any[]): void {
-		const LCSUCCESS = `\x1b[32m[%s] [%s]\x1b[0m %s`; //green
 		const date = new Date(Date.now()).toLocaleTimeString();
-		console.log(LCSUCCESS, this.category, date, msg, args ?? '');
+
+		Bot.Log.Info('[%s] [%s] %s %O', this.category, date, msg, args ?? {});
 	}
 
 	abstract OpenListener(): boolean;

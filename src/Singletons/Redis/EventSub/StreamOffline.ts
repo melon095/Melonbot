@@ -3,17 +3,13 @@ import { IPubStreamOffline } from './../Data.Types.js';
 
 export default {
 	Type: () => 'stream.offline',
-	Log: ({ broadcaster_user_login }: IPubStreamOffline) =>
-		console.log(`[${broadcaster_user_login}] Is now offline!`),
-	Handle: async ({ broadcaster_user_id }: IPubStreamOffline) => {
-		const channel = Bot.Twitch.Controller.TwitchChannelSpecific({
-			ID: broadcaster_user_id,
-		});
+	Log: ({ broadcaster_user_login }) =>
+		Bot.Log.Info(`[%s] Is now offline!`, broadcaster_user_login),
+	Handle: async ({ broadcaster_user_id }) => {
+		const channel = Bot.Twitch.Controller.TwitchChannelSpecific({ ID: broadcaster_user_id });
 
 		if (!channel) {
-			console.warn('EventSub.StreamOffline: Channel not found', {
-				broadcaster_user_id,
-			});
+			Bot.Log.Error('No channel found %s', broadcaster_user_id);
 			return;
 		}
 

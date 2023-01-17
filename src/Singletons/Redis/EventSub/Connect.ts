@@ -3,9 +3,5 @@ import { IPubConnect } from 'Singletons/Redis/Data.Types.js';
 
 export default {
 	Type: () => 'connect',
-	Handle: ({ Version }: IPubConnect) => {
-		console.log('Connected to EventSub Broker', {
-			Version,
-		});
-	},
+	Log: ({ Version }) => Bot.Log.Info('Connected to EventSub Broker %s', Version),
 } as IEventSubHandler<IPubConnect>;

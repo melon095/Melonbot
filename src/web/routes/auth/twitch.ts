@@ -28,7 +28,7 @@ export default (async function () {
 			}
 
 			if (profile.err) {
-				Bot.HandleErrors('Twitch', profile.err);
+				Bot.Log.Error(profile.inner, 'Twitch Profile Error');
 				return new Err('There was an error logging you in try again later.');
 			}
 
@@ -63,7 +63,6 @@ export default (async function () {
 		},
 		async (accessToken) => {
 			// TODO: Forced to use a Raw request, rather than Users due to Users method only working if the array is not empty.
-
 			const user = await HelixAPI.Raw<Helix.Users>()(
 				'GET',
 				'users',
@@ -74,7 +73,7 @@ export default (async function () {
 			);
 
 			if (user.err) {
-				Bot.HandleErrors('Twitch', user.err);
+				Bot.Log.Error(user.inner, 'Twitch User Error');
 				return new Err(new Error('There was an error logging you in try again later.'));
 			}
 

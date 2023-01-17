@@ -1,7 +1,8 @@
-import MWebSocket from '../../../Models/Websocket.js';
+import WebsocketImpl from '../../../Models/Websocket.js';
 import WebSocket from 'ws';
 import { Channel } from './../../../controller/Channel/index.js';
 import gql, { ConnectionPlatform } from './../../../SevenTVGQL.js';
+import { Logger } from './../../../logger.js';
 
 // op -- 0
 // When an event gets fired
@@ -217,7 +218,7 @@ function Push() {
 
 const createMessage = (code: number, data: object): string => JSON.stringify({ op: code, d: data });
 
-export class SevenTVEvent extends MWebSocket {
+export class SevenTVEvent extends WebsocketImpl {
 	public List: SevenTVChannelIdentifier[];
 
 	constructor() {
@@ -379,7 +380,7 @@ export class SevenTVEvent extends MWebSocket {
 
 	override ErrorListener(e: WebSocket.ErrorEvent): Error {
 		const error = new Error(`${e.message} ${e.error}`);
-		Bot.HandleErrors(this.category, error);
+		super.Log('%s %s', e.message, e.error);
 		return error;
 	}
 
