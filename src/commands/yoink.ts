@@ -115,18 +115,20 @@ export default class extends CommandModel<PreHandlers> {
 	];
 }
 
+const channelBeginRegex = /^[#@]/;
+
 const extractChannel = (input: string[]) => {
-	const channel = input.find((i) => /^[#@]/.test(i));
+	const channel = input.find((i) => channelBeginRegex.test(i));
 
 	if (!channel) {
 		return null;
 	}
 
-	return channel.replace('#', '');
+	return channel.replace(channelBeginRegex, '');
 };
 
 const extractEmotes = (input: string[], caseSensitive: boolean) => {
-	const e = input.filter((i) => !i.startsWith('#'));
+	const e = input.filter((i) => channelBeginRegex.test(i) === false);
 	if (caseSensitive) {
 		return e;
 	}
