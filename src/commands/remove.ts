@@ -1,7 +1,6 @@
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
 import gql, { ListItemAction } from './../SevenTVGQL.js';
-import { SevenTVChannelIdentifier } from './../controller/Emote/SevenTV/EventAPI';
 import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
 
 type PreHandlers = {

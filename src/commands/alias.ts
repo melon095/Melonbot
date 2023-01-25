@@ -43,14 +43,17 @@ export default class extends CommandModel<PreHandlers> {
 		const dst = ctx.input[1] || '';
 
 		try {
-			const emotes = await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.UPDATE, src.id, dst);
+			const [_, newEmote] = await gql.ModifyEmoteSet(
+				EmoteSet(),
+				ListItemAction.UPDATE,
+				src.id,
+				dst,
+			);
 
 			if (dst === '') {
-				const newEmote = emotes.emoteSet.emotes.find((emote) => emote.id === src.id);
-
 				return {
 					Success: true,
-					Result: `I reset the alias of ${src.name} to ${newEmote?.name}`,
+					Result: `I reset the alias of ${src.name} to ${newEmote}`,
 				};
 			}
 
