@@ -58,6 +58,18 @@ export interface EmoteSet {
 	name: string;
 }
 
+export interface EnabledEmote {
+	id: string;
+	name: string;
+	data: {
+		/**
+		 * Emote alias or the emote name
+		 */
+		name: string;
+	};
+	IsAlias: () => boolean;
+}
+
 interface EmoteSearchResult {
 	emotes: {
 		count: number;
@@ -317,9 +329,9 @@ export default {
 	},
 	CurrentEnabledEmotes: async (
 		emote_set: string,
-		filter?: (emote: EmoteSet) => boolean,
-	): Promise<EmoteSet[]> => {
-		const { data, errors }: Base<{ emoteSet: { emotes: EmoteSet[] } }> = await api
+		filter?: (emote: EnabledEmote) => boolean,
+	): Promise<EnabledEmote[]> => {
+		const { data, errors }: Base<{ emoteSet: { emotes: EnabledEmote[] } }> = await api
 			.post('', {
 				body: JSON.stringify({
 					query: `query GetEmoteSet ($id: ObjectID!) {
@@ -329,6 +341,9 @@ export default {
                                 emotes {
                                     id,
                                     name
+                                    data {
+                                        name
+                                    }
                                 }
                             }
                         }`,
@@ -345,11 +360,15 @@ export default {
 
 		const { emotes } = data.emoteSet;
 
-		if (filter) {
-			return emotes.filter(filter);
+		const addMethods = (emote: EnabledEmote) => {
+			emote.IsAlias = () => emote.data.name !== emote.name;
+		};
+
+		for (const emote of emotes) {
+			addMethods(emote);
 		}
 
-		return emotes;
+		return filter ? emotes.filter(filter) : emotes;
 	},
 	getEditors: async (id: string): Promise<UserEditor> => {
 		const data: Base<UserEditor> = await api
@@ -415,12 +434,16 @@ export default {
 			}
 		);
 	},
+	/**
+	 * Modify an emote-set
+	 * @returns Tuple of the new emote-set and the name of the emote that was added if the action was ADD
+	 */
 	ModifyEmoteSet: async (
 		emote_set: string,
 		action: ListItemAction,
 		emote: string,
 		name?: string,
-	): Promise<ChangeEmoteInset> => {
+	): Promise<[ChangeEmoteInset, string | null]> => {
 		const data: Base<ChangeEmoteInset> = await api
 			.post('', {
 				body: JSON.stringify({
@@ -446,7 +469,10 @@ export default {
 		if (data.errors) {
 			throw data.errors[0].message;
 		}
-		return data.data;
+
+		const newEmote = data.data.emoteSet.emotes.find((x) => x.id === emote);
+
+		return [data.data, newEmote?.name || null];
 	},
 	GetUser: async function ({ TwitchUID }: User): Promise<V3User> {
 		const data: Base<{ userByConnection: V3User }> = await api

@@ -1,6 +1,6 @@
 import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import gql, { ChangeEmoteInset, EmoteSet, ListItemAction } from '../SevenTVGQL.js';
+import gql, { ChangeEmoteInset, EmoteSet, EnabledEmote, ListItemAction } from '../SevenTVGQL.js';
 import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
 import { ExtractAllSettledPromises } from './../tools/tools.js';
 
@@ -16,17 +16,24 @@ export default class extends CommandModel<PreHandlers> {
 	OnlyOffline = false;
 	Aliases = ['steal'];
 	Cooldown = 10;
-	Params = [[ArgType.Boolean, 'case']];
+	Params = [
+		[ArgType.Boolean, 'case'],
+		[ArgType.Boolean, 'alias'],
+	];
 	Flags = [];
 	PreHandlers = [SevenTVAllowed];
 	Code = async (ctx: TCommandContext, mods: PreHandlers): Promise<CommandResult> => {
+		const errNoInputMsg = () =>
+			`Provide a channel and emote name, e.g @${ctx.user.Name} FloppaL`;
+
 		const input = ctx.input;
 		const caseSensitive = ctx.data.Params.case as boolean;
+		const keepAlias = ctx.data.Params.alias as boolean;
 
 		if (!input.length) {
 			return {
 				Success: false,
-				Result: `Provide a channel and emote name, e.g @${ctx.user.Name} FloppaL`,
+				Result: errNoInputMsg(),
 			};
 		}
 
@@ -36,7 +43,7 @@ export default class extends CommandModel<PreHandlers> {
 		if (!srcChannel) {
 			return {
 				Success: false,
-				Result: 'Provide a channel and emote name',
+				Result: errNoInputMsg(),
 			};
 		}
 		const emotes = extractEmotes(input, caseSensitive);
@@ -51,7 +58,7 @@ export default class extends CommandModel<PreHandlers> {
 			};
 		}
 
-		let toAdd: Set<EmoteSet> = new Set();
+		let toAdd: Set<EnabledEmote> = new Set();
 		try {
 			const channelEmotes = await gql
 				.getDefaultEmoteSet(srcUser.id)
@@ -59,8 +66,8 @@ export default class extends CommandModel<PreHandlers> {
 
 			for (const emote of channelEmotes) {
 				(caseSensitive
-					? emotes.includes(emote.name)
-					: emotes.includes(emote.name.toLowerCase())) && toAdd.add(emote);
+					? emotes.includes(emote.data.name)
+					: emotes.includes(emote.data.name.toLowerCase())) && toAdd.add(emote);
 			}
 		} catch (error) {
 			return {
@@ -78,7 +85,7 @@ export default class extends CommandModel<PreHandlers> {
 
 		const promises: Promise<[string, ChangeEmoteInset]>[] = [];
 
-		toAdd.forEach((emote) => promises.push(addEmote(emote, EmoteSet())));
+		toAdd.forEach((emote) => promises.push(addEmote(emote, EmoteSet(), keepAlias)));
 
 		const [success, failed] = await Promise.allSettled(promises).then((i) =>
 			ExtractAllSettledPromises<[string, ChangeEmoteInset], [string, string]>(i),
@@ -112,6 +119,9 @@ export default class extends CommandModel<PreHandlers> {
 		'-c, --case',
 		'   Case sensitive emote names',
 		'',
+		'-a, --alias',
+		'   Add the emote while retaining the alias',
+		'',
 	];
 }
 
@@ -142,11 +152,31 @@ const getSevenTVAccount = async (channel: string) => {
 	return gql.GetUser(user);
 };
 
-const addEmote = async (emote: EmoteSet, emoteset: string): Promise<[string, ChangeEmoteInset]> => {
+const addEmote = async (
+	emote: EnabledEmote,
+	emoteset: string,
+	keepAlias: boolean,
+): Promise<[string, ChangeEmoteInset]> => {
 	try {
-		const res = await gql.ModifyEmoteSet(emoteset, ListItemAction.ADD, emote.id);
-		return [emote.name, res];
+		const opts: [string, ListItemAction, string, string | undefined] = [
+			emoteset,
+			ListItemAction.ADD,
+			emote.id,
+			undefined,
+		];
+
+		if (keepAlias) {
+			opts[3] = emote.data.name;
+		}
+
+		const [newEmoteSet, name] = await gql.ModifyEmoteSet(...opts);
+		return [name ?? emote.data.name, newEmoteSet];
 	} catch (error) {
-		throw [emote.name, error]; // Otherwise we lose the emote name
+		let msg = emote.data.name;
+		if (emote.IsAlias()) {
+			msg += ` (alias of ${emote.name})`;
+		}
+
+		throw [msg, error];
 	}
 };
