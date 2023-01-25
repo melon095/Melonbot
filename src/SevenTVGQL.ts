@@ -63,7 +63,7 @@ export interface EnabledEmote {
 	name: string;
 	data: {
 		/**
-		 * Emote alias or the emote name
+		 * Original name. Emote is an alias if $.data.name does not match with $.name
 		 */
 		name: string;
 	};

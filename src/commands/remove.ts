@@ -29,7 +29,7 @@ export default class extends CommandModel<PreHandlers> {
 		}
 
 		const emote = (await gql.CurrentEnabledEmotes(EmoteSet())).find(
-			(emote) => emote.data.name === ctx.input[0],
+			(emote) => emote.name === ctx.input[0],
 		);
 
 		if (!emote) {

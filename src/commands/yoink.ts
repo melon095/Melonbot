@@ -66,8 +66,8 @@ export default class extends CommandModel<PreHandlers> {
 
 			for (const emote of channelEmotes) {
 				(caseSensitive
-					? emotes.includes(emote.data.name)
-					: emotes.includes(emote.data.name.toLowerCase())) && toAdd.add(emote);
+					? emotes.includes(emote.name)
+					: emotes.includes(emote.name.toLowerCase())) && toAdd.add(emote);
 			}
 		} catch (error) {
 			return {
@@ -166,15 +166,15 @@ const addEmote = async (
 		];
 
 		if (keepAlias) {
-			opts[3] = emote.data.name;
+			opts[3] = emote.name;
 		}
 
 		const [newEmoteSet, name] = await gql.ModifyEmoteSet(...opts);
-		return [name ?? emote.data.name, newEmoteSet];
+		return [name ?? emote.name, newEmoteSet];
 	} catch (error) {
 		let msg = emote.data.name;
 		if (emote.IsAlias()) {
-			msg += ` (alias of ${emote.name})`;
+			msg += ` (alias of ${emote.data.name})`;
 		}
 
 		throw [msg, error];
