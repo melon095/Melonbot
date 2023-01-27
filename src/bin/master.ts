@@ -36,7 +36,9 @@ import { ChatClient } from '@kararty/dank-twitch-irc';
 
 	await Setup.All('BOT');
 
-	await Promise.all([initialize(), import('./../loops/loops.js')]);
+	await initialize();
+
+	import('./../loops/loops.js');
 })();
 
 async function initialize() {
