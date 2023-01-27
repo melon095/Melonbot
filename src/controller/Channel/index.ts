@@ -749,6 +749,7 @@ export const GetSettings = async (channel: User | Promise<User>): Promise<Channe
 		Eventsub: DefaultChannelSetting(),
 		SevenTVEmoteSet: DefaultChannelSetting(),
 		FollowMessage: DefaultChannelSetting(),
+		IsTester: DefaultChannelSetting(),
 	};
 
 	const state = await Bot.Redis.HGetAll(`channel:${(await channel).TwitchUID}:settings`);
@@ -783,7 +784,7 @@ export const UpdateSetting = async (
 	Bot?.Twitch?.Controller?.TwitchChannelSpecific({ ID })?.ReflectSettings();
 };
 
-export type ChannelSettingsNames = 'Eventsub' | 'SevenTVEmoteSet' | 'FollowMessage';
+export type ChannelSettingsNames = 'Eventsub' | 'SevenTVEmoteSet' | 'FollowMessage' | 'IsTester';
 
 export type ChannelSettings = {
 	[key in ChannelSettingsNames]: ChannelSettingsValue;

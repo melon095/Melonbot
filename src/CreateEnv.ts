@@ -87,68 +87,7 @@ export const Setup = {
 	},
 
 	Bot: async () => {
-		// Twitch Specific Config
-		if (!(await tools.token.Bot()).token) {
-			Bot.Log.Error('Missing Twitch Config');
-			process.exit(-1);
-		}
-		// Create Twitch objects
-		Bot.Twitch = {
-			Controller: await Twitch.Init(),
-			Emotes: {
-				SevenTVEvent: new SevenTVEvent(),
-			},
-		};
 
-		await TimerSingleton.I().Initialize();
-
-		await Bot.Twitch.Controller.InitPromise;
-		const twitch = Bot.Twitch.Controller;
-
-		Bot.Twitch.Emotes.SevenTVEvent.Connect();
-
-		const self = await Channel.CreateBot();
-
-		await twitch.client.join(Bot.Config.BotUsername);
-		twitch.channels.push(self);
-
-		// Join all channels
-		const channelList = await Bot.SQL.Query<Database.channels[]>`
-                SELECT * FROM channels 
-                WHERE name NOT LIKE ${Bot.Config.BotUsername}`;
-
-		if (channelList.length) {
-			for (const channel of channelList) {
-				let mode = NChannelFunctions.DatabaseToMode(channel.bot_permission);
-				const user = await Bot.User.Get(channel.user_id, channel.name);
-				let doEventsub = true;
-
-				Bot.Log.Info(`Twitch Joining %s`, channel.name);
-				try {
-					await twitch.client.join(channel.name);
-				} catch (error) {
-					Bot.Log.Error(error as Error, `Joining ${channel.name}`);
-					mode = 'Read'; // We want to create a channel object, but since we can't join, we set the mode to read
-					doEventsub = false;
-				}
-				const newChannel = await Channel.New(user, mode, channel.live);
-
-				if (doEventsub) {
-					const emote_set = await GetSettings(user).then(
-						(settings) => settings.SevenTVEmoteSet.ToString() ?? undefined,
-					);
-
-					await Channel.WithEventsub(newChannel, emote_set);
-				}
-
-				twitch.channels.push(newChannel);
-
-				await Sleep(Bot.Config.Verified ? 0.025 : 1);
-			}
-		}
-
-		// Spawn loops after everything is setup
-		await import('./loops/loops.js');
 	},
 };
 
