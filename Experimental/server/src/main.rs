@@ -95,8 +95,16 @@ fn main() {
                             .unwrap();
                     }
                     Errors::LuaError(e) => {
+                        // split by newline and get first line
+                        let first_line = e
+                            .to_string()
+                            .split('\n')
+                            .next()
+                            .unwrap_or("Unknown error")
+                            .to_string();
+
                         request
-                            .respond(tiny_http::Response::from_string(e.to_string()))
+                            .respond(tiny_http::Response::from_string(first_line))
                             .unwrap();
                     }
                 }
