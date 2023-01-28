@@ -38,6 +38,17 @@ where
     Ok(())
 }
 
+fn remove_table<'lua, Val>(ctx: &rlua::Context<'lua>, key: &str) -> Result<(), rlua::Error>
+where
+    Val: rlua::ToLuaMulti<'lua>,
+{
+    let globals = ctx.globals();
+
+    globals.set(key, rlua::Value::Nil)?;
+
+    Ok(())
+}
+
 pub fn create_lua_ctx(channel: Channel, user: User) -> Result<rlua::Lua, rlua::Error> {
     let state = rlua::Lua::new();
 
@@ -73,6 +84,9 @@ pub fn create_lua_ctx(channel: Channel, user: User) -> Result<rlua::Lua, rlua::E
 
         wrap_as_readonly(&ctx, "channel", channel)?;
         wrap_as_readonly(&ctx, "user", user)?;
+
+        remove_table::<rlua::Value>(&ctx, "os")?;
+        remove_table::<rlua::Value>(&ctx, "io")?;
 
         Ok(())
     })?;
@@ -221,5 +235,28 @@ mod tests {
         });
 
         assert_eq!(res.unwrap(), "Table:\n\tfoo: bar");
+    }
+
+    #[test]
+    fn test_os_io_removed() {
+        let lua = create_lua_ctx(
+            Channel("foo".to_string(), "foo".to_string()),
+            User("foo".to_string(), "foo".to_string()),
+        )
+        .unwrap();
+
+        lua.context(|ctx| {
+            let os = ctx.globals().get::<_, rlua::Value>("os").unwrap();
+
+            if let rlua::Value::Table(_) = os {
+                panic!("os is a table")
+            }
+
+            let io = ctx.globals().get::<_, rlua::Value>("io").unwrap();
+
+            if let rlua::Value::Table(_) = io {
+                panic!("io is a table")
+            }
+        });
     }
 }
