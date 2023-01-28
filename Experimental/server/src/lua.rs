@@ -5,6 +5,22 @@ use crate::{
     types::{Channel, User},
 };
 
+static BAD_GLOBAL_VALUES: &'static [&'static str] = &[
+    "os",
+    "io",
+    "debug",
+    "require",
+    "package",
+    "dofile",
+    "load",
+    "loadstring",
+    "loadfile",
+    "collectgarbage",
+    "getfenv",
+    "setfenv",
+];
+
+// TODO: Can keep scripts in binary for now, but move to reading during runtime if needed.
 static LUA_SCRIPTS: &'static [&'static str] = &[include_str!("../scripts/readonly.lua")];
 
 fn load_lua_script(lua: &Lua, script: &'static str) -> Result<(), rlua::Error> {
@@ -38,7 +54,10 @@ where
     Ok(())
 }
 
-fn remove_table<'lua, Val>(ctx: &rlua::Context<'lua>, key: &str) -> Result<(), rlua::Error>
+fn remove_global_variable<'lua, Val>(
+    ctx: &rlua::Context<'lua>,
+    key: &str,
+) -> Result<(), rlua::Error>
 where
     Val: rlua::ToLuaMulti<'lua>,
 {
@@ -85,8 +104,9 @@ pub fn create_lua_ctx(channel: Channel, user: User) -> Result<rlua::Lua, rlua::E
         wrap_as_readonly(&ctx, "channel", channel)?;
         wrap_as_readonly(&ctx, "user", user)?;
 
-        remove_table::<rlua::Value>(&ctx, "os")?;
-        remove_table::<rlua::Value>(&ctx, "io")?;
+        for value in BAD_GLOBAL_VALUES {
+            remove_global_variable::<rlua::Value>(&ctx, value)?;
+        }
 
         Ok(())
     })?;
@@ -115,7 +135,7 @@ pub fn stringify(value: rlua::Value) -> Result<String, Errors> {
         rlua::Value::Function(_) => Ok("Function".to_string()),
         rlua::Value::Thread(_) => Ok("Thread".to_string()),
         rlua::Value::Nil => Ok("Nil".to_string()),
-        rlua::Value::Error(_) => Ok("Error".to_string()),
+        rlua::Value::Error(error) => Ok(error.to_string()),
         rlua::Value::UserData(_) => Ok("UserData".to_string()),
     };
 }
@@ -252,7 +272,7 @@ mod tests {
     }
 
     #[test]
-    fn test_os_io_removed() {
+    fn test_bad_functions_removed() {
         let lua = create_lua_ctx(
             Channel("foo".to_string(), "foo".to_string()),
             User("foo".to_string(), "foo".to_string()),
@@ -271,6 +291,45 @@ mod tests {
             if let rlua::Value::Table(_) = io {
                 panic!("io is a table")
             }
+
+            let require = ctx.globals().get::<_, rlua::Value>("require").unwrap();
+
+            if let rlua::Value::Function(_) = require {
+                panic!("require is a function")
+            }
+
+            let loadfile = ctx.globals().get::<_, rlua::Value>("loadfile").unwrap();
+
+            if let rlua::Value::Function(_) = loadfile {
+                panic!("loadfile is a function")
+            }
+
+            let load = ctx.globals().get::<_, rlua::Value>("load").unwrap();
+
+            if let rlua::Value::Function(_) = load {
+                panic!("load is a function")
+            }
+
+            let dofile = ctx.globals().get::<_, rlua::Value>("dofile").unwrap();
+
+            if let rlua::Value::Function(_) = dofile {
+                panic!("dofile is a function")
+            }
+
+            let _ = ctx.load("require('os')").eval::<rlua::Value>().unwrap_err();
+            let _ = ctx.load("require('io')").eval::<rlua::Value>().unwrap_err();
+            let _ = ctx
+                .load("require('loadfile')")
+                .eval::<rlua::Value>()
+                .unwrap_err();
+            let _ = ctx
+                .load("require('load')")
+                .eval::<rlua::Value>()
+                .unwrap_err();
+            let _ = ctx
+                .load("require('dofile')")
+                .eval::<rlua::Value>()
+                .unwrap_err();
         });
     }
 }

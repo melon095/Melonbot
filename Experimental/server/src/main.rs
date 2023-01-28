@@ -81,8 +81,10 @@ fn main() {
 
         match handle_request(body) {
             Ok(res) => {
+                let trimmed = res.replace("\r", "").replace("\n", "");
+
                 request
-                    .respond(tiny_http::Response::from_string(res))
+                    .respond(tiny_http::Response::from_string(trimmed))
                     .unwrap();
             }
             Err(e) => {
