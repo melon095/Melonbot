@@ -125,11 +125,11 @@ pub fn stringify_table(table: rlua::Table) -> Result<String, Errors> {
 
     // TODO How to make this a reference?
     for pair in table.pairs::<rlua::Value, rlua::Value>() {
-        result.push_str("\n");
+        result.push(' ');
 
         let (key, value) = pair?;
 
-        result.push_str(&format!("\t{}: {}", stringify(key)?, stringify(value)?));
+        result.push_str(&format!("{}: {}", stringify(key)?, stringify(value)?));
     }
 
     Ok(result)
@@ -234,7 +234,21 @@ mod tests {
             Ok(res)
         });
 
-        assert_eq!(res.unwrap(), "Table:\n\tfoo: bar");
+        assert_eq!(res.unwrap(), "Table: foo: bar");
+
+        let res: Result<String, Errors> = lua.context(|ctx| {
+            let table = ctx.create_table()?;
+
+            table.set("foo", "bar")?;
+            table.set("bar", "bar")?;
+
+            let res = stringify(rlua::Value::Table(table))?;
+
+            Ok(res)
+        });
+
+        // TODO: This is not guaranteed to be in order
+        assert_eq!(res.unwrap().len(), "Table: foo: bar foo: bar".len());
     }
 
     #[test]
