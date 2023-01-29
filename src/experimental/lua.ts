@@ -24,7 +24,7 @@ export interface ListRequest {
 
 export type Request = CommandRequest | ListRequest;
 
-export async function request(request: Request): Promise<Result<[number, string], string>> {
+export async function request(request: Request): Promise<Result<string, string>> {
 	assert(process.env.EXPERIMENTAL_SERVER_PORT, 'Rust server address is not set.');
 
 	const result = await got('json').post(
@@ -39,7 +39,7 @@ export async function request(request: Request): Promise<Result<[number, string]
 		return new Err(`Rust server returned ${result.statusCode} status code. ${result.body}`);
 	}
 
-	return new Ok([result.statusCode, result.body]);
+	return new Ok(result.body);
 }
 
 type ExperimentOpts = {
@@ -67,7 +67,7 @@ export async function handleExperimentalLua(opts: ExperimentOpts): Promise<strin
 		return null;
 	}
 
-	const commands = JSON.parse(availableCommands.inner[1]) as Array<string>;
+	const commands = JSON.parse(availableCommands.inner) as Array<string>;
 
 	if (!commands.includes(opts.command)) {
 		Bot.Log.Error(`Command ${opts.command} is not available.`);
@@ -89,5 +89,5 @@ export async function handleExperimentalLua(opts: ExperimentOpts): Promise<strin
 		return response.inner;
 	}
 
-	return response.inner[1];
+	return response.inner;
 }
