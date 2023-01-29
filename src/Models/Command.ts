@@ -1,6 +1,7 @@
 import { EPermissionLevel, ECommandFlags } from '../Typings/enums.js';
 import { Channel } from 'controller/Channel';
 import User from './../controller/User/index.js';
+import { PrivmsgMessage } from '@kararty/dank-twitch-irc';
 
 export enum ArgType {
 	String = 'string',
@@ -41,7 +42,7 @@ export type TContextData = {
 	/**
 	 * Extra data that twitch sends with the user.
 	 */
-	User: object;
+	User: PrivmsgMessage;
 };
 
 export type CommandResult = {

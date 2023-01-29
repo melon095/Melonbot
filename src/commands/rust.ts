@@ -1,11 +1,11 @@
-import Got from './../tools/Got.js';
+import * as Lua from './../experimental/lua.js';
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
 
 export default class extends CommandModel {
-	Name = 'rust';
+	Name = 'lua';
 	Ping = true;
-	Description = 'Experimental command for rust server';
+	Description = 'Experimental command for lua';
 	Permission = EPermissionLevel.VIEWER;
 	OnlyOffline = false;
 	Aliases = [];
@@ -33,17 +33,16 @@ export default class extends CommandModel {
 
 		const args = ctx.input.join(' ');
 
-		const result = await Got('json').post(`http://localhost:${port}/`, {
-			json: {
-				command: args,
-				channel: [ctx.channel.Id, ctx.channel.Name],
-				user: [ctx.user.TwitchUID, ctx.user.Name],
-			},
-			throwHttpErrors: false,
+		const response = await Lua.request({
+			type: Lua.RequestType.Command,
+			reply_id: ctx.data.User.messageID,
+			command: args,
+			channel: [ctx.channel.Id, ctx.channel.Name],
+			invoker: [ctx.user.TwitchUID, ctx.user.Name],
 		});
 
-		if (result.statusCode !== 200) {
-			ctx.Log('error', `Rust server returned ${result.statusCode} status code.`);
+		if (response.err) {
+			ctx.Log('error', response.inner);
 
 			return {
 				Success: false,
@@ -53,7 +52,7 @@ export default class extends CommandModel {
 
 		return {
 			Success: true,
-			Result: result.body,
+			Result: response.inner[1],
 		};
 	};
 	LongDescription = async (prefix: string) => [

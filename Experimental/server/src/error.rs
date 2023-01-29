@@ -4,6 +4,7 @@ use std::fmt::{self, Display};
 pub enum Errors {
     InvalidRequest(String),
     LuaError(rlua::Error),
+    CommandNotFound,
 }
 
 impl From<rlua::Error> for Errors {
@@ -17,6 +18,7 @@ impl Display for Errors {
         match self {
             Errors::InvalidRequest(e) => write!(f, "Invalid request: {}", e),
             Errors::LuaError(e) => write!(f, "Lua error: {}", e),
+            Errors::CommandNotFound => write!(f, "Command not found"),
         }
     }
 }

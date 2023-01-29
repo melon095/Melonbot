@@ -1,17 +1,23 @@
 mod error;
 mod lua;
+mod state;
 mod types;
 
 use error::Errors;
 use simplelog::{ColorChoice, LevelFilter, TermLogger, TerminalMode};
 use tiny_http::Server;
-use types::Request;
+use types::{CommandRequest, ListRequest};
+
+use crate::{
+    state::State,
+    types::{Channel, RequestType},
+};
 
 extern crate simplelog;
 
 // TODO: Async (Tokio)
 
-fn parse_request(request: &mut tiny_http::Request) -> Result<Request, Errors> {
+fn parse_request(request: &mut tiny_http::Request) -> Result<RequestType, Errors> {
     let mut buf = String::new();
 
     match request.as_reader().read_to_string(&mut buf) {
@@ -24,7 +30,7 @@ fn parse_request(request: &mut tiny_http::Request) -> Result<Request, Errors> {
         }
     };
 
-    let request: Request = match serde_json::from_str(&buf) {
+    let request: RequestType = match serde_json::from_str(&buf) {
         Ok(request) => request,
         Err(e) => {
             return Err(Errors::InvalidRequest(format!(
@@ -37,19 +43,29 @@ fn parse_request(request: &mut tiny_http::Request) -> Result<Request, Errors> {
     Ok(request)
 }
 
-fn handle_request(request: Request) -> Result<String, Errors> {
-    let lua = lua::create_lua_ctx(request.channel, request.user)?;
-    let result = lua::eval(&lua, &request.command)?;
-    log::info!("Result: {}", result);
+fn handle_command_request(request: CommandRequest) -> Result<String, Errors> {
+    let channel = Channel::from_request(request.channel);
 
-    Ok(result)
+    let state = State::new(channel, request.invoker)?;
+
+    let size = lua::load_commands(&state.lua)?;
+
+    log::info!("Loaded {} commands", size);
+
+    let response = state.execute(&request.command, vec![] /* TODO */)?;
+
+    Ok(response)
+}
+
+fn handle_list_request(request: &ListRequest) -> Result<String, Errors> {
+    todo!();
 }
 
 fn main() {
     let simple_config = simplelog::ConfigBuilder::new()
         .set_location_level(LevelFilter::Trace)
         .set_time_level(LevelFilter::Trace)
-        .set_target_level(LevelFilter::Trace)
+        .set_location_level(LevelFilter::Error)
         .build();
 
     TermLogger::init(
@@ -79,7 +95,12 @@ fn main() {
 
         log::info!("Parsed request: {:?}", body);
 
-        match handle_request(body) {
+        let res = match body {
+            RequestType::Command(request) => handle_command_request(request),
+            RequestType::List(request) => handle_list_request(&request),
+        };
+
+        match res {
             Ok(res) => {
                 let trimmed = res.replace("\r", "").replace("\n", "");
 
@@ -107,6 +128,11 @@ fn main() {
 
                         request
                             .respond(tiny_http::Response::from_string(first_line))
+                            .unwrap();
+                    }
+                    Errors::CommandNotFound => {
+                        request
+                            .respond(tiny_http::Response::from_string("Command not found"))
                             .unwrap();
                     }
                 }

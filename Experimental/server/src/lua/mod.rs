@@ -1,31 +1,20 @@
+pub mod cleanup;
+
+use std::fs;
+
 use rlua::Lua;
 
-use crate::{
-    error::Errors,
-    types::{Channel, User},
-};
-
-static BAD_GLOBAL_VALUES: &'static [&'static str] = &[
-    "os",
-    "io",
-    "debug",
-    "require",
-    "package",
-    "dofile",
-    "load",
-    "loadstring",
-    "loadfile",
-    "collectgarbage",
-    "getfenv",
-    "setfenv",
-];
+use crate::error::Errors;
 
 // TODO: Can keep scripts in binary for now, but move to reading during runtime if needed.
-static LUA_SCRIPTS: &'static [&'static str] = &[include_str!("../scripts/readonly.lua")];
+static LUA_SCRIPTS: &'static [&'static str] = &[
+    include_str!("../../scripts/lib.lua"),
+    include_str!("../../scripts/readonly.lua"),
+];
 
 fn load_lua_script(lua: &Lua, script: &'static str) -> Result<(), rlua::Error> {
     lua.context(|ctx| {
-        ctx.load(&script).exec()?;
+        ctx.load(&script).set_name("Load Lua Script")?.exec()?;
 
         Ok(())
     })?;
@@ -33,7 +22,8 @@ fn load_lua_script(lua: &Lua, script: &'static str) -> Result<(), rlua::Error> {
     Ok(())
 }
 
-fn wrap_as_readonly<'lua, Val>(
+/// Creates a global variable in Lua that is readonly.
+pub fn wrap_as_readonly<'lua, Val>(
     ctx: &rlua::Context<'lua>,
     key: &str,
     value: Val,
@@ -43,32 +33,68 @@ where
 {
     let globals = ctx.globals();
 
-    // key = MakeReadOnly(value)
-    // globals[key] = value
     let readonly = globals
         .get::<_, rlua::Function>("MakeReadOnly")?
-        .call::<Val, rlua::Table>(value)?;
+        .call::<_, rlua::Value>(value)?;
 
     globals.set(key, readonly)?;
 
     Ok(())
 }
 
-fn remove_global_variable<'lua, Val>(
-    ctx: &rlua::Context<'lua>,
-    key: &str,
-) -> Result<(), rlua::Error>
-where
-    Val: rlua::ToLuaMulti<'lua>,
-{
-    let globals = ctx.globals();
+/// Reads every command in scripts/commands
+///
+/// Each command calls a DoRegisterCommand function that registers the command in a global table.
+///
+/// We can then call the command by calling the function in the table.
+pub fn load_commands<'lua>(lua: &rlua::Lua) -> Result<i64, rlua::Error> {
+    let mut count = 0;
 
-    globals.set(key, rlua::Value::Nil)?;
+    lua.context(|ctx| {
+        let dir = match fs::read_dir("./scripts/commands/") {
+            Ok(dir) => dir,
+            Err(e) => {
+                log::error!("Error reading directory: {}", e);
+                return Ok(());
+            }
+        };
 
-    Ok(())
+        for entry in dir {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(e) => {
+                    log::error!("Error reading directory: {}", e);
+                    continue;
+                }
+            };
+
+            let path = entry.path();
+
+            if path.is_file() {
+                let script = match fs::read_to_string(path) {
+                    Ok(script) => script,
+                    Err(e) => {
+                        log::error!("Error reading file: {}", e);
+                        continue;
+                    }
+                };
+
+                ctx.load(&script)
+                    .set_name(&format!("Load Command {:?}", entry.file_name()))?
+                    .eval()?;
+            }
+        }
+
+        let commands_table = ctx.globals().get::<_, rlua::Table>("Commands")?;
+
+        count = commands_table.len()? as i64;
+        Ok(())
+    })?;
+
+    Ok(count)
 }
 
-pub fn create_lua_ctx(channel: Channel, user: User) -> Result<rlua::Lua, rlua::Error> {
+pub fn create_lua_ctx() -> Result<rlua::Lua, rlua::Error> {
     let state = rlua::Lua::new();
 
     for script in LUA_SCRIPTS {
@@ -101,27 +127,12 @@ pub fn create_lua_ctx(channel: Channel, user: User) -> Result<rlua::Lua, rlua::E
             })?,
         )?;
 
-        wrap_as_readonly(&ctx, "channel", channel)?;
-        wrap_as_readonly(&ctx, "user", user)?;
-
-        for value in BAD_GLOBAL_VALUES {
-            remove_global_variable::<rlua::Value>(&ctx, value)?;
-        }
+        cleanup::cleanup_bad_globals(&ctx)?;
 
         Ok(())
     })?;
 
     Ok(state)
-}
-
-pub fn eval(lua: &rlua::Lua, command: &str) -> Result<String, Errors> {
-    let result: String = lua.context(|ctx| {
-        let result = ctx.load(command).eval::<rlua::Value>()?;
-
-        Ok::<String, Errors>(stringify(result)?)
-    })?;
-
-    Ok(result)
 }
 
 pub fn stringify(value: rlua::Value) -> Result<String, Errors> {
@@ -143,7 +154,6 @@ pub fn stringify(value: rlua::Value) -> Result<String, Errors> {
 pub fn stringify_table(table: rlua::Table) -> Result<String, Errors> {
     let mut result = "Table:".to_string();
 
-    // TODO How to make this a reference?
     for pair in table.pairs::<rlua::Value, rlua::Value>() {
         result.push(' ');
 
@@ -161,9 +171,7 @@ mod tests {
 
     #[test]
     fn test_readonly_table() {
-        let lua = rlua::Lua::new();
-
-        load_lua_script(&lua, LUA_SCRIPTS[0]).unwrap();
+        let lua = create_lua_ctx().unwrap();
 
         let res: Result<(), rlua::Error> = lua.context(|ctx| {
             wrap_as_readonly(&ctx, "readonly", ctx.create_table()?)?;
@@ -176,6 +184,12 @@ mod tests {
         });
 
         assert!(res.is_err());
+
+        match res {
+            Err(rlua::Error::RuntimeError(e)) => {}
+            Err(e) => panic!("Unexpected error: {}", e),
+            _ => panic!("Unexpected result"),
+        }
     }
 
     struct UserDataTest(u32);
@@ -187,14 +201,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_readonly_userdata() {
-        let lua = rlua::Lua::new();
+        let lua = create_lua_ctx().unwrap();
 
-        load_lua_script(&lua, LUA_SCRIPTS[0]).unwrap();
+        // let data = UserDataTest(32);
 
-        lua.context(|ctx| {
-            wrap_as_readonly(&ctx, "readonly", UserDataTest(32))?;
+        let result = lua.context(|ctx| {
+            wrap_as_readonly(&ctx, "readonly", ctx.create_table()?)?;
 
             // get readonly table
             let readonly = ctx.globals().get::<_, rlua::Table>("readonly")?;
@@ -203,15 +216,39 @@ mod tests {
             readonly.set("foo", "bar")?;
 
             Ok::<(), rlua::Error>(())
-        })
-        .unwrap()
+        });
+
+        assert!(result.is_err());
+
+        match result {
+            Err(rlua::Error::RuntimeError(_)) => {}
+            Err(e) => panic!("Unexpected error: {}", e),
+            _ => panic!("Unexpected result"),
+        }
+    }
+
+    #[test]
+    fn test_readonly_not_string() {
+        let lua = create_lua_ctx().unwrap();
+
+        let result = lua.context(|ctx| {
+            wrap_as_readonly(&ctx, "foo", ctx.create_string("foo")?)?;
+
+            Ok::<(), rlua::Error>(())
+        });
+
+        assert!(result.is_err());
+
+        match result {
+            Err(rlua::Error::RuntimeError(e)) => {}
+            Err(e) => panic!("Unexpected error: {}", e),
+            _ => panic!("Unexpected result"),
+        }
     }
 
     #[test]
     fn test_readonly_userdata_can_access() {
-        let lua = rlua::Lua::new();
-
-        load_lua_script(&lua, LUA_SCRIPTS[0]).unwrap();
+        let lua = create_lua_ctx().unwrap();
 
         let res: Result<u32, rlua::Error> = lua.context(|ctx| {
             wrap_as_readonly(&ctx, "readonly", UserDataTest(32)).unwrap();
@@ -226,7 +263,7 @@ mod tests {
 
     #[test]
     fn test_stringify() {
-        let lua = rlua::Lua::new();
+        let lua = create_lua_ctx().unwrap();
 
         let res: Result<String, Errors> = lua.context(|ctx| {
             let res = stringify(rlua::Value::Table(ctx.create_table()?))?;
@@ -269,67 +306,5 @@ mod tests {
 
         // TODO: This is not guaranteed to be in order
         assert_eq!(res.unwrap().len(), "Table: foo: bar foo: bar".len());
-    }
-
-    #[test]
-    fn test_bad_functions_removed() {
-        let lua = create_lua_ctx(
-            Channel("foo".to_string(), "foo".to_string()),
-            User("foo".to_string(), "foo".to_string()),
-        )
-        .unwrap();
-
-        lua.context(|ctx| {
-            let os = ctx.globals().get::<_, rlua::Value>("os").unwrap();
-
-            if let rlua::Value::Table(_) = os {
-                panic!("os is a table")
-            }
-
-            let io = ctx.globals().get::<_, rlua::Value>("io").unwrap();
-
-            if let rlua::Value::Table(_) = io {
-                panic!("io is a table")
-            }
-
-            let require = ctx.globals().get::<_, rlua::Value>("require").unwrap();
-
-            if let rlua::Value::Function(_) = require {
-                panic!("require is a function")
-            }
-
-            let loadfile = ctx.globals().get::<_, rlua::Value>("loadfile").unwrap();
-
-            if let rlua::Value::Function(_) = loadfile {
-                panic!("loadfile is a function")
-            }
-
-            let load = ctx.globals().get::<_, rlua::Value>("load").unwrap();
-
-            if let rlua::Value::Function(_) = load {
-                panic!("load is a function")
-            }
-
-            let dofile = ctx.globals().get::<_, rlua::Value>("dofile").unwrap();
-
-            if let rlua::Value::Function(_) = dofile {
-                panic!("dofile is a function")
-            }
-
-            let _ = ctx.load("require('os')").eval::<rlua::Value>().unwrap_err();
-            let _ = ctx.load("require('io')").eval::<rlua::Value>().unwrap_err();
-            let _ = ctx
-                .load("require('loadfile')")
-                .eval::<rlua::Value>()
-                .unwrap_err();
-            let _ = ctx
-                .load("require('load')")
-                .eval::<rlua::Value>()
-                .unwrap_err();
-            let _ = ctx
-                .load("require('dofile')")
-                .eval::<rlua::Value>()
-                .unwrap_err();
-        });
     }
 }

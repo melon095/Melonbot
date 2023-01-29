@@ -1,3 +1,4 @@
+---@param value userdata|table
 function MakeReadOnly(value)
     local val_t = type(value)
 
@@ -6,13 +7,15 @@ function MakeReadOnly(value)
     end
 
     if val_t == "table" then
-        setmetatable(value, {__newindex = function ()
-            error("Attempt to modify read-only table", 2)
-        end})
+        setmetatable(value, {__newindex =
+            function ()
+                error("Attempt to modify read-only table", 2)
+            end
+        })
 
-        for _, value in pairs(value) do
-            if type(value) == "table" then
-                MakeReadOnly(value)
+        for _, v in pairs(value) do
+            if type(v) == "table" then
+                MakeReadOnly(v)
             end
         end
         return value
@@ -22,8 +25,10 @@ function MakeReadOnly(value)
             get = value
         }
 
-        return setmetatable(wrapper, {__index = value, __newindex = function ()
-            error("Attempt to modify read-only userdata", 2)
-        end})
+        return setmetatable(wrapper, {__index = value, __newindex =
+            function ()
+                error("Attempt to modify read-only userdata", 2)
+            end
+        })
     end
 end
