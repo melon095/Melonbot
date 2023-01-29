@@ -14,6 +14,7 @@ export interface CommandRequest {
 	command: string;
 	channel: [string, string];
 	invoker: [string, string];
+	arguments: Array<string>;
 }
 
 export interface ListRequest {
@@ -47,6 +48,7 @@ type ExperimentOpts = {
 	invoker: [string, string];
 	reply_id: string;
 	command: string;
+	args: Array<string>;
 };
 
 export async function handleExperimentalLua(opts: ExperimentOpts): Promise<string | null> {
@@ -81,6 +83,7 @@ export async function handleExperimentalLua(opts: ExperimentOpts): Promise<strin
 		command: opts.command,
 		channel: opts.channel,
 		invoker: opts.invoker,
+		arguments: opts.args,
 	});
 
 	if (response.err) {

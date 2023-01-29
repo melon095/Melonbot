@@ -257,6 +257,7 @@ export default class Twitch {
 					command: commandName,
 					invoker: [senderUserID, senderUsername],
 					reply_id: msg.messageID,
+					args: input,
 				});
 
 				if (response) {
