@@ -4,7 +4,7 @@ mod state;
 mod types;
 
 use error::Errors;
-use lua::load_ready_lua_state;
+use lua::{create_lua_ctx, load_ready_lua_state};
 use simplelog::{ColorChoice, LevelFilter, TermLogger, TerminalMode};
 use tiny_http::Server;
 use types::{CommandRequest, ListRequest, ListResponse};
@@ -42,9 +42,13 @@ fn parse_request(request: &mut tiny_http::Request) -> Result<RequestType, Errors
 }
 
 fn handle_command_request(request: CommandRequest) -> Result<String, Errors> {
+    let reply: Option<String> = None;
+
+    let lua = create_lua_ctx()?;
+
     let channel = Channel::from_request(request.channel);
 
-    let state = load_ready_lua_state(channel, request.invoker)?;
+    let state = load_ready_lua_state(lua, channel, request.invoker)?;
 
     let response = state.execute(&request.command, request.arguments)?;
 
@@ -52,9 +56,11 @@ fn handle_command_request(request: CommandRequest) -> Result<String, Errors> {
 }
 
 fn handle_list_request(request: ListRequest) -> Result<String, Errors> {
+    let lua = create_lua_ctx()?;
+
     let channel = Channel::from_request(request.channel);
 
-    let state = load_ready_lua_state(channel, request.invoker)?;
+    let state = load_ready_lua_state(lua, channel, request.invoker)?;
 
     return match serde_json::to_string::<ListResponse>(&state.list_commands()?) {
         Ok(response) => Ok(response),
@@ -134,11 +140,6 @@ fn main() {
 
                         request
                             .respond(tiny_http::Response::from_string(first_line))
-                            .unwrap();
-                    }
-                    Errors::CommandNotFound => {
-                        request
-                            .respond(tiny_http::Response::from_string("Command not found"))
                             .unwrap();
                     }
                 }

@@ -24,28 +24,28 @@ static BAD_OS_VALUES: &'static [&'static str] = &[
 ];
 
 pub fn remove_global_variable<'lua, Val>(
-    ctx: &rlua::Context<'lua>,
+    global_table: &mlua::Table<'lua>,
     key: &str,
-) -> Result<(), rlua::Error>
+) -> Result<(), mlua::Error>
 where
-    Val: rlua::ToLuaMulti<'lua>,
+    Val: mlua::ToLuaMulti<'lua>,
 {
-    let globals = ctx.globals();
-
-    globals.set(key, rlua::Value::Nil)?;
+    global_table.set(key, mlua::Nil)?;
 
     Ok(())
 }
 
-pub fn cleanup_bad_globals<'lua>(ctx: &rlua::Context<'lua>) -> Result<(), rlua::Error> {
+pub fn cleanup_bad_globals<'lua>(lua: &mlua::Lua) -> Result<(), mlua::Error> {
+    let global_table = lua.globals();
+
     for value in BAD_GLOBAL_VALUES {
-        remove_global_variable::<rlua::Value>(&ctx, value)?;
+        remove_global_variable::<mlua::Table>(&global_table, value)?;
     }
 
-    let os = ctx.globals().get::<_, rlua::Table>("os")?;
+    let os = lua.globals().get::<_, mlua::Table>("os")?;
 
     for value in BAD_OS_VALUES {
-        os.set(*value, rlua::Value::Nil)?;
+        remove_global_variable::<mlua::Table>(&os, value)?;
     }
 
     Ok(())
@@ -57,8 +57,8 @@ mod tests {
 
     struct UserDataTest(u32);
 
-    impl rlua::UserData for UserDataTest {
-        fn add_methods<'lua, T: rlua::UserDataMethods<'lua, Self>>(methods: &mut T) {
+    impl mlua::UserData for UserDataTest {
+        fn add_methods<'lua, T: mlua::UserDataMethods<'lua, Self>>(methods: &mut T) {
             methods.add_method("foo", |_, this, ()| Ok(this.0));
         }
     }
@@ -67,56 +67,54 @@ mod tests {
     fn test_bad_functions_removed() {
         let lua = create_lua_ctx().unwrap();
 
-        lua.context(|ctx| {
-            let io = ctx.globals().get::<_, rlua::Value>("io").unwrap();
+        let io = lua.globals().get::<_, mlua::Value>("io").unwrap();
 
-            if let rlua::Value::Table(_) = io {
-                panic!("io is a table")
-            }
+        if let mlua::Value::Table(_) = io {
+            panic!("io is a table")
+        }
 
-            let require = ctx.globals().get::<_, rlua::Value>("require").unwrap();
+        let require = lua.globals().get::<_, mlua::Value>("require").unwrap();
 
-            if let rlua::Value::Function(_) = require {
-                panic!("require is a function")
-            }
+        if let mlua::Value::Function(_) = require {
+            panic!("require is a function")
+        }
 
-            let loadfile = ctx.globals().get::<_, rlua::Value>("loadfile").unwrap();
+        let loadfile = lua.globals().get::<_, mlua::Value>("loadfile").unwrap();
 
-            if let rlua::Value::Function(_) = loadfile {
-                panic!("loadfile is a function")
-            }
+        if let mlua::Value::Function(_) = loadfile {
+            panic!("loadfile is a function")
+        }
 
-            let load = ctx.globals().get::<_, rlua::Value>("load").unwrap();
+        let load = lua.globals().get::<_, mlua::Value>("load").unwrap();
 
-            if let rlua::Value::Function(_) = load {
-                panic!("load is a function")
-            }
+        if let mlua::Value::Function(_) = load {
+            panic!("load is a function")
+        }
 
-            let dofile = ctx.globals().get::<_, rlua::Value>("dofile").unwrap();
+        let dofile = lua.globals().get::<_, mlua::Value>("dofile").unwrap();
 
-            if let rlua::Value::Function(_) = dofile {
-                panic!("dofile is a function")
-            }
+        if let mlua::Value::Function(_) = dofile {
+            panic!("dofile is a function")
+        }
 
-            let _ = ctx.load("require('os')").eval::<rlua::Value>().unwrap_err();
-            let _ = ctx.load("require('io')").eval::<rlua::Value>().unwrap_err();
-            let _ = ctx
-                .load("require('loadfile')")
-                .eval::<rlua::Value>()
-                .unwrap_err();
-            let _ = ctx
-                .load("require('load')")
-                .eval::<rlua::Value>()
-                .unwrap_err();
-            let _ = ctx
-                .load("require('dofile')")
-                .eval::<rlua::Value>()
-                .unwrap_err();
+        let _ = lua.load("require('os')").eval::<mlua::Value>().unwrap_err();
+        let _ = lua.load("require('io')").eval::<mlua::Value>().unwrap_err();
+        let _ = lua
+            .load("require('loadfile')")
+            .eval::<mlua::Value>()
+            .unwrap_err();
+        let _ = lua
+            .load("require('load')")
+            .eval::<mlua::Value>()
+            .unwrap_err();
+        let _ = lua
+            .load("require('dofile')")
+            .eval::<mlua::Value>()
+            .unwrap_err();
 
-            let os = ctx.globals().get::<_, rlua::Table>("os").unwrap();
-            let _ = os.get::<_, rlua::Function>("execute").unwrap_err();
-            let _ = os.get::<_, rlua::Function>("exit").unwrap_err();
-            let _ = os.get::<_, rlua::Function>("clock").unwrap();
-        });
+        let os = lua.globals().get::<_, mlua::Table>("os").unwrap();
+        let _ = os.get::<_, mlua::Function>("execute").unwrap_err();
+        let _ = os.get::<_, mlua::Function>("exit").unwrap_err();
+        let _ = os.get::<_, mlua::Function>("clock").unwrap();
     }
 }

@@ -1,24 +1,27 @@
-use rlua::UserData;
+use mlua::UserData;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
-pub struct Channel(
+#[derive(Debug /*Clone*/)]
+pub struct Channel {
     /// Channel ID
-    pub String,
+    pub channel_id: String,
     /// Channel Name
-    pub String,
-);
+    pub channel_name: String,
+}
 
 impl Channel {
     pub fn from_request(req: (String, String)) -> Self {
-        Self(req.0, req.1)
+        Self {
+            channel_id: req.0,
+            channel_name: req.1,
+        }
     }
 }
 
 impl UserData for Channel {
-    fn add_methods<'lua, M: rlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method("id", |_, this, ()| Ok(this.0.clone()));
-        methods.add_method("name", |_, this, ()| Ok(this.1.clone()));
+    fn add_methods<'lua, M: mlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_method("id", |_, this, ()| Ok(this.channel_id.clone()));
+        methods.add_method("name", |_, this, ()| Ok(this.channel_name.clone()));
     }
 }
 
@@ -31,7 +34,7 @@ pub struct Invoker(
 );
 
 impl UserData for Invoker {
-    fn add_methods<'lua, M: rlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<'lua, M: mlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("id", |_, this, ()| Ok(this.0.clone()));
         methods.add_method("name", |_, this, ()| Ok(this.1.clone()));
     }

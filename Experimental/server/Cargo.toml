@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.68"
 log = "0.4.17"
-rlua = "0.19.4"
+mlua = { version = "0.8.7", features = ["lua54", "vendored", "send", "macros"] }
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"
 simplelog = "0.12.0"
