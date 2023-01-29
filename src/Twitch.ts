@@ -4,7 +4,7 @@ import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Chann
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
-import { Logger } from './logger.js';
+import { handleExperimentalLua } from './experimental/lua.js';
 
 interface IUserInformation {
 	data: [
@@ -22,11 +22,6 @@ interface IUserInformation {
 			created_at: string;
 		},
 	];
-}
-
-interface IWhisperUser {
-	ID: string;
-	Username: string;
 }
 
 export default class Twitch {
@@ -253,6 +248,20 @@ export default class Twitch {
 				channel.Filter.includes(input[1])
 			) {
 				return;
+			}
+
+			const allowedTester = (await channel.GetSettings()).IsTester.ToBoolean() === true;
+			if (allowedTester) {
+				const response = await handleExperimentalLua({
+					channel: [channel.Id, channelName],
+					command: commandName,
+					invoker: [senderUserID, senderUsername],
+					reply_id: msg.messageID,
+				});
+
+				if (response) {
+					channel.reply(response, msg.messageID);
+				}
 			}
 
 			const result = await channel.tryCommand(user, input, commandName, msg);

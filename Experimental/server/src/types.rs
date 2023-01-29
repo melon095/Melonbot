@@ -52,6 +52,7 @@ pub struct CommandRequest {
     pub command: String,
     pub channel: (String, String),
     pub invoker: Invoker,
+    pub arguments: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -59,3 +60,6 @@ pub struct ListRequest {
     pub channel: (String, String),
     pub invoker: Invoker,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListResponse(pub Vec<String>);

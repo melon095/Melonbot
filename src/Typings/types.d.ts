@@ -1,5 +1,6 @@
 export type ChannelTalkOptions = {
 	SkipBanphrase?: boolean = false;
+	ReplyTo?: string = undefined;
 };
 
 export type TTokenFunction = {

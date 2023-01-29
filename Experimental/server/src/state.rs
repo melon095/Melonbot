@@ -3,7 +3,7 @@ use rlua::Value;
 use crate::{
     error::Errors,
     lua::{cleanup, create_lua_ctx, stringify, wrap_as_readonly},
-    types::{Channel, Invoker},
+    types::{Channel, Invoker, ListResponse},
 };
 
 /// State for one request
@@ -26,7 +26,39 @@ impl State {
         })
     }
 
-    pub fn execute(self, command: &str, args: Vec<&str>) -> Result<String, Errors> {
+    pub fn list_commands(&self) -> Result<ListResponse, Errors> {
+        self.lua.context(|ctx| {
+            let script = r#"
+                local names = {}
+
+                for _, command in ipairs(Commands) do
+                    table.insert(names, command:name())
+                end
+
+                return names
+            "#;
+
+            let table = match ctx
+                .load(&script)
+                .set_name("List Commands")?
+                .eval::<Value>()?
+            {
+                Value::Table(t) => t,
+                _ => return Err(Errors::CommandNotFound),
+            };
+
+            let mut names = Vec::new();
+
+            for i in 1..=table.len()? {
+                let name = table.get::<_, String>(i)?;
+                names.push(name);
+            }
+
+            Ok(ListResponse(names))
+        })
+    }
+
+    pub fn execute(self, command: &str, args: Vec<String>) -> Result<String, Errors> {
         self.lua.context(|ctx| {
             let script = format!(
                 r#"

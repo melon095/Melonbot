@@ -159,6 +159,7 @@ export class Channel {
 		msg: string,
 		options: ChannelTalkOptions = {
 			SkipBanphrase: false,
+			ReplyTo: undefined,
 		},
 	): Promise<void> {
 		if (this.LastMessage === msg) {
@@ -170,6 +171,16 @@ export class Channel {
 
 		this.Queue.schedule(msg, options, this.Cooldown);
 		this.LastMessage = msg;
+	}
+
+	async reply(
+		msg: string,
+		replyID: string,
+		options: ChannelTalkOptions = {
+			SkipBanphrase: false,
+		},
+	): Promise<void> {
+		this.say(msg, { ...options, ReplyTo: replyID });
 	}
 
 	/**
@@ -409,27 +420,27 @@ export class Channel {
 			return;
 		}
 
-		this.Banphrase.Check(message)
-			.then(({ banned, reason }) => {
-				if (!banned) {
-					client.privmsg(this.Name, message);
+		try {
+			const { banned, reason } = await this.Banphrase.Check(message);
+			if (!banned) {
+				if (options.ReplyTo) {
+					client.reply(this.Name, options.ReplyTo, message);
 				} else {
-					Bot.Log.Warn('Banphrase triggered %O', {
-						Channel: this.Name,
-						Message: message,
-						Reason: reason,
-					});
-
-					client.privmsg(this.Name, 'cmonBruh bad word.');
+					client.privmsg(this.Name, message);
 				}
-			})
-			.catch((error) => {
-				Bot.Log.Error(error as Error, 'banphraseCheck');
-				client.privmsg(
-					this.Name,
-					'PoroSad unable to verify message against banphrase api.',
-				);
-			});
+			} else {
+				Bot.Log.Warn('Banphrase triggered %O', {
+					Channel: this.Name,
+					Message: message,
+					Reason: reason,
+				});
+
+				client.privmsg(this.Name, 'cmonBruh bad word.');
+			}
+		} catch (error) {
+			Bot.Log.Error(error as Error, 'banphraseCheck');
+			client.privmsg(this.Name, 'PoroSad unable to verify message against banphrase api.');
+		}
 	}
 
 	private async setupTrivia(): Promise<void> {

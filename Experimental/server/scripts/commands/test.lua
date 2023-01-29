@@ -11,7 +11,7 @@ end
 
 ---@param args string[]
 function TestCommand:execute(args)
-    return "Hello, " .. Invoker.get:name() .. "!"
+    return "FeelsDankMan 👉 " .. Invoker.get:name() .. " 👈 FeelsDankMan"
 end
 
 DoRegisterCommand(TestCommand)

@@ -4,7 +4,11 @@ use std::fs;
 
 use rlua::Lua;
 
-use crate::error::Errors;
+use crate::{
+    error::Errors,
+    state::State,
+    types::{Channel, Invoker},
+};
 
 // TODO: Can keep scripts in binary for now, but move to reading during runtime if needed.
 static LUA_SCRIPTS: &'static [&'static str] = &[
@@ -40,6 +44,17 @@ where
     globals.set(key, readonly)?;
 
     Ok(())
+}
+
+/// Loads a lua state with pre-loaded commands.
+pub fn load_ready_lua_state<'lua>(channel: Channel, invoker: Invoker) -> Result<State, Errors> {
+    let state = State::new(channel, invoker)?;
+
+    let count = load_commands(&state.lua)?;
+
+    log::info!("Loaded {} commands", count);
+
+    Ok(state)
 }
 
 /// Reads every command in scripts/commands

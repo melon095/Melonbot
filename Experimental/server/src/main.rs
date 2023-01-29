@@ -4,14 +4,12 @@ mod state;
 mod types;
 
 use error::Errors;
+use lua::load_ready_lua_state;
 use simplelog::{ColorChoice, LevelFilter, TermLogger, TerminalMode};
 use tiny_http::Server;
-use types::{CommandRequest, ListRequest};
+use types::{CommandRequest, ListRequest, ListResponse};
 
-use crate::{
-    state::State,
-    types::{Channel, RequestType},
-};
+use crate::types::{Channel, RequestType};
 
 extern crate simplelog;
 
@@ -46,19 +44,27 @@ fn parse_request(request: &mut tiny_http::Request) -> Result<RequestType, Errors
 fn handle_command_request(request: CommandRequest) -> Result<String, Errors> {
     let channel = Channel::from_request(request.channel);
 
-    let state = State::new(channel, request.invoker)?;
+    let state = load_ready_lua_state(channel, request.invoker)?;
 
-    let size = lua::load_commands(&state.lua)?;
-
-    log::info!("Loaded {} commands", size);
-
-    let response = state.execute(&request.command, vec![] /* TODO */)?;
+    let response = state.execute(&request.command, request.arguments)?;
 
     Ok(response)
 }
 
-fn handle_list_request(request: &ListRequest) -> Result<String, Errors> {
-    todo!();
+fn handle_list_request(request: ListRequest) -> Result<String, Errors> {
+    let channel = Channel::from_request(request.channel);
+
+    let state = load_ready_lua_state(channel, request.invoker)?;
+
+    return match serde_json::to_string::<ListResponse>(&state.list_commands()?) {
+        Ok(response) => Ok(response),
+        Err(e) => {
+            return Err(Errors::InvalidRequest(format!(
+                "Invalid request: {}",
+                e.to_string()
+            )))
+        }
+    };
 }
 
 fn main() {
@@ -97,7 +103,7 @@ fn main() {
 
         let res = match body {
             RequestType::Command(request) => handle_command_request(request),
-            RequestType::List(request) => handle_list_request(&request),
+            RequestType::List(request) => handle_list_request(request),
         };
 
         match res {
