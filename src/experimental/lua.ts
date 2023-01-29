@@ -4,8 +4,8 @@ import got from '../tools/Got.js';
 import User from './../controller/User/index.js';
 
 export enum RequestType {
-	Command = 'command',
-	List = 'list',
+	Command = 'Command',
+	List = 'List',
 }
 
 export interface CommandRequest {
