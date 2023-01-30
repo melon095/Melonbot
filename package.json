@@ -57,7 +57,7 @@
         "pino-pretty": "^9.1.1",
         "postgres": "^3.3.3",
         "pug": "^3.0.2",
-        "redis": "^4.5.1",
+        "redis": "^4.6.3",
         "string-similarity": "^4.0.4",
         "ws": "^8.11.0"
     }
