@@ -27,16 +27,14 @@ export interface ListRequest {
 
 export interface CommandResponse {
 	Command: {
-		channel: string;
+		channel_id: string;
 		reply_id: string;
 		response: string;
 	};
 }
 
 export interface ListResponse {
-	List: {
-		commands: Array<string>;
-	};
+	List: Array<string>;
 }
 
 export type Request = CommandRequest | ListRequest;
@@ -46,8 +44,7 @@ export class LuaWebsocket extends Websocket {
 	private commands: Array<string> = [];
 
 	constructor() {
-		const port = process.env.EXPERIMENTAL_SERVER_PORT;
-		assert(port, 'Rust server address is not set.');
+		const port = process.env.EXPERIMENTAL_SERVER_PORT || '8080';
 
 		super('Lua', `127.0.0.1`, { secure: false, port: Number(port) });
 	}
@@ -61,15 +58,15 @@ export class LuaWebsocket extends Websocket {
 		super.Log('Disconnected from Lua server.');
 	}
 	MessageListener(e: MessageEvent): void {
-		const data = JSON.parse(e.data.toString()) as Response;
+		const data: Response = JSON.parse(e.data.toString());
 
 		if ('Command' in data) {
-			const { channel, reply_id, response } = data.Command;
+			const { channel_id, reply_id, response } = data.Command;
 
-			const channel_class = Bot.Twitch.Controller.TwitchChannelSpecific({ ID: channel });
+			const channel_class = Bot.Twitch.Controller.TwitchChannelSpecific({ ID: channel_id });
 
 			if (!channel_class) {
-				Bot.Log.Error(`Channel ${channel} is not available.`);
+				Bot.Log.Error(`Channel ${channel_id} is not available.`);
 				return;
 			}
 
@@ -78,9 +75,9 @@ export class LuaWebsocket extends Websocket {
 			Bot.Log.Info(`Received response for ${reply_id}: ${response}`);
 		} else if ('List' in data) {
 			const response = data.List;
-			Bot.Log.Info(`Received list of available commands: ${response.commands}`);
+			Bot.Log.Info(`Received list of available commands: ${response}`);
 
-			this.commands = response.commands;
+			this.commands = response;
 		} else {
 			super.Log(`Unknown response: ${e.data}`);
 		}
