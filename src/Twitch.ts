@@ -257,14 +257,24 @@ export default class Twitch {
 
 			const allowedTester = (await channel.GetSettings()).IsTester.ToBoolean() === true;
 			if (allowedTester) {
-				this.luaWebsocket.QueryCommand({
-					type: RequestType.Command,
-					channel: [channel.Id, channelName],
-					command: commandName,
-					invoker: [senderUserID, senderUsername],
-					reply_id: msg.messageID,
-					arguments: input,
-				});
+				const invoker: [string, string] = [senderUserID, senderUsername];
+
+				if (
+					await this.luaWebsocket.HasCommand(
+						commandName,
+						[channel.Id, channelName],
+						invoker,
+					)
+				) {
+					this.luaWebsocket.QueryCommand({
+						type: RequestType.Command,
+						channel: [channel.Id, channelName],
+						command: commandName,
+						invoker,
+						reply_id: msg.messageID,
+						arguments: input,
+					});
+				}
 			}
 
 			const result = await channel.tryCommand(user, input, commandName, msg);

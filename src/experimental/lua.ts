@@ -106,17 +106,15 @@ export class LuaWebsocket extends Websocket {
 			return true;
 		}
 
-		this.ws?.send(
-			JSON.stringify({
-				type: RequestType.List,
-				channel,
-				invoker,
-			}),
-		);
+		this.QueryCommand({
+			type: RequestType.List,
+			channel,
+			invoker,
+		});
 
 		// wait until we get the list of commands
 
-		Sleep(1000);
+		await Sleep(1000);
 
 		return this.commands.includes(command);
 	}
