@@ -94,7 +94,7 @@ export class LuaWebsocket extends Websocket {
 	}
 
 	public QueryCommand(opts: Request): void {
-		this.ws?.send(opts);
+		this.ws?.send(JSON.stringify(opts));
 	}
 
 	public async HasCommand(
