@@ -9,7 +9,7 @@ use crate::{
     types::{Channel, CommandRequest},
 };
 
-pub async fn handle_request<Write>(request: CommandRequest, mut write: Write) -> Result<(), Errors>
+pub async fn handle_request<Write>(request: &CommandRequest, mut write: Write) -> Result<(), Errors>
 where
     Write: Sink<Message> + Send + Sync + Unpin,
     <Write as Sink<Message>>::Error: 'static + Send + Sync + std::error::Error,
@@ -18,7 +18,7 @@ where
 
     let channel = Channel::from_request(request.channel.clone(), tx);
 
-    let state = load_ready_lua_state(channel, request.invoker)?;
+    let state = load_ready_lua_state(channel, request.invoker.clone())?;
 
     tokio::join!(
         wait_for_reply(&request.reply_id, &request.channel.0, rx, &mut write),
@@ -55,7 +55,7 @@ where
         let msg = msg.unwrap();
 
         log::info!("Sending reply to {}: {}", reply_id, msg);
-        let json = match create_request_response(&msg, channel_id, reply_id) {
+        let json = match create_request_response(&msg, channel_id, Some(reply_id.to_string())) {
             Ok(json) => json,
             Err(e) => {
                 log::error!("Error creating reply: {}", e);

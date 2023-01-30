@@ -10,16 +10,16 @@ use crate::{
 
 use super::create_list_response;
 
-pub async fn handle_request<Write>(request: ListRequest, mut write: Write) -> Result<(), Errors>
+pub async fn handle_request<Write>(request: &ListRequest, mut write: Write) -> Result<(), Errors>
 where
     Write: Sink<Message> + Send + Sync + Unpin,
     <Write as Sink<Message>>::Error: 'static + Send + Sync + std::error::Error,
 {
     let (tx, _) = mpsc::channel(2);
 
-    let channel = Channel::from_request(request.channel, tx);
+    let channel = Channel::from_request(request.channel.clone(), tx);
 
-    let state = load_ready_lua_state(channel, request.invoker)?;
+    let state = load_ready_lua_state(channel, request.invoker.clone())?;
 
     match create_list_response(state.list_commands()?) {
         Ok(response) => match write.send(Message::Text(response)).await {

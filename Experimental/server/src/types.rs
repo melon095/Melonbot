@@ -92,6 +92,6 @@ pub struct ListResponse(pub Vec<String>);
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandResponse {
     pub channel_id: String,
-    pub reply_id: String,
+    pub reply_id: Option<String>,
     pub response: String,
 }

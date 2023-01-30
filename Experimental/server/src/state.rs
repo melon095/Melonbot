@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn test_list_commands() {
-        let (tx, _) = tokio::sync::mpsc::channel(2);
+        let (tx, _) = tokio::sync::mpsc::channel(100);
 
         let state = load_ready_lua_state(
             Channel::from_request(("test".to_string(), "test".to_string()), tx),
@@ -110,7 +110,7 @@ mod tests {
     #[tokio::test]
     async fn test_execute() {
         // TODO: Don't use a "test" command. Create a mock command instead.
-        let (tx, mut rx) = tokio::sync::mpsc::channel(2);
+        let (tx, mut rx) = tokio::sync::mpsc::channel(100);
 
         let state = load_ready_lua_state(
             Channel::from_request(("test".to_string(), "test".to_string()), tx),

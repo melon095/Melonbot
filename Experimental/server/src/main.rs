@@ -10,7 +10,7 @@ use simplelog::{ColorChoice, LevelFilter, TermLogger, TerminalMode};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::{self, Message};
 
-use crate::types::RequestType;
+use crate::{commands::create_request_response, types::RequestType};
 
 extern crate simplelog;
 
@@ -28,15 +28,11 @@ fn parse_request<'a>(request: &'a str) -> Result<RequestType, Errors> {
     Ok(json)
 }
 
-async fn handle_ws_message<'a, Write>(body: &'a str, write: Write) -> Result<(), Errors>
+async fn handle_ws_message<'a, Write>(body: &RequestType, write: Write) -> Result<(), Errors>
 where
     Write: Sink<Message> + Send + Sync + Unpin,
     <Write as Sink<Message>>::Error: 'static + Send + Sync + std::error::Error,
 {
-    let body = parse_request(body)?;
-
-    log::info!("Parsed request: {:?}", body);
-
     match body {
         RequestType::Command(request) => commands::request::handle_request(request, write).await?,
         RequestType::List(request) => commands::list::handle_request(request, write).await?,
@@ -71,18 +67,36 @@ async fn wrap_initial_connection(socket: TcpStream) -> tungstenite::Result<()> {
 
         log::info!("Received message: {:?}", msg);
 
-        if let Err(error) = handle_ws_message(&msg, &mut write).await {
+        let body = match parse_request(&msg) {
+            Ok(body) => body,
+            Err(e) => {
+                log::error!("Failed to parse request: {:?}", e);
+                continue;
+            }
+        };
+
+        log::info!("Parsed request: {:?}", body);
+
+        if let Err(error) = handle_ws_message(&body, &mut write).await {
+            let (channel, id) = match body {
+                RequestType::Command(request) => (request.channel, Some(request.reply_id)),
+                RequestType::List(request) => (request.channel, None),
+            };
+
             match error {
                 Errors::LuaError(e) => {
-                    write
-                        .send(Message::Text(format!("Lua error: {}", e)))
-                        .await?;
+                    let json =
+                        create_request_response(&format!("Lua error: {}", e), &channel.0, id)
+                            /* FIX */
+                            .unwrap();
+
+                    write.send(Message::Text(json)).await?;
                 }
 
                 Errors::InvalidRequest(e) => {
-                    write
-                        .send(Message::Text(format!("Invalid request: {}", e)))
-                        .await?;
+                    let json = create_request_response(&e, &channel.0, id).unwrap();
+
+                    write.send(Message::Text(json)).await?;
                 }
 
                 Errors::Connection(e) => match e {

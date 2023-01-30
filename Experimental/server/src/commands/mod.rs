@@ -6,11 +6,11 @@ pub mod request;
 pub fn create_request_response<'a>(
     msg: &'a str,
     channel_id: &'a str,
-    reply_id: &'a str,
+    reply_id: Option<String>,
 ) -> serde_json::Result<String> {
     let response = ResponseType::Command(CommandResponse {
         channel_id: channel_id.to_string(),
-        reply_id: reply_id.to_string(),
+        reply_id: reply_id,
         response: msg.to_string(),
     });
 
