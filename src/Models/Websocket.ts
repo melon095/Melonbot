@@ -29,8 +29,6 @@ export type WebsocketOpts = {
 	logger?: Logger;
 };
 
-type LogFunc = (msg: string, ...args: any[]) => void;
-
 export default abstract class Websocket implements IWebsocket {
 	ws: WebSocket | null = null;
 	address: string;

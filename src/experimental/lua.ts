@@ -42,76 +42,6 @@ export interface ListResponse {
 export type Request = CommandRequest | ListRequest;
 export type Response = CommandResponse | ListResponse;
 
-export async function request(request: Request): Promise<Result<string, string>> {
-	assert(process.env.EXPERIMENTAL_SERVER_PORT, 'Rust server address is not set.');
-
-	const result = await got('json').post(
-		`http://localhost:${process.env.EXPERIMENTAL_SERVER_PORT}/`,
-		{
-			json: request,
-			throwHttpErrors: false,
-		},
-	);
-
-	if (result.statusCode !== 200) {
-		return new Err(`Rust server returned ${result.statusCode} status code. ${result.body}`);
-	}
-
-	return new Ok(result.body);
-}
-
-type ExperimentOpts = {
-	channel: [string, string];
-	invoker: [string, string];
-	reply_id: string;
-	command: string;
-	args: Array<string>;
-};
-
-export async function handleExperimentalLua(opts: ExperimentOpts): Promise<string | null> {
-	const port = process.env.EXPERIMENTAL_SERVER_PORT;
-	if (!port) {
-		return 'Rust server address is not set.';
-	}
-
-	const availableCommands = await request({
-		type: RequestType.List,
-		channel: opts.channel,
-		invoker: opts.channel,
-	});
-
-	if (availableCommands.err) {
-		Bot.Log.Error(availableCommands.inner);
-
-		return null;
-	}
-
-	const commands = JSON.parse(availableCommands.inner) as Array<string>;
-
-	if (!commands.includes(opts.command)) {
-		Bot.Log.Error(`Command ${opts.command} is not available.`);
-
-		return null;
-	}
-
-	const response = await request({
-		type: RequestType.Command,
-		reply_id: opts.reply_id,
-		command: opts.command,
-		channel: opts.channel,
-		invoker: opts.invoker,
-		arguments: opts.args,
-	});
-
-	if (response.err) {
-		Bot.Log.Error(response.inner);
-
-		return response.inner;
-	}
-
-	return response.inner;
-}
-
 export class LuaWebsocket extends Websocket {
 	private commands: Array<string> = [];
 
@@ -119,7 +49,7 @@ export class LuaWebsocket extends Websocket {
 		const port = process.env.EXPERIMENTAL_SERVER_PORT;
 		assert(port, 'Rust server address is not set.');
 
-		super('Lua', `localhost`, { secure: false, port: Number(port) });
+		super('Lua', `127.0.0.1`, { secure: false, port: Number(port) });
 	}
 
 	OpenListener(): boolean {
@@ -163,16 +93,8 @@ export class LuaWebsocket extends Websocket {
 		super.Log('Reconnected to Lua server.');
 	}
 
-	public QueryCommand(opts: ExperimentOpts): void {
-		const msg = {
-			type: RequestType.Command,
-			arguments: opts.args,
-			channel: opts.channel,
-			command: opts.command,
-			invoker: opts.invoker,
-		} as CommandRequest;
-
-		this.ws?.send(msg);
+	public QueryCommand(opts: Request): void {
+		this.ws?.send(opts);
 	}
 
 	public async HasCommand(

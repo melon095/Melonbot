@@ -4,7 +4,7 @@ import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Chann
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
-import { LuaWebsocket } from './experimental/lua.js';
+import { LuaWebsocket, RequestType } from './experimental/lua.js';
 
 interface IUserInformation {
 	data: [
@@ -90,6 +90,8 @@ export default class Twitch {
 		const t = new Twitch();
 
 		await t.SetOwner();
+
+		await t.luaWebsocket.Connect();
 
 		return t;
 	}
@@ -256,11 +258,12 @@ export default class Twitch {
 			const allowedTester = (await channel.GetSettings()).IsTester.ToBoolean() === true;
 			if (allowedTester) {
 				this.luaWebsocket.QueryCommand({
+					type: RequestType.Command,
 					channel: [channel.Id, channelName],
 					command: commandName,
 					invoker: [senderUserID, senderUsername],
 					reply_id: msg.messageID,
-					args: input,
+					arguments: input,
 				});
 			}
 
