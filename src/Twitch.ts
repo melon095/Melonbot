@@ -4,7 +4,7 @@ import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Chann
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
-import { handleExperimentalLua } from './experimental/lua.js';
+import { LuaWebsocket } from './experimental/lua.js';
 
 interface IUserInformation {
 	data: [
@@ -29,6 +29,7 @@ export default class Twitch {
 	public owner!: string;
 
 	public channels: Channel[] = [];
+	private luaWebsocket: LuaWebsocket;
 
 	private initFlags: [boolean, boolean] = [false, false];
 	private InitReady: IPromolve<boolean> = Promolve<boolean>();
@@ -81,6 +82,8 @@ export default class Twitch {
 		this.client.connect();
 
 		this._setupRedisCallbacks();
+
+		this.luaWebsocket = new LuaWebsocket();
 	}
 
 	static async Init() {
@@ -252,17 +255,13 @@ export default class Twitch {
 
 			const allowedTester = (await channel.GetSettings()).IsTester.ToBoolean() === true;
 			if (allowedTester) {
-				const response = await handleExperimentalLua({
+				this.luaWebsocket.QueryCommand({
 					channel: [channel.Id, channelName],
 					command: commandName,
 					invoker: [senderUserID, senderUsername],
 					reply_id: msg.messageID,
 					args: input,
 				});
-
-				if (response) {
-					channel.reply(response, msg.messageID);
-				}
 			}
 
 			const result = await channel.tryCommand(user, input, commandName, msg);

@@ -43,11 +43,9 @@ where
 }
 
 /// Loads a lua state with pre-loaded commands.
-pub fn load_ready_lua_state<'lua>(
-    lua: mlua::Lua,
-    channel: Channel,
-    invoker: Invoker,
-) -> Result<State, Errors> {
+pub fn load_ready_lua_state<'lua>(channel: Channel, invoker: Invoker) -> Result<State, Errors> {
+    let lua = create_lua_ctx()?;
+
     let state = State::new(lua, channel, invoker)?;
 
     let count = load_commands(&state.lua)?;
@@ -189,7 +187,7 @@ mod tests {
         assert!(res.is_err());
 
         match res {
-            Err(mlua::Error::RuntimeError(e)) => {}
+            Err(mlua::Error::RuntimeError(_)) => {}
             Err(e) => panic!("Unexpected error: {}", e),
             _ => panic!("Unexpected result"),
         }
@@ -235,7 +233,7 @@ mod tests {
         assert!(result.is_err());
 
         match result {
-            Err(mlua::Error::RuntimeError(e)) => {}
+            Err(mlua::Error::RuntimeError(_)) => {}
             Err(e) => panic!("Unexpected error: {}", e),
             _ => panic!("Unexpected result"),
         }

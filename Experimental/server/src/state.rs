@@ -2,7 +2,7 @@ use mlua::chunk;
 
 use crate::{
     error::Errors,
-    lua::{cleanup, stringify, wrap_as_readonly},
+    lua::wrap_as_readonly,
     types::{Channel, Invoker, ListResponse},
 };
 
@@ -45,7 +45,7 @@ impl State {
         Ok(ListResponse(names))
     }
 
-    pub fn execute(self, command: &str, args: Vec<String>) -> Result<String, Errors> {
+    pub async fn execute(self, command: &str, args: Vec<String>) -> Result<() /*String*/, Errors> {
         let script = chunk! {
             local command = GetCommandByName($command)
 
@@ -67,16 +67,62 @@ impl State {
 
         log::info!("Executing command: {}", name);
 
-        let response = command
+        /*let response =*/
+        command
             .get::<_, mlua::Function>("execute")?
-            .call::<_, mlua::Value>(args /* TODO is nil on lua side */);
+            .call::<_, () /*mlua::Value*/>(args /* TODO is nil on lua side */)?;
 
-        match response {
+        /*match response {
             Ok(r) => stringify(r),
             Err(e) => {
                 log::error!("Error executing command: {}", e);
                 return Err(Errors::LuaError(e));
             }
-        }
+        }*/
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        lua::load_ready_lua_state,
+        types::{Channel, Invoker},
+    };
+
+    #[test]
+    fn test_list_commands() {
+        let (tx, _) = tokio::sync::mpsc::channel(2);
+
+        let state = load_ready_lua_state(
+            Channel::from_request(("test".to_string(), "test".to_string()), tx),
+            Invoker::default(),
+        )
+        .unwrap();
+
+        let response = state.list_commands().unwrap();
+
+        assert_eq!(response.0.len(), 1);
+        assert_eq!(response.0[0], "test");
+    }
+
+    #[tokio::test]
+    async fn test_execute() {
+        // TODO: Don't use a "test" command. Create a mock command instead.
+        let (tx, mut rx) = tokio::sync::mpsc::channel(2);
+
+        let state = load_ready_lua_state(
+            Channel::from_request(("test".to_string(), "test".to_string()), tx),
+            Invoker::default(),
+        )
+        .unwrap();
+
+        // spawn tokio task that reads from rx and assert data is received
+        tokio::spawn(async move {
+            rx.recv().await.unwrap();
+        });
+
+        state.execute("test", vec![]).await.unwrap();
     }
 }

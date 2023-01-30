@@ -11,6 +11,8 @@ end
 
 ---@param args string[]
 function TestCommand:execute(args)
+    Channel.get:reply("FeelsDankMan")
+    
     return "FeelsDankMan 👉 " .. Invoker.get:name() .. " 👈 FeelsDankMan" 
 end
 
