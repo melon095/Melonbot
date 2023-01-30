@@ -11,9 +11,9 @@ end
 
 ---@param args string[]
 function TestCommand:execute(args)
-    Channel.get:reply("FeelsDankMan")
-    
-    return "FeelsDankMan 👉 " .. Invoker.get:name() .. " 👈 FeelsDankMan" 
+    for i = 1, 4 do
+        Channel.get:reply("FeelsDankMan " .. i)
+    end
 end
 
 DoRegisterCommand(TestCommand)

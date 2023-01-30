@@ -14,7 +14,7 @@ where
     Write: Sink<Message> + Send + Sync + Unpin,
     <Write as Sink<Message>>::Error: 'static + Send + Sync + std::error::Error,
 {
-    let (tx, rx) = mpsc::channel(2);
+    let (tx, rx) = mpsc::channel(10);
 
     let channel = Channel::from_request(request.channel.clone(), tx);
 
