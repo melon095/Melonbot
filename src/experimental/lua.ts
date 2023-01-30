@@ -119,7 +119,7 @@ export class LuaWebsocket extends Websocket {
 		const port = process.env.EXPERIMENTAL_SERVER_PORT;
 		assert(port, 'Rust server address is not set.');
 
-		super('Lua', `localhost:${port}`);
+		super('Lua', `localhost`, { secure: false, port: Number(port) });
 	}
 
 	OpenListener(): boolean {
