@@ -39,18 +39,17 @@ export default class extends CommandModel<PreHandlers> {
 
 		const { EmoteSet } = mods.SevenTV;
 
-		const srcChannel = extractChannel(input);
+		let srcUser;
+		let srcChannel = channelRegex.exec(input.join(` `))?.[0]
 		if (!srcChannel) {
-			return {
-				Success: false,
-				Result: errNoInputMsg(),
-			};
+			srcUser = ctx.user.Name
+			srcChannel = ctx.channel.Name
 		}
 		const emotes = extractEmotes(input, caseSensitive);
 
-		let srcUser;
+		srcUser ??= srcChannel
 		try {
-			srcUser = await getSevenTVAccount(srcChannel);
+			srcUser = await getSevenTVAccount(srcUser);
 		} catch (error) {
 			return {
 				Success: false,
@@ -106,7 +105,7 @@ export default class extends CommandModel<PreHandlers> {
 	};
 	LongDescription = async (prefix: string) => [
 		'Steal several 7TV emotes from a channel.',
-		'Requires that you have editor status in the current channel.',
+		'If the current channel is not specified, target will be set to the current channel, and the bot will add to the user\'s channel',
 		'',
 		`**Usage**: ${prefix} yoink #channel emote`,
 		`**Example**: ${prefix} yoink #pajlada WideDankCrouching`,
@@ -125,20 +124,10 @@ export default class extends CommandModel<PreHandlers> {
 	];
 }
 
-const channelBeginRegex = /^[#@]/;
-
-const extractChannel = (input: string[]) => {
-	const channel = input.find((i) => channelBeginRegex.test(i));
-
-	if (!channel) {
-		return null;
-	}
-
-	return channel.replace(channelBeginRegex, '');
-};
+const channelRegex = /(?<=#)[a-z\d]\w{0,24}\b/i;
 
 const extractEmotes = (input: string[], caseSensitive: boolean) => {
-	const e = input.filter((i) => channelBeginRegex.test(i) === false);
+	const e = input.filter((i) => !channelRegex.test(i));
 	if (caseSensitive) {
 		return e;
 	}
