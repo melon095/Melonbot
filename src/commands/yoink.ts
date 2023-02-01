@@ -37,7 +37,7 @@ export default class extends CommandModel<PreHandlers> {
 			};
 		}
 
-		let inputChannels: any[] = []
+		const inputChannels: any[] = []
 		let prefixes: (string | number)[] = [`@`, `#`]
 
 		for (const chan of input.entries()) {
