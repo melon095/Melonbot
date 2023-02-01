@@ -37,17 +37,11 @@ export default class extends CommandModel<PreHandlers> {
 			};
 		}
 
-		const inputChannels: any[] = []
-		let prefixes: (string | number)[] = [`@`, `#`]
-
-		for (const chan of input.entries()) {
-			if (prefixes.includes(chan[1][0]))
-				inputChannels.push(chan)
-		}
-		prefixes = inputChannels.map(i => i[0])
+		const prefixes: string[] = [`@`, `#`]
+		const chanIdx: number = input.findIndex((chan: string) => prefixes.includes(chan[0]))
 
 		const emotes = input.reduce((emotes: (never | string)[], emote: string, idx: number) => {
-			if (prefixes.includes(idx))
+			if (idx === chanIdx)
 				return emotes
 
 			if (!caseSensitive)
@@ -58,7 +52,7 @@ export default class extends CommandModel<PreHandlers> {
 		}, [])
 
 		let srcUser: any;
-		let srcChannel: string | undefined = inputChannels?.[0][1].slice(1)
+		let srcChannel: string | undefined = input[chanIdx]?.slice(1)
 		if (!srcChannel) {
 			srcUser = ctx.user.Name
 			srcChannel = ctx.channel.Name
