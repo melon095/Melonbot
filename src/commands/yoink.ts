@@ -125,9 +125,10 @@ export default class extends CommandModel<PreHandlers> {
 	};
 	LongDescription = async (prefix: string) => [
 		'Steal several 7TV emotes from a channel.',
-		'If the current channel is not specified, target will be set to the current channel, and the bot will add to the user\'s channel',
+		'If the current channel is not specified, target will be set to the current channel, and the bot will add to the user\'s channel.',
 		'',
 		`**Usage**: ${prefix} yoink #channel emote`,
+		`**Example**: ${prefix} yoink NOTED`,
 		`**Example**: ${prefix} yoink #pajlada WideDankCrouching`,
 		`**Example**: ${prefix} yoink @melon095 FloppaDank FloppaL`,
 		`**Example**: ${prefix} yoink FloppaDank FloppaL #melon095`,
