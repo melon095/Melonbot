@@ -37,8 +37,28 @@ export default class extends CommandModel<PreHandlers> {
 			};
 		}
 
+		let inputChannels: any[] = []
+		let prefixes: (string | number)[] = [`@`, `#`]
+
+		for (const chan of input.entries()) {
+			if (prefixes.includes(chan[1][0]))
+				inputChannels.push(chan)
+		}
+		prefixes = inputChannels.map(i => i[0])
+
+		const emotes = input.reduce((emotes: (never | string)[], emote: string, idx: number) => {
+			if (prefixes.includes(idx))
+				return emotes
+
+			if (!caseSensitive)
+				emote = emote.toLowerCase()
+
+			emotes.push(emote)
+			return emotes
+		}, [])
+
 		let srcUser: any;
-		let srcChannel = channelRegex.exec(input.join(` `))?.[0]
+		let srcChannel: string | undefined = inputChannels?.[0][1].slice(1)
 		if (!srcChannel) {
 			srcUser = ctx.user.Name
 			srcChannel = ctx.channel.Name
@@ -46,7 +66,6 @@ export default class extends CommandModel<PreHandlers> {
 		else
 			srcUser = srcChannel
 
-		const emotes = extractEmotes(input, caseSensitive);
 		try {
 			srcUser = await getSevenTVAccount(srcUser);
 		} catch (error) {
@@ -130,20 +149,6 @@ export default class extends CommandModel<PreHandlers> {
 		'',
 	];
 }
-
-const channelRegex = /(?<=#)[a-z\d]\w{0,24}\b/i;
-
-const extractEmotes = (input: string[], caseSensitive: boolean) =>
-	input.reduce((acc: (never | string)[], curr: string) => {
-		if (channelRegex.test(curr))
-			return acc
-
-		if (!caseSensitive)
-			curr = curr.toLowerCase()
-
-		acc.push(curr)
-		return acc
-	}, [])
 
 const getSevenTVAccount = async (channel: string) => {
 	const user = await Bot.User.ResolveUsername(channel);
