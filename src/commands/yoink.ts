@@ -43,9 +43,10 @@ export default class extends CommandModel<PreHandlers> {
 			srcUser = ctx.user.Name
 			srcChannel = ctx.channel.Name
 		}
-		const emotes = extractEmotes(input, caseSensitive);
+		else
+			srcUser = srcChannel
 
-		srcUser ??= srcChannel
+		const emotes = extractEmotes(input, caseSensitive);
 		try {
 			srcUser = await getSevenTVAccount(srcUser);
 		} catch (error) {
