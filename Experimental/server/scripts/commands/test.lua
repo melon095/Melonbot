@@ -11,6 +11,8 @@ end
 
 ---@param args string[]
 function TestCommand:execute(args)
+    -- Channel["asd"] = 5
+    
     for i = 1, 4 do
         Channel.get:reply("FeelsDankMan " .. i)
     end
