@@ -133,14 +133,17 @@ export default class extends CommandModel<PreHandlers> {
 
 const channelRegex = /(?<=#)[a-z\d]\w{0,24}\b/i;
 
-const extractEmotes = (input: string[], caseSensitive: boolean) => {
-	const e = input.filter((i) => !channelRegex.test(i));
-	if (caseSensitive) {
-		return e;
-	}
+const extractEmotes = (input: string[], caseSensitive: boolean) =>
+	input.reduce((acc: (never | string)[], curr: string) => {
+		if (channelRegex.test(curr))
+			return acc
 
-	return e.map((i) => i.toLowerCase());
-};
+		if (!caseSensitive)
+			curr = curr.toLowerCase()
+
+		acc.push(curr)
+		return acc
+	}, [])
 
 const getSevenTVAccount = async (channel: string) => {
 	const user = await Bot.User.ResolveUsername(channel);
