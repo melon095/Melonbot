@@ -1,6 +1,6 @@
 import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import gql, { ChangeEmoteInset, EmoteSet, EnabledEmote, ListItemAction } from '../SevenTVGQL.js';
+import gql, { ChangeEmoteInset, ConnectionPlatform, EnabledEmote, ListItemAction } from '../SevenTVGQL.js';
 import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
 import { ExtractAllSettledPromises } from './../tools/tools.js';
 
@@ -37,9 +37,7 @@ export default class extends CommandModel<PreHandlers> {
 			};
 		}
 
-		const { EmoteSet } = mods.SevenTV;
-
-		let srcUser;
+		let srcUser: any;
 		let srcChannel = channelRegex.exec(input.join(` `))?.[0]
 		if (!srcChannel) {
 			srcUser = ctx.user.Name
@@ -84,7 +82,15 @@ export default class extends CommandModel<PreHandlers> {
 
 		const promises: Promise<[string, ChangeEmoteInset]>[] = [];
 
-		toAdd.forEach((emote) => promises.push(addEmote(emote, EmoteSet(), keepAlias)));
+		srcUser = (await gql.GetUser(srcUser.id)).connections.find(i => i.platform === ConnectionPlatform.TWITCH)?.emote_set_id
+
+		if (!srcUser)
+			return {
+				Success: false,
+				Result: 'User does not have a Twitch emote-set',
+			}
+
+		toAdd.forEach((emote) => promises.push(addEmote(emote, srcUser, keepAlias)));
 
 		const [success, failed] = await Promise.allSettled(promises).then((i) =>
 			ExtractAllSettledPromises<[string, ChangeEmoteInset], [string, string]>(i),
