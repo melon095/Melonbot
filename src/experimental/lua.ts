@@ -56,6 +56,8 @@ export class LuaWebsocket extends Websocket {
 	}
 	CloseListener(e: CloseEvent): void | CloseEvent {
 		super.Log('Disconnected from Lua server.');
+
+		this.Reconnect();
 	}
 	MessageListener(e: MessageEvent): void {
 		const data: Response = JSON.parse(e.data.toString());
