@@ -45,28 +45,46 @@ export default class {
 			return emotes
 		}, [])
 
-		let srcUser: V3User | string | undefined;
-		let srcChannel: string | undefined = input[chanIdx]?.slice(1)
-		if (!srcChannel) {
-			srcUser = ctx.user.Name
-			srcChannel = ctx.channel.Name
-		}
-		else
-			srcUser = srcChannel
+		let writeChan: V3User | string = ctx.channel.Name
+		let readChan: V3User | string | undefined = input[chanIdx]?.slice(1)
 
-		try {
-			srcUser = await getSevenTVAccount(srcUser);
-		} catch (error) {
+		if (!readChan) {
+			writeChan = ctx.user.Name
+			readChan = ctx.channel.Name
+		}
+
+		if (writeChan === readChan)
 			return {
 				Success: false,
-				Result: 'Could not find that channel',
+				Result: 'You can\'t steal an emote from yourself'
+			}
+
+		let readSet: string
+		let writeSet: string
+
+		switch (ctx.channel.Name) {
+			case readChan:
+				readSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString()
+			case writeChan:
+				writeSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString()
+		}
+
+		const convertToEmoteSet = async (user: string) => (await getSevenTVAccount(user)).connections.find(i => i.platform === ConnectionPlatform.TWITCH)?.emote_set_id ?? (() => { throw new Error() })()
+
+		try {
+			readSet ??= await convertToEmoteSet(readChan)
+			writeSet ??= await convertToEmoteSet(writeChan)
+		} catch {
+			return {
+				Success: false,
+				Result: 'User or channel not found',
 			};
 		}
 
 		let toAdd: Set<EnabledEmote> = new Set();
 		try {
 			const channelEmotes = await gql
-				.getDefaultEmoteSet(srcUser.id)
+				.getDefaultEmoteSet(readSet)
 				.then((res) => gql.CurrentEnabledEmotes(res.emote_set_id));
 
 			for (const emote of channelEmotes) {
@@ -74,7 +92,7 @@ export default class {
 					? emotes.includes(emote.name)
 					: emotes.includes(emote.name.toLowerCase())) && toAdd.add(emote);
 			}
-		} catch (error) {
+		} catch {
 			return {
 				Success: false,
 				Result: 'That channel does not have any emotes',
@@ -90,15 +108,7 @@ export default class {
 
 		const promises: Promise<[string, ChangeEmoteInset]>[] = [];
 
-		const emoteset: string | undefined = (await gql.GetUser(await Bot.User.ResolveUsername(srcUser.username))).connections.find(i => i.platform === ConnectionPlatform.TWITCH)?.emote_set_id
-
-		if (!emoteset)
-			return {
-				Success: false,
-				Result: 'User does not have a Twitch emote-set',
-			}
-
-		toAdd.forEach((emote) => promises.push(addEmote(emote, emoteset, keepAlias)));
+		toAdd.forEach((emote) => promises.push(addEmote(emote, writeSet, keepAlias)));
 
 		const [success, failed] = await Promise.allSettled(promises).then((i) =>
 			ExtractAllSettledPromises<[string, ChangeEmoteInset], [string, string]>(i),
