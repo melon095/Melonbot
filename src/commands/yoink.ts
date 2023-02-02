@@ -70,10 +70,10 @@ export default class extends CommandModel {
 		switch (ctx.channel.Name) {
 			case readChan:
 				readSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString();
-				break
+				break;
 			case writeChan:
 				writeSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString();
-				break
+				break;
 		}
 
 		const convertToEmoteSet = async (user: string) =>
@@ -119,7 +119,8 @@ export default class extends CommandModel {
 			};
 		}
 
-		const writeChanPrompt = ctx.channel.Name === writeChan ? `` : ` (in #${UnpingUser(writeChan)})`
+		const writeChanPrompt =
+			ctx.channel.Name === writeChan ? `` : ` (in #${UnpingUser(writeChan)})`;
 
 		const promises: Promise<[string, ChangeEmoteInset]>[] = [];
 

@@ -117,7 +117,7 @@ export interface V3User {
 	connections: {
 		id: string;
 		platform: ConnectionPlatform;
-		emote_set_id: string
+		emote_set_id: string;
 	}[];
 	emote_sets: {
 		id: string;
