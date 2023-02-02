@@ -107,7 +107,7 @@ export interface ChangeEmoteInset {
 	};
 }
 
-interface V3User {
+export interface V3User {
 	id: string;
 	type: string;
 	username: string;
