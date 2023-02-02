@@ -1,14 +1,15 @@
 import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import gql, { ChangeEmoteInset, EmoteSet, EnabledEmote, ListItemAction } from '../SevenTVGQL.js';
-import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
-import { ExtractAllSettledPromises } from './../tools/tools.js';
+import { TCommandContext, CommandResult, ArgType, CommandModel } from '../Models/Command.js';
+import gql, {
+	ChangeEmoteInset,
+	ConnectionPlatform,
+	V3User,
+	EnabledEmote,
+	ListItemAction,
+} from '../SevenTVGQL.js';
+import { ExtractAllSettledPromises, UnpingUser } from './../tools/tools.js';
 
-type PreHandlers = {
-	SevenTV: Get7TVUserMod;
-};
-
-export default class extends CommandModel<PreHandlers> {
+export default class extends CommandModel {
 	Name = 'yoink';
 	Ping = false;
 	Description = 'Steal several 7TV emotes from another channel TriHard ';
@@ -21,8 +22,8 @@ export default class extends CommandModel<PreHandlers> {
 		[ArgType.Boolean, 'alias'],
 	];
 	Flags = [];
-	PreHandlers = [SevenTVAllowed];
-	Code = async (ctx: TCommandContext, mods: PreHandlers): Promise<CommandResult> => {
+	PreHandlers = [];
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const errNoInputMsg = () =>
 			`Provide a channel and emote name, e.g @${ctx.user.Name} FloppaL`;
 
@@ -37,31 +38,66 @@ export default class extends CommandModel<PreHandlers> {
 			};
 		}
 
-		const { EmoteSet } = mods.SevenTV;
+		const prefixes: string[] = [`@`, `#`];
+		const chanIdx: number = input.findIndex((chan: string) => prefixes.includes(chan[0]));
 
-		const srcChannel = extractChannel(input);
-		if (!srcChannel) {
-			return {
-				Success: false,
-				Result: errNoInputMsg(),
-			};
+		const emotes = input.reduce((emotes: (never | string)[], emote: string, idx: number) => {
+			if (idx === chanIdx) return emotes;
+
+			if (!caseSensitive) emote = emote.toLowerCase();
+
+			emotes.push(emote);
+			return emotes;
+		}, []);
+
+		let writeChan: V3User | string = ctx.channel.Name;
+		let readChan: V3User | string | undefined = input[chanIdx]?.slice(1);
+
+		if (!readChan) {
+			writeChan = ctx.user.Name;
+			readChan = ctx.channel.Name;
 		}
-		const emotes = extractEmotes(input, caseSensitive);
 
-		let srcUser;
-		try {
-			srcUser = await getSevenTVAccount(srcChannel);
-		} catch (error) {
+		if (writeChan === readChan)
 			return {
 				Success: false,
-				Result: 'Could not find that channel',
+				Result: "You can't steal an emote from yourself",
+			};
+
+		let readSet: string;
+		let writeSet: string;
+
+		switch (ctx.channel.Name) {
+			case readChan:
+				readSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString();
+				break
+			case writeChan:
+				writeSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString();
+				break
+		}
+
+		const convertToEmoteSet = async (user: string) =>
+			(await getSevenTVAccount(user)).connections.find(
+				(i) => i.platform === ConnectionPlatform.TWITCH,
+			)?.emote_set_id ??
+			(() => {
+				throw new Error();
+			})();
+
+		try {
+			readSet ??= await convertToEmoteSet(readChan);
+			writeSet ??= await convertToEmoteSet(writeChan);
+		} catch {
+			return {
+				Success: false,
+				Result: 'User or channel not found',
 			};
 		}
 
 		let toAdd: Set<EnabledEmote> = new Set();
 		try {
 			const channelEmotes = await gql
-				.getDefaultEmoteSet(srcUser.id)
+				.getDefaultEmoteSet(readSet)
 				.then((res) => gql.CurrentEnabledEmotes(res.emote_set_id));
 
 			for (const emote of channelEmotes) {
@@ -69,7 +105,7 @@ export default class extends CommandModel<PreHandlers> {
 					? emotes.includes(emote.name)
 					: emotes.includes(emote.name.toLowerCase())) && toAdd.add(emote);
 			}
-		} catch (error) {
+		} catch {
 			return {
 				Success: false,
 				Result: 'That channel does not have any emotes',
@@ -83,20 +119,22 @@ export default class extends CommandModel<PreHandlers> {
 			};
 		}
 
+		const writeChanPrompt = ctx.channel.Name === writeChan ? `` : ` (in #${UnpingUser(writeChan)})`
+
 		const promises: Promise<[string, ChangeEmoteInset]>[] = [];
 
-		toAdd.forEach((emote) => promises.push(addEmote(emote, EmoteSet(), keepAlias)));
+		toAdd.forEach((emote) => promises.push(addEmote(emote, writeSet, keepAlias)));
 
 		const [success, failed] = await Promise.allSettled(promises).then((i) =>
 			ExtractAllSettledPromises<[string, ChangeEmoteInset], [string, string]>(i),
 		);
 
 		for (const f of failed) {
-			ctx.channel.say(`👎 Failed to add ${f[0]} -> ${f[1]}`);
+			ctx.channel.say(`👎 Failed to add ${f[0]} -> ${f[1]}` + writeChanPrompt);
 		}
 
 		for (const s of success) {
-			ctx.channel.say(`👍 Added ${s[0]}`);
+			ctx.channel.say(`👍 Added ${s[0]}` + writeChanPrompt);
 		}
 
 		return {
@@ -106,9 +144,10 @@ export default class extends CommandModel<PreHandlers> {
 	};
 	LongDescription = async (prefix: string) => [
 		'Steal several 7TV emotes from a channel.',
-		'Requires that you have editor status in the current channel.',
+		"If the current channel is not specified, target will be set to the current channel, and the bot will add to the user's channel.",
 		'',
 		`**Usage**: ${prefix} yoink #channel emote`,
+		`**Example**: ${prefix} yoink NOTED`,
 		`**Example**: ${prefix} yoink #pajlada WideDankCrouching`,
 		`**Example**: ${prefix} yoink @melon095 FloppaDank FloppaL`,
 		`**Example**: ${prefix} yoink FloppaDank FloppaL #melon095`,
@@ -124,27 +163,6 @@ export default class extends CommandModel<PreHandlers> {
 		'',
 	];
 }
-
-const channelBeginRegex = /^[#@]/;
-
-const extractChannel = (input: string[]) => {
-	const channel = input.find((i) => channelBeginRegex.test(i));
-
-	if (!channel) {
-		return null;
-	}
-
-	return channel.replace(channelBeginRegex, '');
-};
-
-const extractEmotes = (input: string[], caseSensitive: boolean) => {
-	const e = input.filter((i) => channelBeginRegex.test(i) === false);
-	if (caseSensitive) {
-		return e;
-	}
-
-	return e.map((i) => i.toLowerCase());
-};
 
 const getSevenTVAccount = async (channel: string) => {
 	const user = await Bot.User.ResolveUsername(channel);
