@@ -1,14 +1,9 @@
 import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
+import { TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import gql, { ChangeEmoteInset, ConnectionPlatform, V3User, EnabledEmote, ListItemAction } from '../SevenTVGQL.js';
-import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
 import { ExtractAllSettledPromises } from './../tools/tools.js';
 
-type PreHandlers = {
-	SevenTV: Get7TVUserMod;
-};
-
-export default class extends CommandModel<PreHandlers> {
+export default class {
 	Name = 'yoink';
 	Ping = false;
 	Description = 'Steal several 7TV emotes from another channel TriHard ';
@@ -21,8 +16,7 @@ export default class extends CommandModel<PreHandlers> {
 		[ArgType.Boolean, 'alias'],
 	];
 	Flags = [];
-	PreHandlers = [SevenTVAllowed];
-	Code = async (ctx: TCommandContext, mods: PreHandlers): Promise<CommandResult> => {
+	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const errNoInputMsg = () =>
 			`Provide a channel and emote name, e.g @${ctx.user.Name} FloppaL`;
 
