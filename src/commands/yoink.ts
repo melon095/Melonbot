@@ -7,7 +7,7 @@ import gql, {
 	EnabledEmote,
 	ListItemAction,
 } from '../SevenTVGQL.js';
-import { ExtractAllSettledPromises } from './../tools/tools.js';
+import { ExtractAllSettledPromises, UnpingUser } from './../tools/tools.js';
 
 export default class extends CommandModel {
 	Name = 'yoink';
@@ -119,6 +119,8 @@ export default class extends CommandModel {
 			};
 		}
 
+		const writeChanPrompt = ctx.channel.Name === writeChan ? `` : ` (in #${UnpingUser(writeChan)})`
+
 		const promises: Promise<[string, ChangeEmoteInset]>[] = [];
 
 		toAdd.forEach((emote) => promises.push(addEmote(emote, writeSet, keepAlias)));
@@ -128,11 +130,11 @@ export default class extends CommandModel {
 		);
 
 		for (const f of failed) {
-			ctx.channel.say(`👎 Failed to add ${f[0]} -> ${f[1]}`);
+			ctx.channel.say(`👎 Failed to add ${f[0]} -> ${f[1]}` + writeChanPrompt);
 		}
 
 		for (const s of success) {
-			ctx.channel.say(`👍 Added ${s[0]}`);
+			ctx.channel.say(`👍 Added ${s[0]}` + writeChanPrompt);
 		}
 
 		return {
