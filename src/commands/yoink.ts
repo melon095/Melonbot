@@ -1,9 +1,15 @@
 import { EPermissionLevel } from '../Typings/enums.js';
-import { TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import gql, { ChangeEmoteInset, ConnectionPlatform, V3User, EnabledEmote, ListItemAction } from '../SevenTVGQL.js';
+import { TCommandContext, CommandResult, ArgType, CommandModel } from '../Models/Command.js';
+import gql, {
+	ChangeEmoteInset,
+	ConnectionPlatform,
+	V3User,
+	EnabledEmote,
+	ListItemAction,
+} from '../SevenTVGQL.js';
 import { ExtractAllSettledPromises } from './../tools/tools.js';
 
-export default class {
+export default class extends CommandModel {
 	Name = 'yoink';
 	Ping = false;
 	Description = 'Steal several 7TV emotes from another channel TriHard ';
@@ -16,6 +22,7 @@ export default class {
 		[ArgType.Boolean, 'alias'],
 	];
 	Flags = [];
+	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const errNoInputMsg = () =>
 			`Provide a channel and emote name, e.g @${ctx.user.Name} FloppaL`;
@@ -31,49 +38,53 @@ export default class {
 			};
 		}
 
-		const prefixes: string[] = [`@`, `#`]
-		const chanIdx: number = input.findIndex((chan: string) => prefixes.includes(chan[0]))
+		const prefixes: string[] = [`@`, `#`];
+		const chanIdx: number = input.findIndex((chan: string) => prefixes.includes(chan[0]));
 
 		const emotes = input.reduce((emotes: (never | string)[], emote: string, idx: number) => {
-			if (idx === chanIdx)
-				return emotes
+			if (idx === chanIdx) return emotes;
 
-			if (!caseSensitive)
-				emote = emote.toLowerCase()
+			if (!caseSensitive) emote = emote.toLowerCase();
 
-			emotes.push(emote)
-			return emotes
-		}, [])
+			emotes.push(emote);
+			return emotes;
+		}, []);
 
-		let writeChan: V3User | string = ctx.channel.Name
-		let readChan: V3User | string | undefined = input[chanIdx]?.slice(1)
+		let writeChan: V3User | string = ctx.channel.Name;
+		let readChan: V3User | string | undefined = input[chanIdx]?.slice(1);
 
 		if (!readChan) {
-			writeChan = ctx.user.Name
-			readChan = ctx.channel.Name
+			writeChan = ctx.user.Name;
+			readChan = ctx.channel.Name;
 		}
 
 		if (writeChan === readChan)
 			return {
 				Success: false,
-				Result: 'You can\'t steal an emote from yourself'
-			}
+				Result: "You can't steal an emote from yourself",
+			};
 
-		let readSet: string
-		let writeSet: string
+		let readSet: string;
+		let writeSet: string;
 
 		switch (ctx.channel.Name) {
 			case readChan:
-				readSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString()
+				readSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString();
 			case writeChan:
-				writeSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString()
+				writeSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString();
 		}
 
-		const convertToEmoteSet = async (user: string) => (await getSevenTVAccount(user)).connections.find(i => i.platform === ConnectionPlatform.TWITCH)?.emote_set_id ?? (() => { throw new Error() })()
+		const convertToEmoteSet = async (user: string) =>
+			(await getSevenTVAccount(user)).connections.find(
+				(i) => i.platform === ConnectionPlatform.TWITCH,
+			)?.emote_set_id ??
+			(() => {
+				throw new Error();
+			})();
 
 		try {
-			readSet ??= await convertToEmoteSet(readChan)
-			writeSet ??= await convertToEmoteSet(writeChan)
+			readSet ??= await convertToEmoteSet(readChan);
+			writeSet ??= await convertToEmoteSet(writeChan);
 		} catch {
 			return {
 				Success: false,
@@ -129,7 +140,7 @@ export default class {
 	};
 	LongDescription = async (prefix: string) => [
 		'Steal several 7TV emotes from a channel.',
-		'If the current channel is not specified, target will be set to the current channel, and the bot will add to the user\'s channel.',
+		"If the current channel is not specified, target will be set to the current channel, and the bot will add to the user's channel.",
 		'',
 		`**Usage**: ${prefix} yoink #channel emote`,
 		`**Example**: ${prefix} yoink NOTED`,
