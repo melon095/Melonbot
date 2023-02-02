@@ -70,8 +70,10 @@ export default class extends CommandModel {
 		switch (ctx.channel.Name) {
 			case readChan:
 				readSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString();
+				break
 			case writeChan:
 				writeSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString();
+				break
 		}
 
 		const convertToEmoteSet = async (user: string) =>
