@@ -107,7 +107,7 @@ export interface ChangeEmoteInset {
 	};
 }
 
-interface V3User {
+export interface V3User {
 	id: string;
 	type: string;
 	username: string;
@@ -117,6 +117,7 @@ interface V3User {
 	connections: {
 		id: string;
 		platform: ConnectionPlatform;
+		emote_set_id: string;
 	}[];
 	emote_sets: {
 		id: string;
@@ -214,14 +215,14 @@ export default {
 				body: JSON.stringify({
 					query: `query GetCurrentUser ($id: ObjectID!) {
                         user (id: $id) {
-                            id,
-                            username,
+                            id
+                            username
                             connections {
                                 id
                                 platform
                             }
                             editor_of {
-                                id,
+                                id
                                 user {
                                     username
                                     connections {
@@ -229,7 +230,7 @@ export default {
                                         platform
                                     }
                                 }
-                            } 
+                            }
                         }
                     }`,
 					variables: {
@@ -284,8 +285,8 @@ export default {
 		const data: Base<EmoteSearchResult> = await api
 			.post('', {
 				body: JSON.stringify({
-					query: `query SearchEmotes($query: String!, $page: Int, $limit: Int, $filter: EmoteSearchFilter) {
-                    emotes(query: $query, page: $page, limit: $limit, filter: $filter) {
+					query: `query SearchEmotes($query: String! $page: Int $limit: Int $filter: EmoteSearchFilter) {
+                    emotes(query: $query page: $page limit: $limit filter: $filter) {
                       items {
                         id
                         name
@@ -313,7 +314,7 @@ export default {
 				body: JSON.stringify({
 					query: `query SearchEmote($id: ObjectID!) {
                         emote(id: $id) {
-                            id,
+                            id
                             name
                         }
                     }`,
@@ -336,10 +337,10 @@ export default {
 				body: JSON.stringify({
 					query: `query GetEmoteSet ($id: ObjectID!) {
                             emoteSet (id: $id) {
-                                id,
-                                name,
+                                id
+                                name
                                 emotes {
-                                    id,
+                                    id
                                     name
                                     data {
                                         name
@@ -376,10 +377,10 @@ export default {
 				body: JSON.stringify({
 					query: `query GetCurrentUser ($id: ObjectID!) {
                         user (id: $id) {
-                            id,
-                            username,
+                            id
+                            username
                             editors {
-                                id,
+                                id
                                 user {
                                     username
                                     connections {
@@ -409,10 +410,10 @@ export default {
 				body: JSON.stringify({
 					query: `query GetCurrentUser ($id: ObjectID!) {
                         user (id: $id) {
-                            id,
-                            username,
+                            id
+                            username
                             connections {
-                                platform,
+                                platform
                                 emote_set_id
                             }
                         }
@@ -447,11 +448,11 @@ export default {
 		const data: Base<ChangeEmoteInset> = await api
 			.post('', {
 				body: JSON.stringify({
-					query: `mutation ChangeEmoteInSet($id: ObjectID!, $action: ListItemAction!, $emote_id: ObjectID!, $name: String) {
+					query: `mutation ChangeEmoteInSet($id: ObjectID! $action: ListItemAction! $emote_id: ObjectID! $name: String) {
                         emoteSet(id: $id) {
                             id
-                            emotes(id: $emote_id, action: $action, name: $name) {
-                                id,
+                            emotes(id: $emote_id action: $action name: $name) {
+                                id
                                 name
                             }
                         }
@@ -478,22 +479,23 @@ export default {
 		const data: Base<{ userByConnection: V3User }> = await api
 			.post('', {
 				body: JSON.stringify({
-					query: `query GetUserByConnection($platform: ConnectionPlatform!, $id: String!) {
-                        userByConnection (platform: $platform, id: $id) {
-                            id,
-                            type,
-                            username,
-                            roles,
-                            created_at,
+					query: `query GetUserByConnection($platform: ConnectionPlatform! $id: String!) {
+                        userByConnection (platform: $platform id: $id) {
+                            id
+                            type
+                            username
+                            roles
+                            created_at
                             connections {
-                                id,
+                                id
                                 platform
+                                emote_set_id
                             }
                             emote_sets {
-                                id,
+                                id
                                 emotes {
                                     id
-                                },
+                                }
                                 capacity
                             }
                         }
@@ -518,7 +520,7 @@ export default {
 				body: JSON.stringify({
 					query: `query GetRoles{
                         roles {
-                            name,
+                            name
                             id
                         }
                     }`,
@@ -540,10 +542,10 @@ export default {
 		const data: Base<UpdateUserEditors> = await api
 			.post('', {
 				body: JSON.stringify({
-					query: `mutation UpdateUserEditors($id: ObjectID!, $editor_id: ObjectID!, $d: UserEditorUpdate!) {
+					query: `mutation UpdateUserEditors($id: ObjectID! $editor_id: ObjectID! $d: UserEditorUpdate!) {
                         user(id: $id) {
-                            editors(editor_id: $editor_id, data: $d) {
-                                id,
+                            editors(editor_id: $editor_id data: $d) {
+                                id
                             }
                         }
                     }`,
