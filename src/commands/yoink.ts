@@ -25,7 +25,7 @@ export default class extends CommandModel {
 	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
 		const errNoInputMsg = () =>
-			`Provide a channel and emote name, e.g @${ctx.user.Name} FloppaL`;
+			`Provide an emote name and if you want to add to the current channel, a channel to steal from prefixed with @ or #, e.g @${ctx.user.Name} FloppaL`;
 
 		const input = ctx.input;
 		const caseSensitive = ctx.data.Params.case as boolean;
