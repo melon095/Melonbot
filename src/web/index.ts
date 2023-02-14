@@ -181,9 +181,9 @@ const authedRoutes: HeaderItem[] = [
 			query: JSON.stringify(req.query) || null,
 		};
 
-		Bot.SQL.Query`
+		await Bot.SQL.Query`
             INSERT INTO logs.web_request ${Bot.SQL.Get(data)}
-        `.execute();
+        `;
 
 		const authCookie = req.cookies['token'];
 		if (authCookie) {
