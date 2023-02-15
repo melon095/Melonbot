@@ -51,7 +51,7 @@ function Stats() {
 	const [stats, setStats] = useState<StatsResponse[]>(defaultStats);
 
 	const { data, error, refetch } = useFetch<StatsResponse[]>({
-		endpoint: '/api/stats',
+		endpoint: '/api/v1/stats',
 	});
 
 	useEffect(() => {

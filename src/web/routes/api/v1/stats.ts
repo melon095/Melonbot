@@ -1,31 +1,51 @@
-import shell from 'node:child_process';
-import process from 'node:process';
-import * as tools from '../../../../tools/tools.js';
+import { FastifyInstance } from 'fastify';
 
-type sum = { sum: number }[];
+export default async function (fastify: FastifyInstance) {
+	async function GetTotalUsers() {
+		const count = await Bot.SQL.Query`
+            SELECT COUNT(*) AS count FROM users
+        `;
 
-export default (async function () {
-	const Express = await import('express');
-	const Router = Express.Router();
+		return count[0].count;
+	}
 
-	Router.get('/', async (req, res) => {
-		const [ch] = await Bot.SQL.Query<sum>`SELECT SUM(commands_handled) AS sum FROM stats`;
+	async function GetJoinedChannelCount() {
+		const count = await Bot.SQL.Query`
+            SELECT COUNT(*) AS count FROM channels
+        `;
 
-		if (!ch) return res.status(404).json({ error: 'Not found' });
+		return count[0].count;
+	}
 
-		const stats = {
-			commitHash: shell
-				.execSync(`cd ${process.cwd()} && git rev-parse --short HEAD`)
-				.toString()
-				.replace('\n', ''),
-			commits: Number(
-				shell.execSync(`cd ${process.cwd()} && git rev-list --all --count`).toString(),
-			),
-			uptime: tools.SecondsFmt(process.uptime()),
-			commandsHandled: Number(ch.sum),
-		};
-		res.json(stats);
+	// TODO: Not implemented yet.
+	async function GetCustomCommandsCount() {
+		return 0;
+	}
+
+	fastify.route({
+		method: 'GET',
+		url: '/',
+		handler: async () => {
+			try {
+				return [
+					{
+						name: 'Total Users',
+						value: await GetTotalUsers(),
+					},
+					{
+						name: 'Joined Channels',
+						value: await GetJoinedChannelCount(),
+					},
+					{
+						name: 'Custom Commands',
+						value: await GetCustomCommandsCount(),
+					},
+				];
+			} catch (err) {
+				Bot.Log.Error(err as Error);
+
+				return [];
+			}
+		},
 	});
-
-	return Router;
-})();
+}

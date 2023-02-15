@@ -1,14 +1,6 @@
-export default (async function () {
-	const Express = await import('express');
-	const { Import } = await import('./../../../tools/tools.js');
-	const { getDirname } = await import('./../../../tools/tools.js');
+import { FastifyInstance } from 'fastify';
 
-	const Router = Express.Router();
-	const subroutes = [['v1', 'v1/index.js']];
-
-	for (const [route, file] of subroutes) {
-		Router.use(`/${route}`, await Import(getDirname(import.meta.url), file));
-	}
-
-	return Router;
-})();
+export default async function (fastify: FastifyInstance) {
+	await fastify.register(import('./v1/index.js'), { prefix: '/v1' });
+	await fastify.register(import('./auth/index.js'), { prefix: '/auth' });
+}

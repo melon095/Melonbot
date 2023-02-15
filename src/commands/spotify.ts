@@ -2,30 +2,7 @@ import { EPermissionLevel } from '../Typings/enums.js';
 import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
 import { SpotifyGetValidToken, SpotifyGot } from './../tools/spotify.js';
 import Got from './../tools/Got.js';
-import StrategyConstructor, { AuthenticationMethod } from './../web/oauth.js';
 import { SpotifyTypes } from './../Typings/types.js';
-import { Err, Ok } from './../tools/result.js';
-
-const { ClientID, ClientSecret } = Bot.Config.Spotify;
-const Authorization = 'Basic ' + Buffer.from(`${ClientID}:${ClientSecret}`).toString('base64');
-
-// TODO: Get rid of this.
-const Strategy = new StrategyConstructor<SpotifyTypes.Me>(
-	{
-		name: 'Spotify',
-		redirectURL: '',
-		authenticationMethod: AuthenticationMethod.Header,
-		headers: {
-			Authorization,
-			'Content-Type': 'application/x-www-form-urlencoded',
-		},
-		tokenURL: 'https://accounts.spotify.com/api/token',
-	},
-	async (access_token, refresh_token, expires_in, profile, authUser) => {
-		return new Err(new Error('Not implemented'));
-	},
-	async (accessToken, authUser) => new Err(new Error('Not implemented')),
-);
 
 type SongWhipResponse = {
 	data: {
@@ -67,7 +44,7 @@ export default class extends CommandModel {
 	Flags = [];
 	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		const token = await SpotifyGetValidToken(ctx.user, Strategy);
+		const token = await SpotifyGetValidToken(ctx.user);
 
 		if (!token) {
 			return {
