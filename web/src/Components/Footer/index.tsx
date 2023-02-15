@@ -1,3 +1,4 @@
+import BotName from '../../Utils/BotName';
 import { ReactComponent as GithubSVG } from './../../assets/github-mark.svg';
 import { ReactComponent as TwitchSVG } from './../../assets/TwitchGlitchBlackOps.svg';
 
@@ -18,7 +19,7 @@ const GithubLink = () => (
 
 const TwitchLink = () => (
 	<li className="ml-4">
-		<a className={SVGCss} aria-label="Twitch" href="https://www.twitch.tv/melonbot__">
+		<a className={SVGCss} aria-label="Twitch" href={`https://www.twitch.tv/${BotName()}`}>
 			<TwitchSVG className="w-8 h-8 fill-current" />
 		</a>
 	</li>

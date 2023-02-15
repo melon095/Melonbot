@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import React from 'react';
 import Header from './Components/Header';
 import Footer from './Components/Footer';
+import Loading from './Components/Loading';
 
 const Home = React.lazy(() => import('./Pages/Home/index'));
 const NotFound = React.lazy(() => import('./Pages/NotFound/index'));
@@ -15,7 +16,7 @@ export default function () {
 				<Route
 					index
 					element={
-						<React.Suspense fallback={<div>Loading...</div>}>
+						<React.Suspense fallback={<Loading />}>
 							<Home />
 						</React.Suspense>
 					}
@@ -23,7 +24,7 @@ export default function () {
 				<Route
 					path="*"
 					element={
-						<React.Suspense fallback={<div>Loading...</div>}>
+						<React.Suspense fallback={<Loading />}>
 							<NotFound />
 						</React.Suspense>
 					}

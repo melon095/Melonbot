@@ -1,3 +1,11 @@
+import HeroSection from './HeroSection';
+import StatsSection from './StatsSection';
+
 export default function () {
-	return <div>Home</div>;
+	return (
+		<section>
+			<HeroSection />
+			<StatsSection />
+		</section>
+	);
 }
