@@ -96,9 +96,7 @@ export default class extends CommandModel {
 
 		let toAdd: Set<EnabledEmote> = new Set();
 		try {
-			const channelEmotes = await gql
-				.getDefaultEmoteSet(readSet)
-				.then((res) => gql.CurrentEnabledEmotes(res.emote_set_id));
+			const channelEmotes = await gql.CurrentEnabledEmotes(readSet);
 
 			for (const emote of channelEmotes) {
 				(caseSensitive
