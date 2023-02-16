@@ -2,125 +2,84 @@ import Got from './../../tools/Got.js';
 import * as regex from '../../tools/regex.js';
 import User from './../User/index.js';
 import { IBanphrase } from './../../Singletons/Redis/Data.Types.js';
+import { Channel, ChannelSettingsValue, DeleteSetting, UpdateSetting } from './../Channel/index.js';
 
-interface Bans {
-	type: Database.banphrase_type;
-	pb1_url?: string;
-	regex?: RegExp;
+interface Pajbot1Response {
+	banned: boolean;
+	banphrase_data: {
+		case_sensitive: false;
+		id: number;
+		length: number;
+		name: string;
+		operator: string;
+		permanent: boolean;
+		phrase: string;
+		remove_accents: boolean;
+		sub_immunity: boolean;
+	};
+	input_message: string;
 }
 
-export class Banphrase {
-	static GlobalBans: RegExp[] = [
-		regex.racism1,
-		regex.racism2,
-		regex.racism3,
-		regex.racism4,
-		regex.underage,
-		// regex.url,
-	];
+const GLOBAL_REGEX_BANS: RegExp[] = [
+	regex.racism1,
+	regex.racism2,
+	regex.racism3,
+	regex.racism4,
+	regex.underage,
+	// regex.url,
+];
 
-	private _bans: Bans[] = [];
+export async function HandleBanphraseSettingsUpdate(
+	channel: Channel,
+	data: IBanphrase,
+): Promise<void> {
+	switch (data.request) {
+		case 'UPDATE':
+		case 'ADD': {
+			await UpdateSetting(channel.User(), 'Pajbot1', new ChannelSettingsValue(data.pb1_url));
+			break;
+		}
+		case 'DELETE': {
+			await DeleteSetting(channel.User(), 'Pajbot1');
+			break;
+		}
+	}
+}
 
-	constructor(private owner: User) {}
-
-	async Initialize() {
-		const phrases = await Bot.SQL.Query<Database.banphrases[]>`
-            SELECT *
-            FROM banphrases
-            WHERE channel = ${this.owner.TwitchUID}
-        `;
-
-		for (const phrase of phrases) {
-			this._bans.push({
-				type: phrase.type,
-				pb1_url: phrase.pb1_url ?? undefined,
-				regex: phrase.regex ? new RegExp(phrase.regex) : undefined,
-			});
+export async function CheckMessageBanphrase(
+	channel: Channel,
+	message: string,
+): Promise<{ banned: boolean; reason?: string }> {
+	for (const regex of GLOBAL_REGEX_BANS) {
+		if (regex.test(message)) {
+			return { banned: true, reason: 'Global Banphrase' };
 		}
 	}
 
-	async Update() {
-		this._bans = [];
-		await this.Initialize();
-	}
+	const pajbot1 = (await channel.GetSettings()).Pajbot1.ToString();
 
-	async Handle(data: IBanphrase): Promise<void> {
-		switch (data.request) {
-			case 'ADD': {
-				await Bot.SQL.Query`
-                    INSERT INTO banphrases (channel, type, pb1_url, regex)
-                    VALUES (${data.channel}, ${data.type}, ${data.pb1_url ?? null}, ${
-					data.regex ?? null
-				})`;
+	if (pajbot1) {
+		const url = `${pajbot1}/api/v1/banphrases/test`;
+		const json = {
+			message,
+		};
 
-				break;
-			}
-			case 'UPDATE': {
-				await Bot.SQL.Query`
-                    UPDATE banphrases
-                    SET 
-                        type = ${data.type}, 
-                        pb1_url = ${data.pb1_url ?? null}, 
-                        regex = ${data.regex ?? null} 
-                    WHERE id = ${data.id}
-                    `;
-				break;
-			}
-			case 'DELETE': {
-				await Bot.SQL.Query`
-                    DELETE FROM banphrases
-                    WHERE id = ${data.id}
-                `;
+		const { statusCode, body } = await Got('json').post(url, {
+			json,
+			throwHttpErrors: false,
+		});
 
-				break;
-			}
+		const jsonBody = JSON.parse(body) as Pajbot1Response;
+
+		if (statusCode >= 400) {
+			Bot.Log.Error('Error while checking banphrase: %O', { url, json, body });
+			return { banned: true, reason: 'Error while checking banphrase' };
 		}
 
-		await this.Update();
-	}
-
-	async Check(message: string): Promise<{ banned: boolean; reason?: string }> {
-		// eslint-disable-next-line no-async-promise-executor
-		const _chvl: boolean[] = [];
-
-		Banphrase.GlobalBans.map((regex) => regex.test(message) && _chvl.push(true));
-		if (_chvl.length) return { banned: true, reason: 'Global Banphrase' };
-
-		for (const ban of this._bans) {
-			switch (ban.type) {
-				case 'regex': {
-					ban.regex?.test(message) && _chvl.push(true);
-					break;
-				}
-				case 'pb1': {
-					const url = `${ban.pb1_url}/api/v1/banphrases/test`;
-					const json = {
-						message,
-					};
-
-					const { statusCode, body } = await Got('json').post(url, {
-						json,
-						throwHttpErrors: false,
-					});
-
-					const jsonBody = JSON.parse(body);
-
-					if (statusCode >= 400) {
-						throw new Error(
-							'Error while checking banphrase' + JSON.stringify({ url, json, body }),
-						);
-					}
-
-					_chvl.push(jsonBody.banned);
-
-					break;
-				}
-			}
-			if (_chvl.length && _chvl.every((i) => i === true)) {
-				return { banned: true, reason: 'Channel Banphrase' };
-			}
+		if (jsonBody.banned) {
+			return { banned: true, reason: 'Channel Banphrase' };
 		}
-
-		return { banned: _chvl.includes(true), reason: 'Channel Banphrase' };
 	}
+
+	return { banned: false };
 }

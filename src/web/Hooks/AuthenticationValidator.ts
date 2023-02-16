@@ -1,56 +1,57 @@
 import { ResolveInternalID } from './../../controller/User/index.js';
-import { FastifyRequest, FastifyInstance } from 'fastify';
+import { FastifyRequest, FastifyInstance, FastifyReply } from 'fastify';
 import { JWTData, Authenticator } from './../index.js';
 
-// Validates a authenticated route, injecting the authenticatedUser object into the request
-export default function (fastify: FastifyInstance, failureMethod: 'REDIRECT' | 'JSON') {
-	function getJWTToken(req: FastifyRequest) {
-		const cookie = req.cookies[Authenticator.COOKIE_NAME];
+function getJWTToken(req: FastifyRequest) {
+	const cookie = req.cookies[Authenticator.COOKIE_NAME];
 
-		if (cookie) return cookie;
+	if (cookie) return cookie;
 
-		const authHeader = req.headers.authorization;
+	const authHeader = req.headers.authorization;
 
-		if (authHeader) {
-			const [type, token] = authHeader.split(' ');
+	if (authHeader) {
+		const [type, token] = authHeader.split(' ');
 
-			if (type === 'Bearer') return token;
-			return null;
-		}
-
+		if (type === 'Bearer') return token;
 		return null;
 	}
 
-	async function ValidateAuthToken(request: FastifyRequest, token: string): Promise<boolean> {
-		let data: JWTData;
-		try {
-			data = await Authenticator.VerifyJWT(token);
-		} catch {
-			return false;
-		}
+	return null;
+}
 
-		// Ask redis if the user exists
-		const jwt_user = await Bot.Redis.SGet(`session:${data.id}:${data.name}`);
-		if (!jwt_user) {
-			return false;
-		}
-
-		const internalUser = await ResolveInternalID(data.id);
-
-		if (!internalUser) {
-			return false;
-		}
-
-		request.authenticatedUser = {
-			id: internalUser.ID,
-			role: internalUser.Role,
-			identifier: internalUser.TwitchUID,
-			username: internalUser.Name,
-		};
-
-		return true;
+async function ValidateAuthToken(request: FastifyRequest, token: string): Promise<boolean> {
+	let data: JWTData;
+	try {
+		data = await Authenticator.VerifyJWT(token);
+	} catch {
+		return false;
 	}
 
+	// Ask redis if the user exists
+	const jwt_user = await Bot.Redis.SGet(`session:${data.id}:${data.name}`);
+	if (!jwt_user) {
+		return false;
+	}
+
+	const internalUser = await ResolveInternalID(data.id);
+
+	if (!internalUser) {
+		return false;
+	}
+
+	request.authenticatedUser = {
+		id: internalUser.ID,
+		role: internalUser.Role,
+		identifier: internalUser.TwitchUID,
+		username: internalUser.Name,
+	};
+
+	return true;
+}
+
+// Validates a authenticated route, injecting the authenticatedUser object into the request
+// Should be used with preParsing, to allow injection of the user object
+export default function (failureMethod: 'REDIRECT' | 'JSON') {
 	let failureHandler: (req: FastifyRequest, reply: any) => void;
 
 	switch (failureMethod) {
@@ -78,7 +79,7 @@ export default function (fastify: FastifyInstance, failureMethod: 'REDIRECT' | '
 		}
 	}
 
-	fastify.addHook('preParsing', async (req, reply) => {
+	return async function (req: FastifyRequest, reply: FastifyReply) {
 		const token = getJWTToken(req);
 
 		if (!token) {
@@ -94,7 +95,5 @@ export default function (fastify: FastifyInstance, failureMethod: 'REDIRECT' | '
 
 			return reply;
 		}
-
-		return reply;
-	});
+	};
 }

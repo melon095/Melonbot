@@ -1,3 +1,5 @@
+import { ChannelSettingsNames } from './../../controller/Channel/index.js';
+
 export type TPubRecType =
 	| 'banphrase'
 	| 'connect'
@@ -72,15 +74,13 @@ export type IPubChannelUpdate = IPubBroadcasterData & {
 export interface IBanphrase {
 	channel: string;
 	request: 'DELETE' | 'ADD' | 'UPDATE';
-	id: number;
-	type: 'pb1' | 'regex';
-	pb1_url?: string;
-	regex?: string;
+	pb1_url: string;
 }
 
 export interface ISettings {
 	id: string;
-	inner: {
-		[key: string]: unknown;
-	};
+	inner: ReadonlyArray<{
+		name: ChannelSettingsNames;
+		value: unknown;
+	}>;
 }

@@ -4,7 +4,7 @@ import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Chann
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
-import { Logger } from './logger.js';
+import { HandleBanphraseSettingsUpdate } from './controller/Banphrase/index.js';
 
 interface IUserInformation {
 	data: [
@@ -22,11 +22,6 @@ interface IUserInformation {
 			created_at: string;
 		},
 	];
-}
-
-interface IWhisperUser {
-	ID: string;
-	Username: string;
 }
 
 export default class Twitch {
@@ -101,7 +96,7 @@ export default class Twitch {
 			const channel = this.TwitchChannelSpecific({ ID: Data.channel });
 			if (!channel) return;
 
-			channel.Banphrase.Handle(Data);
+			HandleBanphraseSettingsUpdate(channel, Data); // TODO setup web side
 		});
 		Bot.Redis.on('settings', async (Data) => {
 			const channel = this.TwitchChannelSpecific({ ID: Data.id });
@@ -109,8 +104,8 @@ export default class Twitch {
 
 			const user = await channel.User();
 
-			for (const [key, value] of Object.entries(Data.inner)) {
-				UpdateSetting(user, key, ChannelSettingsValue.FromUnknown(value));
+			for (const { name, value } of Data.inner) {
+				UpdateSetting(user, name, ChannelSettingsValue.FromUnknown(value)); // TODO setup web side
 			}
 		});
 	}
