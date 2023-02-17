@@ -94,15 +94,19 @@ export const Authenticator = new (class {
 
 	await app.register(import('@fastify/cookie'));
 
-	// if (!Bot.Config.Development) {
-	// 	const publicUrl = Bot.Config.Website.WebUrl;
-	// 	await app.register(import('@fastify/cors'), {
-	// 		origin: publicUrl,
-	// 		credentials: true,
-	// 		allowedHeaders: ['Content-Type', 'Authorization'],
-	// 		methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-	// 	});
-	// }
+	if (Bot.Config.Development) {
+		await app.register(import('@fastify/cors'), {
+			origin: 'http://localhost:5173',
+			credentials: true,
+			allowedHeaders: [
+				'Content-Type',
+				'Authorization',
+				'Access-Control-Allow-Methods',
+				'Access-Control-Allow-Headers',
+			],
+			methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+		});
+	}
 
 	(await import('./Hooks/RequestLogger.js')).default(app);
 

@@ -51,25 +51,29 @@ async function ValidateAuthToken(request: FastifyRequest, token: string): Promis
 
 // Validates a authenticated route, injecting the authenticatedUser object into the request
 // Should be used with preParsing, to allow injection of the user object
-export default function (failureMethod: 'REDIRECT' | 'JSON') {
-	let failureHandler: (req: FastifyRequest, reply: any) => void;
+// Continue on failure will allow the route to continue if the user is not authenticated (useful for public routes) where you optionally want user data.
+export default function (failureMethod: 'REDIRECT' | 'JSON', continueOnFailure = false) {
+	let failureHandler: (req: FastifyRequest, reply: FastifyReply) => void;
 
 	switch (failureMethod) {
 		case 'REDIRECT': {
 			failureHandler = (req, reply) => {
-				reply.clearCookie(Authenticator.COOKIE_NAME, { path: '/' });
-				reply.redirect('/');
+				// prettier-ignore
+				reply
+                    .redirect('/');
 			};
 			break;
 		}
 
 		case 'JSON': {
 			failureHandler = (req, reply) => {
-				reply.clearCookie(Authenticator.COOKIE_NAME, { path: '/' });
-				reply.send({
-					status: 401,
-					message: 'Unauthorized',
-				});
+				// prettier-ignore
+				reply
+                    .status(401)
+                    .send({
+					    status: 401,
+					    message: 'Unauthorized',
+				    });
 			};
 			break;
 		}
@@ -83,6 +87,8 @@ export default function (failureMethod: 'REDIRECT' | 'JSON') {
 		const token = getJWTToken(req);
 
 		if (!token) {
+			if (continueOnFailure) return;
+
 			failureHandler(req, reply);
 
 			return reply;
@@ -91,6 +97,8 @@ export default function (failureMethod: 'REDIRECT' | 'JSON') {
 		const isValid = await ValidateAuthToken(req, token);
 
 		if (!isValid) {
+			if (continueOnFailure) return;
+
 			failureHandler(req, reply);
 
 			return reply;

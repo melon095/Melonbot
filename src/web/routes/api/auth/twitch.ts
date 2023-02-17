@@ -10,7 +10,7 @@ import StrategyConstructor, {
 import { FastifyInstance } from 'fastify';
 
 export default async function (fastify: FastifyInstance) {
-	const RedirectURI = Bot.Config.Website.WebUrl + '/auth/twitch/callback';
+	const RedirectURI = Bot.Config.Website.WebUrl + '/api/auth/twitch/callback';
 
 	const Strategy = new StrategyConstructor<Helix.User>(
 		{
@@ -36,11 +36,6 @@ export default async function (fastify: FastifyInstance) {
 				v: 1,
 			});
 
-			// Expire in 7 days, same as cookie does.
-			await Bot.Redis.SSet(`session:${user.ID}:${user.Name}`, jwt).then((fn) =>
-				fn(60 * 60 * 24 * 7),
-			);
-
 			// TODO: Move this into seperate 'Third party authenticated' data store.
 			await user.Set(UserDataStoreKeys.TwitchToken, {
 				access_token: oauth.accessToken,
@@ -51,7 +46,7 @@ export default async function (fastify: FastifyInstance) {
 			const cookie: CookieOpts = {
 				name: Authenticator.COOKIE_NAME,
 				value: jwt,
-				httpOnly: true,
+				httpOnly: false,
 				path: '/',
 			};
 

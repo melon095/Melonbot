@@ -40,7 +40,7 @@ export default class extends CommandModel {
 			Success: true,
 			Result: `${Name}: Description: ${Description} Cooldown: ${Cooldown}s. Permission: ${NCommandFunctions.DatabaseToMode(
 				Permission,
-			)} ${website}/bot/commands/${Name}`,
+			)} ${website}/bot/commands-list/${Name}`,
 		};
 	};
 }

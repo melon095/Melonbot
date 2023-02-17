@@ -4,7 +4,10 @@ import { CookieSerializeOptions } from '@fastify/cookie';
 import User, { ResolveInternalID } from './../controller/User/index.js';
 import { FastifyAuthenticatedUser } from './index.js';
 
-const MONTH_IN_MS = 1000 * 60 * 60 * 24 * 30;
+// const MONTH_IN_MS = 1000 * 60 * 60 * 24 * 30;
+
+const MONTH = new Date();
+MONTH.setMonth(MONTH.getMonth() + 1);
 
 export enum AuthenticationMethod {
 	'Query' = 'query',
@@ -132,11 +135,11 @@ class Strategy<ProfileKind> {
 		}
 
 		if (cbRes && cbRes.cookie) {
-			const { name, value, httpOnly, maxAge, path } = cbRes.cookie;
+			const { name, value, httpOnly, expires, path } = cbRes.cookie;
 
 			reply.setCookie(name, value, {
 				httpOnly: httpOnly || true,
-				maxAge: maxAge || MONTH_IN_MS,
+				expires: expires || MONTH,
 				path: path || '/',
 			});
 		}

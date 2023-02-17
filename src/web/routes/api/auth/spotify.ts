@@ -1,15 +1,12 @@
 import StrategyConstructor, { AuthenticationMethod, OAuthQueryParams } from './../../../oauth.js';
 import { SpotifyTypes } from './../../../../Typings/types.js';
-import {
-	CreateSpotifyRequestHeaders,
-	SpotifyAuthorizationToken,
-	SpotifyGot,
-} from './../../../../tools/spotify.js';
+import { CreateSpotifyRequestHeaders, SpotifyGot } from './../../../../tools/spotify.js';
 import { UserDataStoreKeys } from './../../../../controller/User/index.js';
 import { FastifyInstance } from 'fastify';
+import AuthenticationValidator from './../../../Hooks/AuthenticationValidator.js';
 
 export default async function (fastify: FastifyInstance) {
-	const RedirectURI = Bot.Config.Website.WebUrl + '/auth/spotify/callback';
+	const RedirectURI = Bot.Config.Website.WebUrl + '/api/auth/spotify/callback';
 
 	const SCOPE = ['user-read-private', 'user-read-email', 'user-read-playback-state'].join(' ');
 
@@ -60,6 +57,7 @@ export default async function (fastify: FastifyInstance) {
 	fastify.route({
 		method: 'GET',
 		url: '/',
+		preParsing: AuthenticationValidator('REDIRECT'),
 		handler: (req, reply) => {
 			const Params = new URLSearchParams({
 				response_type: 'code',
@@ -77,6 +75,7 @@ export default async function (fastify: FastifyInstance) {
 	fastify.route<{ Querystring: OAuthQueryParams }>({
 		method: 'GET',
 		url: '/callback',
+		preParsing: AuthenticationValidator('REDIRECT'),
 		preHandler: (req, reply) => Strategy.authenticate(req, reply),
 		handler: (req, reply) => {
 			reply.redirect('/user/dashboard');

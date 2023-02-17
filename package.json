@@ -14,7 +14,7 @@
         "build:clean": "rimraf ./build",
         "build": "npm run build:clean && npm run build:tsc",
         "dev:bot": "nodemon -e ts --exec \"npm run start:bot\"",
-        "dev:web": "nodemon -e ts --exec \"npm run build && npm run start:web\"",
+        "dev:web": "nodemon -e ts --ignore web/ --exec \"npm run build && npm run start:web\"",
         "format": "prettier --config .prettierrc --write \"src/**/*.ts\" \"src/**/*.d.ts\""
     },
     "author": "Joachim Flottorp",
