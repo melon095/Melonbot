@@ -23,23 +23,6 @@ const Stat = ({ title, value }: StatProps) => {
 	);
 };
 
-const defaultStats = () => {
-	return [
-		{
-			name: 'Total Users',
-			value: 0,
-		},
-		{
-			name: 'Joined Channels',
-			value: 0,
-		},
-		{
-			name: 'Custom Commands',
-			value: 0,
-		},
-	];
-};
-
 interface StatsResponse {
 	name: string;
 	value: number;
@@ -48,7 +31,7 @@ interface StatsResponse {
 const FETCH_STATS_INTERVAL = 15000; // 15 seconds
 
 function Stats() {
-	const [stats, setStats] = useState<StatsResponse[]>(defaultStats);
+	const [stats, setStats] = useState<StatsResponse[]>([]);
 
 	const { data, error, refetch } = useFetch<StatsResponse[]>({
 		endpoint: '/api/v1/stats',
@@ -63,7 +46,7 @@ function Stats() {
 	useEffect(() => {
 		if (error) {
 			console.error(error);
-			setStats(defaultStats());
+			setStats([]);
 		} else if (data) {
 			setStats(data);
 		}

@@ -22,6 +22,12 @@ export default async function (fastify: FastifyInstance) {
 		return 0;
 	}
 
+	async function GetTotalHandledCommands() {
+		const sum = await Bot.SQL.Query`SELECT SUM(commands_handled) FROM stats`;
+
+		return sum[0].sum;
+	}
+
 	fastify.route({
 		method: 'GET',
 		url: '/',
@@ -39,6 +45,10 @@ export default async function (fastify: FastifyInstance) {
 					{
 						name: 'Custom Commands',
 						value: await GetCustomCommandsCount(),
+					},
+					{
+						name: 'Total Handled Commands',
+						value: await GetTotalHandledCommands(),
 					},
 				];
 			} catch (err) {
