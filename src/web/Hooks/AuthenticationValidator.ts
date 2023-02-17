@@ -27,12 +27,6 @@ async function ValidateAuthToken(request: FastifyRequest, token: string): Promis
 		return false;
 	}
 
-	// Ask redis if the user exists
-	const jwt_user = await Bot.Redis.SGet(`session:${data.id}:${data.name}`);
-	if (!jwt_user) {
-		return false;
-	}
-
 	const internalUser = await ResolveInternalID(data.id);
 
 	if (!internalUser) {
