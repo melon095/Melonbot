@@ -13,4 +13,4 @@ export const invisChar = /[\u034f\u2800\u{E0000}\u180e\ufeff\u2000-\u200d\u206D]
 export const underage =
 	/.*((\b[Ii].[Mm]\b)|(\b[Aa][Mm]\b)|(\b[Ii][Mm]\b)|(\b[Aa][Gg][Ee]\b)) \b([1-9]|1[0-2])\b.*/;
 
-export const extractSeventTVID = (src: string) => /\b[a-z\d]{24}\b/i.exec(src)?.toString();
+export const extractSeventTVID = (src: string) => /\b6\d[a-f0-9]{22}\b/.exec(src)?.toString();
