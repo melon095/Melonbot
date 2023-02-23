@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Loading from '../../../Components/Loading';
 import useFetch from '../../../Hooks/useFetch';
 import { UserMe } from '../../../Types/user';

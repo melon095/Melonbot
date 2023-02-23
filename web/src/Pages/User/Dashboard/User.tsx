@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { UserMe } from '../../../Types/user';
-import { ReactComponent as SpotifySVG } from './../../../assets/Spotify_icon.svg';
+import { ReactComponent as SpotifySVG } from './../../../assets/Spotify_Icon.svg';
 
 type Service = {
 	linked: boolean;
