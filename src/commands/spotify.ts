@@ -59,13 +59,22 @@ export default class extends CommandModel {
 			},
 		});
 
-		if (statusCode !== 200) {
-			ctx.Log('error', 'Failed to get song from spotify.', { statusCode, body });
+		switch (statusCode) {
+			case 204:
+				return {
+					Success: true,
+					Result: 'No song is currently playing on your spotify.',
+				};
+			case 200:
+				break;
+			default: {
+				ctx.Log('error', 'Failed to get song from spotify.', { statusCode, body });
 
-			return {
-				Success: false,
-				Result: 'Failed to get song.',
-			};
+				return {
+					Success: false,
+					Result: 'Failed to get song.',
+				};
+			}
 		}
 
 		const queue = JSON.parse(body) as SpotifyTypes.Player;

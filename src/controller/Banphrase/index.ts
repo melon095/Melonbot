@@ -49,6 +49,11 @@ export async function CheckMessageBanphrase(
 		const { statusCode, body } = await Got('json').post(url, {
 			json,
 			throwHttpErrors: false,
+			timeout: {
+				request: 5000,
+				connect: 5000,
+				lookup: 5000,
+			},
 		});
 
 		if (statusCode >= 400) {
