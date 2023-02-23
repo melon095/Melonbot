@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.loading-spinner {
+	width: 100px;
+	height: 100px;
+}

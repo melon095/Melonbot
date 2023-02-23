@@ -1,7 +1,6 @@
 import EventEmitter from 'node:events';
 import got from './../../tools/Got.js';
 import similarity from 'string-similarity';
-import { Logger } from './../../logger.js';
 
 const API_URL = 'https://api.gazatu.xyz/trivia/questions';
 

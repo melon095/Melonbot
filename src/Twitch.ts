@@ -4,7 +4,6 @@ import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Chann
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
-import { Logger } from './logger.js';
 
 interface IUserInformation {
 	data: [
@@ -22,11 +21,6 @@ interface IUserInformation {
 			created_at: string;
 		},
 	];
-}
-
-interface IWhisperUser {
-	ID: string;
-	Username: string;
 }
 
 export default class Twitch {
@@ -84,8 +78,6 @@ export default class Twitch {
 		});
 
 		this.client.connect();
-
-		this._setupRedisCallbacks();
 	}
 
 	static async Init() {
@@ -94,25 +86,6 @@ export default class Twitch {
 		await t.SetOwner();
 
 		return t;
-	}
-
-	private async _setupRedisCallbacks() {
-		Bot.Redis.on('banphrase', (Data) => {
-			const channel = this.TwitchChannelSpecific({ ID: Data.channel });
-			if (!channel) return;
-
-			channel.Banphrase.Handle(Data);
-		});
-		Bot.Redis.on('settings', async (Data) => {
-			const channel = this.TwitchChannelSpecific({ ID: Data.id });
-			if (!channel) return;
-
-			const user = await channel.User();
-
-			for (const [key, value] of Object.entries(Data.inner)) {
-				UpdateSetting(user, key, ChannelSettingsValue.FromUnknown(value));
-			}
-		});
 	}
 
 	private async InitFulfill() {
