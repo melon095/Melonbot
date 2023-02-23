@@ -12,7 +12,8 @@ const Home = React.lazy(() => import('./Pages/Home/index'));
 const Dashboard = React.lazy(() => import('./Pages/User/Dashboard/index'));
 const CommandsList = React.lazy(() => import('./Pages/Bot/CommandsList/index'));
 const CommandDetails = React.lazy(() => import('./Pages/Bot/CommandsList/[command]'));
-const NotFound = React.lazy(() => import('./Pages/NotFound/index'));
+const NotFound = React.lazy(() => import('./Pages/Error/NotFound'));
+const ServerError = React.lazy(() => import('./Pages/Error/Custom'));
 
 export default function () {
 	const [user, setUser] = React.useState<UserMe | null>(null);
@@ -64,6 +65,14 @@ export default function () {
 						element={
 							<React.Suspense fallback={<Loading />}>
 								<Dashboard />
+							</React.Suspense>
+						}
+					/>
+					<Route
+						path="/error/:reason"
+						element={
+							<React.Suspense fallback={<Loading />}>
+								<ServerError />
 							</React.Suspense>
 						}
 					/>

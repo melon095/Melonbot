@@ -779,6 +779,21 @@ export async function DeleteSetting(
 	Bot?.Twitch?.Controller?.TwitchChannelSpecific({ ID })?.ReflectSettings();
 }
 
+// export async function Get() {
+//     const isIn = await Bot.SQL.Query`
+//     SELECT name FROM channels
+//     WHERE user_id = ${this.TwitchUID}
+// `.then((res) => {
+//     return res.length > 0;
+// });
+
+// if (!isIn) {
+//     return false;
+// }
+
+// return GetSettings(this);
+// }
+
 export type ChannelSettingsNames = 'Eventsub' | 'SevenTVEmoteSet' | 'FollowMessage' | 'Pajbot1';
 
 export type ChannelSettings = {

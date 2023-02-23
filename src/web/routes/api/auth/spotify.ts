@@ -1,4 +1,8 @@
-import StrategyConstructor, { AuthenticationMethod, OAuthQueryParams } from './../../../oauth.js';
+import StrategyConstructor, {
+	AuthenticationMethod,
+	OAuthQueryParams,
+	UnauthorizedError,
+} from './../../../oauth.js';
 import { SpotifyTypes } from './../../../../Typings/types.js';
 import { CreateSpotifyRequestHeaders, SpotifyGot } from './../../../../tools/spotify.js';
 import { UserDataStoreKeys } from './../../../../controller/User/index.js';
@@ -46,8 +50,10 @@ export default async function (fastify: FastifyInstance) {
 				},
 			});
 
-			if (statusCode !== 200) {
-				throw new Error('Failed to get user profile');
+			if (statusCode === 403) {
+				throw new UnauthorizedError(
+					'User missing from authorized list, as app is in Development mode!',
+				);
 			}
 
 			return JSON.parse(body) as SpotifyTypes.Me;

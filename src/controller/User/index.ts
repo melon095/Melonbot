@@ -232,22 +232,6 @@ export default class User {
 		return 'ACK';
 	}
 
-	// TODO: Move this
-	async GetChannelSettings(): Promise<ChannelSettings | false> {
-		const isIn = await Bot.SQL.Query`
-            SELECT name FROM channels
-            WHERE user_id = ${this.TwitchUID}
-        `.then((res) => {
-			return res.length > 0;
-		});
-
-		if (!isIn) {
-			return false;
-		}
-
-		return GetSettings(this);
-	}
-
 	HasSuperPermission(): boolean {
 		return this.Role === 'admin' || this.Role === 'moderator';
 	}

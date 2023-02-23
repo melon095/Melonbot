@@ -7,30 +7,20 @@ async function UserHasChannel(user: User): Promise<boolean> {
         SELECT name FROM channels where user_id = ${user.TwitchUID} LIMIT 1 
     `;
 
-	return !!has.length;
+	return Boolean(has.length);
 }
 
-interface ThirdPartyServiceData {
-	name: string;
-	icon: string;
-	authLink: string;
-}
-
-async function CheckUserSpotify(user: User): Promise<ThirdPartyServiceData | null> {
+async function CheckUserSpotify(user: User): Promise<string | null> {
 	const spotify = await user.Get(UserDataStoreKeys.SpotifyToken);
 
 	if (spotify) {
-		return {
-			name: 'Spotify',
-			icon: 'spotify',
-			authLink: '/api/auth/spotify/',
-		};
+		return 'Spotify';
 	}
 
 	return null;
 }
 
-async function UserGetThirdPartyServices(user: User): Promise<ThirdPartyServiceData[]> {
+async function UserGetThirdPartyServices(user: User): Promise<string[]> {
 	const services = [];
 
 	const spotify = await CheckUserSpotify(user);
@@ -42,8 +32,9 @@ async function UserGetThirdPartyServices(user: User): Promise<ThirdPartyServiceD
 }
 
 export default async function (fastify: FastifyInstance) {
-	await fastify.register(import('./v1/index.js'), { prefix: '/v1' });
+	await fastify.register(import('./user/index.js'), { prefix: '/user' });
 	await fastify.register(import('./auth/index.js'), { prefix: '/auth' });
+	await fastify.register(import('./v1/index.js'), { prefix: '/v1' });
 
 	fastify.route({
 		method: 'GET',

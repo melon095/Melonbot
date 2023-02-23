@@ -4,7 +4,7 @@ import useFetch from '../../../Hooks/useFetch';
 import { CommandList } from '../../../Types/commands';
 import HorizontalTable from '../../../Components/Table/Horizontal';
 
-export function AllowedToRunButton({ cell: { value } }: AllowedToRunCell<string>) {
+function DetailsButton({ cell: { value } }: AllowedToRunCell<string>) {
 	return (
 		<a
 			href={`/bot/commands-list/${value}`}
@@ -63,7 +63,7 @@ export default function () {
 				Header: 'Details',
 				accessor: 'Table.Name',
 				id: 'details',
-				Cell: AllowedToRunButton,
+				Cell: DetailsButton,
 			},
 		],
 		[],

@@ -1,8 +1,6 @@
 import Got from './../../tools/Got.js';
 import * as regex from '../../tools/regex.js';
-import User from './../User/index.js';
-import { IBanphrase } from './../../Singletons/Redis/Data.Types.js';
-import { Channel, ChannelSettingsValue, DeleteSetting, UpdateSetting } from './../Channel/index.js';
+import { Channel } from './../Channel/index.js';
 
 interface Pajbot1Response {
 	banned: boolean;
@@ -29,23 +27,6 @@ const GLOBAL_REGEX_BANS: RegExp[] = [
 	// regex.url,
 ];
 
-export async function HandleBanphraseSettingsUpdate(
-	channel: Channel,
-	data: IBanphrase,
-): Promise<void> {
-	switch (data.request) {
-		case 'UPDATE':
-		case 'ADD': {
-			await UpdateSetting(channel.User(), 'Pajbot1', new ChannelSettingsValue(data.pb1_url));
-			break;
-		}
-		case 'DELETE': {
-			await DeleteSetting(channel.User(), 'Pajbot1');
-			break;
-		}
-	}
-}
-
 export async function CheckMessageBanphrase(
 	channel: Channel,
 	message: string,
@@ -59,7 +40,8 @@ export async function CheckMessageBanphrase(
 	const pajbot1 = (await channel.GetSettings()).Pajbot1.ToString();
 
 	if (pajbot1) {
-		const url = `${pajbot1}/api/v1/banphrases/test`;
+		// (Not allowing http)
+		const url = `https://${pajbot1}/api/v1/banphrases/test`;
 		const json = {
 			message,
 		};
@@ -69,12 +51,12 @@ export async function CheckMessageBanphrase(
 			throwHttpErrors: false,
 		});
 
-		const jsonBody = JSON.parse(body) as Pajbot1Response;
-
 		if (statusCode >= 400) {
 			Bot.Log.Error('Error while checking banphrase: %O', { url, json, body });
 			return { banned: true, reason: 'Error while checking banphrase' };
 		}
+
+		const jsonBody = JSON.parse(body) as Pajbot1Response;
 
 		if (jsonBody.banned) {
 			return { banned: true, reason: 'Channel Banphrase' };

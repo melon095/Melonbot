@@ -1,6 +1,6 @@
 import React, { Suspense, useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import ErrorMessage from '../../../Components/ErrorMessage';
+import ErrorMessage from '../../../Components/StatusMessage/Error';
 import Loading from '../../../Components/Loading';
 import useFetch from '../../../Hooks/useFetch';
 import { CommandInfo } from '../../../Types/commands';
@@ -36,7 +36,7 @@ export default function () {
 	if (invalidCommand) {
 		return (
 			<div className="flex flex-col items-center justify-center">
-				<ErrorMessage message={`${command} Does not exist`} />
+				<ErrorMessage message={`${command} does not exist`} />
 			</div>
 		);
 	}
@@ -79,13 +79,17 @@ export default function () {
 						return (
 							<tr key={i} className="bg-white border-b align-text-top">
 								<td
-									key={`${key}-${i}`}
-									className="px-6 py-4 bg-gray-200 border-r-black border w-32"
+									key={key}
+									className="px-2 py-4 bg-gray-200 border-r-black border w-36"
 								>
 									{key}
 								</td>
-								<td key={`${value}-${i}`} className="px-6 py-4">
-									{key === 'LongDescription' ? <Markdown value={value} /> : value}
+								<td key={value} className="px-6 py-4">
+									{key === 'Long Description' ? (
+										<Markdown value={value} />
+									) : (
+										value
+									)}
 								</td>
 							</tr>
 						);

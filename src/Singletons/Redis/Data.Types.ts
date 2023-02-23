@@ -71,12 +71,6 @@ export type IPubChannelUpdate = IPubBroadcasterData & {
 	is_mature: boolean;
 };
 
-export interface IBanphrase {
-	channel: string;
-	request: 'DELETE' | 'ADD' | 'UPDATE';
-	pb1_url: string;
-}
-
 export interface ISettings {
 	id: string;
 	inner: ReadonlyArray<{

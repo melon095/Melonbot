@@ -99,7 +99,7 @@ export default async function (fastify: FastifyInstance) {
 				Description: command.Description,
 				Cooldown: `${command.Cooldown} Seconds`,
 				Permission: NCommandFunctions.DatabaseToMode(command.Permission),
-				LongDescription,
+				'Long Description': LongDescription,
 			};
 
 			let allowedToRun: null | boolean = null;

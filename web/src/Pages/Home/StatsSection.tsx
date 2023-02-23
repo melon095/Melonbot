@@ -64,10 +64,8 @@ function Stats() {
 export default function () {
 	return (
 		<section className="max-w-full mx-4 py-6 sm:mx-auto sm:px-6 lg:px-8">
-			<div className="container">
-				<div className="sm:flex sm:space-x-4">
-					<Stats />
-				</div>
+			<div className="sm:flex sm:space-x-4">
+				<Stats />
 			</div>
 		</section>
 	);

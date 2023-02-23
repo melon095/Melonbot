@@ -53,6 +53,13 @@ export interface OAuthQueryParams {
 	error_description?: string;
 }
 
+export class UnauthorizedError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'UnauthorizedError';
+	}
+}
+
 type StrategyCallbackResult = { cookie?: CookieOpts } | null;
 
 type StrategyCallback<Profile> = (
@@ -108,6 +115,15 @@ class Strategy<ProfileKind> {
 			try {
 				profile = await this.userProfile(second.access_token, authUser);
 			} catch (error) {
+				if (error instanceof UnauthorizedError) {
+					const reason =
+						'User is not authorized to use this service: ' +
+						(error.message ? `: ${error.message}` : '');
+
+					reply.redirect(`/error/failed-to-authenticate?m=${encodeURIComponent(reason)}`);
+					return reply;
+				}
+
 				Bot.Log.Error(error as Error, '[%s]: Failed to fetch profile', this.opts.name);
 
 				reply.redirect('/error/failed-to-authenticate');

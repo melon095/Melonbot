@@ -4,15 +4,12 @@ export type UserProfile = {
 	profile_picture: string;
 };
 
-export type UserThirdPartyServices = {
-	name: string;
-	icon: string;
-	authLink: string;
-};
-
 export type UserMe = {
 	profile: UserProfile;
-	third_party: UserThirdPartyServices[];
+	/**
+	 * Indicates third party services a client has connected to.
+	 */
+	third_party: string[];
 	has_channel: boolean;
 	prefix: string;
 };

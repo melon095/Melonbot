@@ -4,7 +4,6 @@ import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Chann
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
-import { HandleBanphraseSettingsUpdate } from './controller/Banphrase/index.js';
 
 interface IUserInformation {
 	data: [
@@ -79,8 +78,6 @@ export default class Twitch {
 		});
 
 		this.client.connect();
-
-		this._setupRedisCallbacks();
 	}
 
 	static async Init() {
@@ -89,25 +86,6 @@ export default class Twitch {
 		await t.SetOwner();
 
 		return t;
-	}
-
-	private async _setupRedisCallbacks() {
-		Bot.Redis.on('banphrase', (Data) => {
-			const channel = this.TwitchChannelSpecific({ ID: Data.channel });
-			if (!channel) return;
-
-			HandleBanphraseSettingsUpdate(channel, Data); // TODO setup web side
-		});
-		Bot.Redis.on('settings', async (Data) => {
-			const channel = this.TwitchChannelSpecific({ ID: Data.id });
-			if (!channel) return;
-
-			const user = await channel.User();
-
-			for (const { name, value } of Data.inner) {
-				UpdateSetting(user, name, ChannelSettingsValue.FromUnknown(value)); // TODO setup web side
-			}
-		});
 	}
 
 	private async InitFulfill() {
