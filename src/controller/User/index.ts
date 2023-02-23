@@ -223,15 +223,6 @@ export default class User {
 		return url;
 	}
 
-	async RemoveBanphrase(id: number): Promise<'ACK'> {
-		await Bot.SQL.Query<Database.banphrases[]>`
-            DELETE FROM banphrases
-            WHERE id = ${id}
-        `;
-
-		return 'ACK';
-	}
-
 	HasSuperPermission(): boolean {
 		return this.Role === 'admin' || this.Role === 'moderator';
 	}
