@@ -1,5 +1,5 @@
 ```bash
-npm run ci
+npm ci
 
 cp .env.example .env
 vim .env
