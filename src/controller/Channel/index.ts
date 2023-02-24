@@ -1,6 +1,6 @@
 import { NChannel, TUserCooldown, ChannelTalkOptions } from './../../Typings/types';
 import { EPermissionLevel, ECommandFlags } from './../../Typings/enums.js';
-import { Banphrase } from './../Banphrase/index.js';
+import { CheckMessageBanphrase } from './../Banphrase/index.js';
 import * as tools from './../../tools/tools.js';
 import { Result, Err, Ok } from './../../tools/result.js';
 import { MessageScheduler } from './../../tools/MessageScheduler.js';
@@ -26,7 +26,6 @@ import Helix, {
 import { RedisSingleton } from './../../Singletons/Redis/index.js';
 import { EventsubTypes } from 'Singletons/Redis/Data.Types';
 import { IPromolve, Promolve } from '@melon95/promolve';
-import { Logger } from './../../logger.js';
 
 /**
  * Encapsulated data for every channel.
@@ -58,11 +57,6 @@ export class Channel {
 	 * @description The value of Mode just in number format
 	 */
 	public Cooldown: number;
-
-	/**
-	 * @description Channels banphrases
-	 */
-	public Banphrase: Banphrase;
 
 	/**
 	 * @description if live or not 4Head
@@ -114,7 +108,6 @@ export class Channel {
 
 	static async New(user: User, Mode: NChannel.Mode, Live: boolean): Promise<Channel> {
 		const Channel = new this(user, Mode, Live);
-		await Channel.Initialize();
 		await Channel.EventSubs.Done;
 		return Channel;
 	}
@@ -132,7 +125,7 @@ export class Channel {
             VALUES (${Creds.name}, ${Creds.user_id}, ${3})
             ON CONFLICT (user_id) DO NOTHING;`;
 
-		return new this(user, 'Bot', false).Initialize();
+		return new this(user, 'Bot', false);
 	}
 
 	constructor(user: User, Mode: NChannel.Mode, Live: boolean) {
@@ -140,7 +133,7 @@ export class Channel {
 		this.Id = user.TwitchUID;
 		this.Mode = Mode;
 		this.Cooldown = tools.NChannelFunctions.ModeToCooldown(Mode) ?? 1250;
-		this.Banphrase = new Banphrase(user);
+		// this.Banphrase = new Banphrase();
 		this.Live = Live;
 		this.Queue = new MessageScheduler();
 		this.UserCooldowns = {};
@@ -421,14 +414,9 @@ export class Channel {
 		}
 
 		try {
-			const { banned, reason } = await this.Banphrase.Check(message);
-			if (!banned) {
-				if (options.ReplyTo) {
-					client.reply(this.Name, options.ReplyTo, message);
-				} else {
-					client.privmsg(this.Name, message);
-				}
-			} else {
+			const { banned, reason } = await CheckMessageBanphrase(this, message);
+
+			if (banned) {
 				Bot.Log.Warn('Banphrase triggered %O', {
 					Channel: this.Name,
 					Message: message,
@@ -439,7 +427,7 @@ export class Channel {
 			}
 		} catch (error) {
 			Bot.Log.Error(error as Error, 'banphraseCheck');
-			client.privmsg(this.Name, 'PoroSad unable to verify message against banphrase api.');
+			client.privmsg(this.Name, 'FeelsDankMan Banphrase check failed...');
 		}
 	}
 
@@ -718,14 +706,6 @@ export class Channel {
 		userPermission = (user.Role === 'admin' && EPermissionLevel.ADMIN) || userPermission;
 		return command.Permission <= userPermission ? true : false;
 	}
-
-	/**
-	 * Inits async channel modules
-	 */
-	private async Initialize(): Promise<this> {
-		await this.Banphrase.Initialize();
-		return this;
-	}
 }
 
 export interface CommandExecutionResult {
@@ -761,6 +741,7 @@ export const GetSettings = async (channel: User | Promise<User>): Promise<Channe
 		SevenTVEmoteSet: DefaultChannelSetting(),
 		FollowMessage: DefaultChannelSetting(),
 		IsTester: DefaultChannelSetting(),
+		Pajbot1: DefaultChannelSetting(),
 	};
 
 	const state = await Bot.Redis.HGetAll(`channel:${(await channel).TwitchUID}:settings`);
@@ -781,11 +762,11 @@ export const GetSettings = async (channel: User | Promise<User>): Promise<Channe
 	});
 };
 
-export const UpdateSetting = async (
+export async function UpdateSetting(
 	user: User | Promise<User>,
-	name: string,
+	name: ChannelSettingsNames,
 	value: ChannelSettingsValue,
-): Promise<void> => {
+): Promise<void> {
 	const ID = (await user).TwitchUID;
 
 	const key = `channel:${ID}:settings`;
@@ -793,9 +774,27 @@ export const UpdateSetting = async (
 	await Bot.Redis.HSet(key, name, value.ToString());
 
 	Bot?.Twitch?.Controller?.TwitchChannelSpecific({ ID })?.ReflectSettings();
-};
+}
 
-export type ChannelSettingsNames = 'Eventsub' | 'SevenTVEmoteSet' | 'FollowMessage' | 'IsTester';
+export async function DeleteSetting(
+	user: User | Promise<User>,
+	name: ChannelSettingsNames,
+): Promise<void> {
+	const ID = (await user).TwitchUID;
+
+	const key = `channel:${ID}:settings`;
+
+	await Bot.Redis.HDel(key, name);
+
+	Bot?.Twitch?.Controller?.TwitchChannelSpecific({ ID })?.ReflectSettings();
+}
+
+export type ChannelSettingsNames =
+	| 'Eventsub'
+	| 'SevenTVEmoteSet'
+	| 'FollowMessage'
+	| 'Pajbot1'
+	| 'IsTester';
 
 export type ChannelSettings = {
 	[key in ChannelSettingsNames]: ChannelSettingsValue;

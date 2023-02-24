@@ -4,7 +4,7 @@ import { EventEmitter } from 'node:events';
 import HandleEventsub from './EventSub/index.js';
 
 const PREFIX = 'Melonbot:';
-const CHANNELS = ['EventSub', 'banphrase', 'user-update'];
+const CHANNELS = ['EventSub'];
 
 export class RedisSingleton extends EventEmitter {
 	private static instance: RedisSingleton;

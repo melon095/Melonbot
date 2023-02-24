@@ -81,8 +81,6 @@ export default class Twitch {
 
 		this.client.connect();
 
-		this._setupRedisCallbacks();
-
 		this.luaWebsocket = new LuaWebsocket();
 	}
 
@@ -94,25 +92,6 @@ export default class Twitch {
 		await t.luaWebsocket.Connect();
 
 		return t;
-	}
-
-	private async _setupRedisCallbacks() {
-		Bot.Redis.on('banphrase', (Data) => {
-			const channel = this.TwitchChannelSpecific({ ID: Data.channel });
-			if (!channel) return;
-
-			channel.Banphrase.Handle(Data);
-		});
-		Bot.Redis.on('settings', async (Data) => {
-			const channel = this.TwitchChannelSpecific({ ID: Data.id });
-			if (!channel) return;
-
-			const user = await channel.User();
-
-			for (const [key, value] of Object.entries(Data.inner)) {
-				UpdateSetting(user, key, ChannelSettingsValue.FromUnknown(value));
-			}
-		});
 	}
 
 	private async InitFulfill() {

@@ -1,5 +1,4 @@
 import Got from './../../tools/Got.js';
-import { JWTData } from 'web/index.js';
 import { UserRole } from './../../Typings/models/bot/index.js';
 import Helix from './../../Helix/index.js';
 import type { Ivr } from './../../Typings/types.js';
@@ -12,10 +11,9 @@ export class GetSafeError extends Error {
 	}
 }
 
-export interface TwitchToken {
-	access_token: string;
-	refresh_token: string;
-	expires_in: number;
+export enum UserDataStoreKeys {
+	SpotifyToken = 'spotify_token',
+	TwitchToken = 'twitch_token',
 }
 
 export default class User {
@@ -204,25 +202,6 @@ export default class User {
 		return newIvr;
 	}
 
-	async SetToken(
-		token: TwitchToken,
-		JWTGenerator: (data: JWTData) => Promise<string>,
-	): Promise<string> {
-		const jwt = await JWTGenerator({
-			id: this.TwitchUID,
-			name: this.Name,
-			v: 1,
-		});
-
-		// Expire in 7 das, same as cookie does.
-		(await Bot.Redis.SSet(`session:${this.TwitchUID}:${this.Name}`, jwt))(60 * 60 * 24 * 7);
-
-		// Store TwitchToken aswell
-		await Bot.Redis.SSet(`token:${this.TwitchUID}:${this.Name}`, JSON.stringify(token));
-
-		return jwt;
-	}
-
 	async GetProfilePicture(): Promise<string> {
 		const cached = await Bot.Redis.SGet(`profilepicture:${this.TwitchUID}`);
 		if (cached) {
@@ -244,35 +223,11 @@ export default class User {
 		return url;
 	}
 
-	async RemoveBanphrase(id: number): Promise<'ACK'> {
-		await Bot.SQL.Query<Database.banphrases[]>`
-            DELETE FROM banphrases
-            WHERE id = ${id}
-        `;
-
-		return 'ACK';
-	}
-
-	async GetChannelSettings(): Promise<ChannelSettings | false> {
-		const isIn = await Bot.SQL.Query`
-            SELECT name FROM channels
-            WHERE user_id = ${this.TwitchUID}
-        `.then((res) => {
-			return res.length > 0;
-		});
-
-		if (!isIn) {
-			return false;
-		}
-
-		return GetSettings(this);
-	}
-
 	HasSuperPermission(): boolean {
 		return this.Role === 'admin' || this.Role === 'moderator';
 	}
 
-	async Set(option: string, data: object | string | number): Promise<void> {
+	async Set(option: UserDataStoreKeys, data: object | string | number): Promise<void> {
 		let store;
 		if (typeof data === 'object' || Array.isArray(data)) {
 			store = JSON.stringify(data);
@@ -287,7 +242,7 @@ export default class User {
 		await Bot.Redis.HSet(`user:${this.TwitchUID}:data`, option, store);
 	}
 
-	async Get(option: string): Promise<string | null> {
+	async Get(option: UserDataStoreKeys): Promise<string | null> {
 		const data = await Bot.Redis.HGetAll(`user:${this.TwitchUID}:data`);
 
 		if (!data) {
@@ -297,7 +252,7 @@ export default class User {
 		return data[option] || null;
 	}
 
-	async Delete(option: string): Promise<void> {
+	async Delete(option: UserDataStoreKeys): Promise<void> {
 		await Bot.Redis.HDel(`user:${this.TwitchUID}:data`, option);
 	}
 
@@ -351,4 +306,15 @@ export default class User {
 			this.Role
 		} - ${this.FirstSeen.toLocaleDateString('no-NB')})`;
 	}
+}
+
+export async function ResolveInternalID(id: number): Promise<User | null> {
+	const users = await Bot.SQL.Query<Database.users[]>`SELECT * FROM users WHERE id = ${id}`;
+	if (users.length === 0) return null;
+
+	const userObject = new Bot.User(users[0]);
+
+	Bot.User.Cache.set(userObject.TwitchUID, userObject);
+
+	return userObject;
 }
