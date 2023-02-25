@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { WebWorkerMonacoContext } from '../../../App';
+import MonacoEditor, { $Schema } from '../../../Components/MonacoEditor';
 import { UserMe } from '../../../Types/user';
 import { ReactComponent as SpotifySVG } from './../../../assets/Spotify_Icon.svg';
 
@@ -40,32 +42,28 @@ type ServiceProps = {
 
 function LinkedService(props: ServiceProps) {
 	return (
-		<li key={props.service.title}>
-			<a
-				className="flex items-center p-3 text-base font-bold text-gray-900 bg-gray-50 hover:bg-gray-100 hover:shad cursor-pointer"
-				onClick={props.service.onClick}
-			>
-				{props.service.icon}
-				<span className="flex-1 ml-1 whitespace-nowrap">{props.service.title}</span>
-				<span className="whitespace-nowrap">
-					<span>Connected</span>
-				</span>
-			</a>
-		</li>
+		<a
+			className="flex items-center p-3 text-base font-bold text-gray-900 bg-gray-50 hover:bg-gray-100 hover:shad cursor-pointer"
+			onClick={props.service.onClick}
+		>
+			{props.service.icon}
+			<span className="flex-1 ml-1 whitespace-nowrap">{props.service.title}</span>
+			<span className="whitespace-nowrap">
+				<span>Connected</span>
+			</span>
+		</a>
 	);
 }
 
 function MissingService(props: ServiceProps) {
 	return (
-		<li key={props.service.title}>
-			<a
-				className="flex items-center p-3 text-base font-bold text-gray-900 bg-gray-50 hover:bg-gray-100 hover:shad cursor-pointer"
-				onClick={props.service.onClick}
-			>
-				{props.service.icon}
-				<span className="flex-1 ml-1 whitespace-nowrap">{props.service.title}</span>
-			</a>
-		</li>
+		<a
+			className="flex items-center p-3 text-base font-bold text-gray-900 bg-gray-50 hover:bg-gray-100 hover:shad cursor-pointer"
+			onClick={props.service.onClick}
+		>
+			{props.service.icon}
+			<span className="flex-1 ml-1 whitespace-nowrap">{props.service.title}</span>
+		</a>
 	);
 }
 
@@ -81,12 +79,23 @@ export default function ({ user }: { user: UserMe }) {
 				<ul className="my-4 space-y-3">
 					{services.map((service) => {
 						if (service.linked) {
-							return <LinkedService service={service} />;
+							return (
+								<li key={service.title}>
+									<LinkedService service={service} />
+								</li>
+							);
 						}
 
-						return <MissingService service={service} />;
+						return (
+							<li key={service.title}>
+								<MissingService service={service} />
+							</li>
+						);
 					})}
 				</ul>
+			</section>
+			<section>
+				<MonacoEditor defaultLanguage={$Schema} className="" />
 			</section>
 		</>
 	);

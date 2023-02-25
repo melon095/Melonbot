@@ -91,8 +91,7 @@ export default abstract class Websocket implements IWebsocket {
 	}
 
 	get IsOpen(): boolean {
-		if (this.ws?.OPEN) return true;
-		return false;
+		return this.ws?.OPEN ? true : false;
 	}
 
 	async Close(): Promise<void> {

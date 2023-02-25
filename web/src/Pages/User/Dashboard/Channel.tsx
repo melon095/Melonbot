@@ -59,11 +59,7 @@ export default function ({ user }: { user: UserMe }) {
 	const { loading, data } = useFetch<Setting[]>({ endpoint: '/api/user/get-settings' });
 
 	useEffect(() => {
-		if (data) {
-			console.log(data);
-
-			setSettings(data);
-		}
+		data && setSettings(data);
 	}, [data, loading]);
 
 	if (loading) return <Loading />;
