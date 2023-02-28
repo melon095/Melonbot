@@ -1,1 +1,0 @@
-ALTER TABLE timers ADD COLUMN titles TEXT[] NOT NULL DEFAULT '{}';

@@ -34,19 +34,19 @@ declare global {
 		Log: Logger;
 	};
 
-	declare namespace Database {
-		export type channels = import('./Typings/models/bot/index').channels;
-		export type commands = import('./Typings/models/bot/index').commands;
-		export type error_logs = import('./Typings/models/bot/index').error_logs;
-		export type migration = import('./Typings/models/bot/index').migration;
-		export type suggestions = import('./Typings/models/bot/index').suggestions;
-		export type trivia = import('./Typings/models/bot/index').trivia;
-		export type users = import('./Typings/models/bot/index').users;
-		export type UserRole = import('./Typings/models/bot/index').UserRole;
-		export type commands_execution = import('./Typings/models/logs/index').commands_execution;
-		export type web_requests = import('./Typings/models/logs/index').web_request;
-		export type timers = import('./Typings/models/bot/timers').default;
-	}
+	// declare namespace Database {
+	// 	export type channels = import('./Typings/models/bot/index').channels;
+	// 	export type commands = import('./Typings/models/bot/index').commands;
+	// 	export type error_logs = import('./Typings/models/bot/index').error_logs;
+	// 	export type migration = import('./Typings/models/bot/index').migration;
+	// 	export type suggestions = import('./Typings/models/bot/index').suggestions;
+	// 	export type trivia = import('./Typings/models/bot/index').trivia;
+	// 	export type users = import('./Typings/models/bot/index').users;
+	// 	export type UserRole = import('./Typings/models/bot/index').UserRole;
+	// 	export type commands_execution = import('./Typings/models/logs/index').commands_execution;
+	// 	export type web_requests = import('./Typings/models/logs/index').web_request;
+	// 	export type timers = import('./Typings/models/bot/timers').default;
+	// }
 }
 
 export {};

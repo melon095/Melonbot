@@ -4,18 +4,12 @@
 
 ## Setup
 
-#### config.json
-
-2. `npm install`
-3. `npm run build`
-4. [Some more info](docs/setup.md)
-5. `npm run setup`
-6. `npm run start`
+Read [This file](docs/setup.md)
 
 ### Joining a channel
 
 The bot will automatically enter it's own chat.  
-Command will only work in the bot's own channel and the channel defined OWNER_USER_ID in Config  
+Command will only work in the bot's own channel  
 `<prefix> join`
 
 ### Leaving a channel

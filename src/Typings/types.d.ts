@@ -18,23 +18,6 @@ export type TUserCooldown = {
 	Cooldown: number;
 };
 
-export declare namespace NChannel {
-	export type Mode = 'Read' | 'Write' | 'VIP' | 'Moderator' | 'Bot';
-	export interface Functions {
-		ModeToCooldown(mode: NChannel.Mode): number | null;
-		CooldownToMode(val: number): NChannel.Mode;
-		DatabaseToMode(val: number): NChannel.Mode;
-	}
-}
-
-export declare namespace NCommand {
-	export type Mode = 'Viewer' | 'VIP' | 'Moderator' | 'Broadcaster' | 'Admin';
-	export interface Functions {
-		DatabaseToMode(val: number): NCommand.Mode;
-		ModeToDatabase(mode: NCommand.Mode): number;
-	}
-}
-
 export type TConfigFile = {
 	Twitch: {
 		OAuth: string;

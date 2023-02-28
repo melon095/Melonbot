@@ -36,5 +36,7 @@
 		}
 
 		await Promise.all(promises);
+
+		await Bot.SQL.destroy();
 	}
 })();

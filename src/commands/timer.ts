@@ -73,7 +73,7 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 				message: message.join(' '),
 				owner: ctx.channel.Id,
 				enabled: true,
-				titles: titles,
+				titles,
 			})
 		).unwrap();
 
