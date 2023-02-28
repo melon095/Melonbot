@@ -4,6 +4,7 @@ import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Chann
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
+import ChannelTable from 'controller/DB/Tables/ChannelTable.js';
 
 interface IUserInformation {
 	data: [
@@ -118,15 +119,17 @@ export default class Twitch {
 		return this.InitReady.promise;
 	}
 
-	async GetChannel(ID: string): Promise<Database.channels | null> {
-		const channel = await Bot.SQL.Query<Database.channels[]>`
-            SELECT * FROM channels
-             WHERE user_id = ${ID}`;
+	async GetChannel(ID: string): Promise<ChannelTable | null> {
+		const channel = await Bot.SQL.selectFrom('channels')
+			.selectAll()
+			.where('user_id', '=', ID)
+			.executeTakeFirst();
 
-		if (!channel.length) {
+		if (!channel) {
 			return null;
 		}
-		return channel[0];
+
+		return channel;
 	}
 
 	TwitchChannelSpecific({ ID, Name }: { ID?: string; Name?: string }) {

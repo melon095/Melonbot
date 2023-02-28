@@ -1,4 +1,4 @@
-import { Generated } from 'kysely';
+import { Generated, Selectable, Insertable } from 'kysely';
 import ChannelTable from './ChannelTable.js';
 
 interface TimerTable {
@@ -29,5 +29,8 @@ interface TimerTable {
 	titles: string[];
 }
 
+type SelectableTable = Selectable<TimerTable>;
+type InsertableTable = Insertable<TimerTable>;
+
 export default TimerTable;
-export { TimerTable };
+export { TimerTable, SelectableTable, InsertableTable };

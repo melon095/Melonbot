@@ -3,11 +3,13 @@ import { FastifyInstance } from 'fastify';
 import AuthenticationValidator from '../../Hooks/AuthenticationValidator.js';
 
 async function UserHasChannel(user: User): Promise<boolean> {
-	const has = await Bot.SQL.Query`
-        SELECT name FROM channels where user_id = ${user.TwitchUID} LIMIT 1 
-    `;
-
-	return Boolean(has.length);
+	return Boolean(
+		await Bot.SQL.selectFrom('channels')
+			.select('name')
+			.where('user_id', '=', user.TwitchUID)
+			.limit(1)
+			.execute(),
+	);
 }
 
 async function CheckUserSpotify(user: User): Promise<string | null> {

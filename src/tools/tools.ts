@@ -130,13 +130,12 @@ export const token = {
 };
 
 export async function Live(id: string): Promise<boolean> {
-	const [isLive] = await Bot.SQL.Query<Database.channels[]>`
-        SELECT live 
-        FROM channels 
-        WHERE user_id = ${id}`;
+	const isLive = await Bot.SQL.selectFrom('channels')
+		.select('live')
+		.where('user_id', '=', id)
+		.executeTakeFirst();
 
-	if (!isLive) return false;
-	return Boolean(isLive.live);
+	return Boolean(isLive?.live);
 }
 
 export async function ViewerList(id: string): Promise<string[]> {

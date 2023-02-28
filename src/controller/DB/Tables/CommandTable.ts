@@ -23,7 +23,7 @@ interface CommandTable {
 
 type CommandPermissions = 'Viewer' | 'VIP' | 'Moderator' | 'Broadcaster' | 'Admin';
 
-function DatabaseToMode(val: number): CommandPermissions {
+function CommandDatabaseToMode(val: number): CommandPermissions {
 	switch (val) {
 		case 0:
 			return 'Viewer';
@@ -40,7 +40,7 @@ function DatabaseToMode(val: number): CommandPermissions {
 	}
 }
 
-function ModeToDatabase(mode: CommandPermissions): number {
+function CommandModeToDatabase(mode: CommandPermissions): number {
 	switch (mode) {
 		case 'Viewer':
 			return 0;
@@ -58,4 +58,4 @@ function ModeToDatabase(mode: CommandPermissions): number {
 }
 
 export default CommandTable;
-export { DatabaseToMode, ModeToDatabase, CommandPermissions, CommandTable };
+export { CommandDatabaseToMode, CommandModeToDatabase, CommandPermissions, CommandTable };

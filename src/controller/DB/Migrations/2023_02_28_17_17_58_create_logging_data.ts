@@ -21,9 +21,9 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn('method', 'varchar', (col) => col.notNull())
 		.addColumn('endpoint', 'text', (col) => col.notNull())
 		.addColumn('request_ip', 'varchar', (col) => col.notNull())
-		.addColumn('headers', 'text', (col) => col.notNull())
-		.addColumn('query', 'text', (col) => col.notNull())
-		.addColumn('body', 'text', (col) => col.notNull())
+		.addColumn('headers', 'text')
+		.addColumn('query', 'text')
+		.addColumn('body', 'text')
 		.addColumn('timestamp', 'timestamp', (col) =>
 			col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
 		)

@@ -13,11 +13,10 @@ export default {
 			return;
 		}
 
-		await Bot.SQL.Query`
-            UPDATE channels
-            SET live = ${false}
-            WHERE name = ${channel.Name}
-        `;
+		await Bot.SQL.updateTable('channels')
+			.set({ live: false })
+			.where('user_id', '=', channel.Id)
+			.execute();
 
 		await channel.UpdateLive();
 	},

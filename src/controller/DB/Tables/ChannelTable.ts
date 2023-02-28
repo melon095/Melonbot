@@ -30,7 +30,7 @@ type PermissionMode = 'Read' | 'Write' | 'VIP' | 'Moderator' | 'Bot';
 /**
  * Converts the database stored permission value to a mode.
  */
-function DatabaseToMode(value: number): PermissionMode {
+function ChannelDatabaseToMode(value: number): PermissionMode {
 	switch (value) {
 		case 0:
 			return 'Read';
@@ -64,4 +64,4 @@ function PermissionModeToCooldown(mode: PermissionMode): number | null {
 }
 
 export default ChannelTable;
-export { ChannelTable, PermissionMode, PermissionModeToCooldown, DatabaseToMode };
+export { ChannelTable, PermissionMode, PermissionModeToCooldown, ChannelDatabaseToMode };

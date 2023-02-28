@@ -1,7 +1,7 @@
 import path, { resolve } from 'node:path';
 import jwt from 'jsonwebtoken';
 import fastify, { FastifyInstance } from 'fastify';
-import { UserRole } from './../Typings/models/bot/users.js';
+import { UserRole } from './../controller/DB/Tables/UserTable.js';
 
 export type RouteConstructor = (app: FastifyInstance) => Promise<void> | void;
 

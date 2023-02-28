@@ -1,23 +1,34 @@
 import { promises as fs } from 'node:fs';
 import { Pool } from 'pg';
 import * as path from 'node:path';
-import {
-	Kysely,
-	PostgresDialect,
-	Generated,
-	ColumnType,
-	Selectable,
-	Insertable,
-	Updateable,
-	Migrator,
-	FileMigrationProvider,
-	sql,
-} from 'kysely';
+import { Kysely, PostgresDialect, Migrator, FileMigrationProvider, sql } from 'kysely';
 import { getDirname } from './../../tools/tools.js';
+import ChannelTable from './Tables/ChannelTable.js';
+import CommandTable from './Tables/CommandTable.js';
+import ErrorLogsTable from './Tables/ErrorLogsTable.js';
+import StatsTable from './Tables/StatsTable.js';
+import SuggestionsTable from './Tables/SuggestionsTable.js';
+import TimerTable from './Tables/TimerTable.js';
+import UserTable from './Tables/UserTable.js';
+import CommandsExecutionTable from './Tables/CommandsExecutionTable.js';
+import WebReqeustLogTable from './Tables/WebRequestLogTable.js';
 
-interface Database {}
+export type KyselyDB = Kysely<Database>;
 
-export default function (): Kysely<Database> {
+export interface Database {
+	channels: ChannelTable;
+	commands: CommandTable;
+	// TODO: Move into the logs database
+	error_logs: ErrorLogsTable;
+	stats: StatsTable;
+	suggestions: SuggestionsTable;
+	timers: TimerTable;
+	users: UserTable;
+	'logs.commands_execution': CommandsExecutionTable;
+	'logs.web_request': WebReqeustLogTable;
+}
+
+export default function (): KyselyDB {
 	const db = new Kysely<Database>({
 		dialect: new PostgresDialect({
 			pool: new Pool({
@@ -29,7 +40,7 @@ export default function (): Kysely<Database> {
 	return db;
 }
 
-export async function DoMigration(db: Kysely<Database>): Promise<void> {
+export async function DoMigration(db: KyselyDB): Promise<void> {
 	const migrator = new Migrator({
 		db,
 		provider: new FileMigrationProvider({
@@ -84,121 +95,3 @@ export async function DoMigration(db: Kysely<Database>): Promise<void> {
 export function GenerateSqlEnum(...args: string[]) {
 	return sql`enum(${sql.join(args.map(sql.literal))})`;
 }
-
-// import postgres from 'postgres';
-// import fs from 'node:fs';
-// import { resolve } from 'node:path';
-
-// interface MigrationResult {
-// 	OldVersion: number;
-// 	NewVersion: number;
-// }
-
-// const createDefaultMigrationTable = async (db: SQLController) => {
-// 	await db.Query`CREATE SCHEMA IF NOT EXISTS bot`;
-// 	await db.Query`ALTER DATABASE melonbot RESET search_path`;
-// 	await db.Query`ALTER DATABASE melonbot SET search_path TO 'bot'`;
-// 	await db.Query`
-//         CREATE TABLE IF NOT EXISTS migration (
-//             version INTEGER NOT NULL,
-//             PRIMARY KEY (version)
-//         )
-//     `;
-// };
-
-// const getCurrentVersion = async (db: SQLController) =>
-// 	await db.Query<Database.migration[]>`
-//             SELECT version FROM migration
-//             ORDER BY version DESC
-//             LIMIT 1
-//         `.then(async ([row]) => {
-// 		if (row === undefined) {
-// 			await createDefaultMigrationTable(db);
-// 			await db.Query`INSERT INTO migration (version) VALUES (0)`;
-// 			return 0;
-// 		}
-// 		return row.version;
-// 	});
-
-// const defaultOpts: postgres.Options<{}> = {
-// 	// Shush
-// 	// eslint-disable-next-line @typescript-eslint/no-empty-function
-// 	onnotice: () => {},
-// };
-
-// export class SQLController {
-// 	private static instance: SQLController;
-
-// 	private Conn!: postgres.Sql<{}>;
-
-// 	public static New(): SQLController {
-// 		if (!SQLController.instance) {
-// 			SQLController.instance = new SQLController();
-// 		}
-// 		return SQLController.instance;
-// 	}
-
-// 	private getAddress(): string {
-// 		return Bot.Config.SQL.Address;
-// 	}
-
-// 	private constructor(opts: postgres.Options<{}> = defaultOpts) {
-// 		this.Conn = postgres(this.getAddress(), opts);
-// 	}
-
-// 	public get Get(): postgres.Sql<{}> {
-// 		return this.Conn;
-// 	}
-
-// 	get Query() {
-// 		return this.Conn;
-// 	}
-
-// 	get Transaction() {
-// 		return this.Conn.begin;
-// 	}
-
-// 	async RunMigration(): Promise<MigrationResult> {
-// 		await createDefaultMigrationTable(this);
-// 		const currentVersion = await getCurrentVersion(this);
-// 		let newVersion = currentVersion;
-
-// 		const migrationsToRun: [number, string][] = fs
-// 			.readdirSync(resolve(process.cwd(), 'Migrations'), {
-// 				withFileTypes: true,
-// 			})
-// 			.map((file) => {
-// 				if (file.isFile()) return file.name;
-// 				return;
-// 			})
-// 			.filter(Boolean)
-// 			.map((file) => {
-// 				// Don't think this can happen..
-// 				if (!file) return [0, ''] as [number, string];
-// 				// 2_fix_join.sql --> [2, 'fix_join.sql']
-// 				const [version, name] = file.split(/_(.*)/s).filter(Boolean);
-// 				return [Number(version), name] as [number, string];
-// 			})
-// 			.filter(([fileVersion]) => fileVersion > currentVersion);
-
-// 		for (const [version, name] of migrationsToRun) {
-// 			Bot.Log.Info('Running migration %d_%s', version, name);
-
-// 			await this.Conn.begin(async (sql) => {
-// 				await sql.file(resolve(process.cwd(), 'Migrations', `${version}_${name}`));
-// 			}).catch((error) => {
-// 				Bot.Log.Error(`Error running migration %d_%s %O`, version, name, { error });
-// 				process.exit(1);
-// 			});
-
-// 			await this.Query`UPDATE migration SET version = ${version}`;
-
-// 			newVersion = version;
-// 		}
-
-// 		return {
-// 			NewVersion: newVersion,
-// 			OldVersion: currentVersion,
-// 		};
-// 	}
-// }
