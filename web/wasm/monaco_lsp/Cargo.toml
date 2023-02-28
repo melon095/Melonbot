@@ -15,9 +15,12 @@ serde-wasm-bindgen = "0.4.5"
 wasm-bindgen = "0.2.84"
 lsp-async-stub = "0.6.0"
 
-rhai-lsp = { git = "https://github.com/JoachimFlottorp/rhaiscript-lsp.git", version = "0.1.0" }
-rhai-common = { git = "https://github.com/JoachimFlottorp/rhaiscript-lsp.git", version = "0.1.0" }
-rhai-wasm = { git = "https://github.com/JoachimFlottorp/rhaiscript-lsp.git", version = "0.1.0" }
 # rhai-lsp = { git = "https://github.com/rhaiscript/lsp.git", version = "0.1.0" }
 # rhai-common = { git = "https://github.com/rhaiscript/lsp.git", version = "0.1.0" }
 # rhai-wasm = { git = "https://github.com/rhaiscript/lsp.git", version = "0.1.0" }
+
+rhai-lsp = { git = "https://github.com/JoachimFlottorp/rhaiscript-lsp.git", version = "0.1.0" }
+rhai-common = { git = "https://github.com/JoachimFlottorp/rhaiscript-lsp.git", version = "0.1.0" }
+rhai-wasm = { git = "https://github.com/JoachimFlottorp/rhaiscript-lsp.git", version = "0.1.0" }
+js-sys = "0.3.61"
+wasm-bindgen-futures = "0.4.34"

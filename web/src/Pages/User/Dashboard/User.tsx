@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { WebWorkerMonacoContext } from '../../../App';
-import MonacoEditor, { $Schema } from '../../../Components/MonacoEditor';
+import MonacoEditor from '../../../Components/MonacoEditor';
 import { UserMe } from '../../../Types/user';
 import { ReactComponent as SpotifySVG } from './../../../assets/Spotify_Icon.svg';
+
+const $ExampleCode = `
+fn execute(ctx) {
+    let invoker = ctx.get_invoker();
+
+    let my_response = format!("Hello, {}!", invoker.username);
+
+    return my_response;
+}
+` as const;
 
 type Service = {
 	linked: boolean;
@@ -95,7 +105,7 @@ export default function ({ user }: { user: UserMe }) {
 				</ul>
 			</section>
 			<section>
-				<MonacoEditor defaultLanguage={$Schema} className="" />
+				<MonacoEditor defaultLanguage={$ExampleCode} className="border border-red-900" />
 			</section>
 		</>
 	);

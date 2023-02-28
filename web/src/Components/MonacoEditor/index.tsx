@@ -14,14 +14,14 @@ import 'monaco-editor/esm/vs/editor/standalone/browser/referenceSearch/standalon
 import 'monaco-editor/esm/vs/editor/standalone/browser/toggleHighContrast/toggleHighContrast.js';
 
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
-
-import { buildWorkerDefinition } from 'monaco-editor-workers';
+import { language, conf } from 'monaco-editor/esm/vs/basic-languages/rust/rust';
 
 import {
 	MonacoServices,
 	MonacoLanguageClient,
 	ErrorAction,
 	CloseAction,
+	State as MonacoLangaugeState,
 } from 'monaco-languageclient';
 
 import { MessageTransports } from 'vscode-languageclient';
@@ -37,31 +37,33 @@ import {
 
 import { WebWorkerMonacoContext } from './../../App';
 
-type Schema = {
-	$schema: string;
-	line_endings: 'unix' | 'windows';
-};
-
 type EditorProps = {
-	defaultLanguage: Schema;
+	defaultLanguage: string;
 	className: string;
 };
 
-export const $Schema: Schema = {
-	$schema: '', // todo
-	line_endings: 'unix',
-};
-
 class WorkerMessageReader extends AbstractMessageReader implements MessageReader {
+	protected isReady = false;
 	protected callback: DataCallback | undefined;
 	protected readonly _events: Message[] = [];
 
 	constructor(protected readonly worker: Worker) {
 		super();
 
-		this.worker.onmessage = (event) => {
+		this.worker.onmessage = ({ data }) => {
 			try {
-				const message = JSON.parse(event.data);
+				console.log('read', data);
+
+				if (data === 'ok') {
+					this.isReady = true;
+					return;
+				} else if (this.isReady === false) {
+					console.warn('Worker not ready yet');
+
+					return;
+				}
+
+				const message = JSON.parse(data);
 
 				if (this.callback !== undefined) {
 					this.callback(message);
@@ -101,6 +103,8 @@ class WorkerMessageWriter extends AbstractMessageWriter implements MessageWriter
 
 	async write(msg: Message): Promise<void> {
 		try {
+			console.log('write', msg);
+
 			const data = JSON.stringify(msg);
 
 			this.worker.postMessage(data);
@@ -127,6 +131,8 @@ function createLanguageServerClient(transports: MessageTransports): MonacoLangua
 		},
 		connectionProvider: {
 			get: async function () {
+				console.log('get', transports);
+
 				return transports;
 			},
 		},
@@ -139,44 +145,51 @@ export default function ({ className, defaultLanguage }: EditorProps) {
 	const webWorkerContext = React.useContext(WebWorkerMonacoContext);
 	if (webWorkerContext === null) throw new Error('WebWorkerMonacoContext is null');
 
-	let languageClient: MonacoLanguageClient;
+	let languageClient = useMemo(() => {
+		return createLanguageServerClient({
+			reader: new WorkerMessageReader(webWorkerContext),
+			writer: new WorkerMessageWriter(webWorkerContext),
+			detached: true,
+		});
+	}, []);
+
+	function LanguageStateIsStarted() {
+		return languageClient.state === MonacoLangaugeState.Running;
+	}
 
 	useEffect(() => {
 		if (ref.current !== null) {
-			buildWorkerDefinition('dist', new URL('', window.location.href).href, true);
-
 			monaco.languages.register({
 				id: 'rhai',
 				extensions: ['.rhai'],
-				aliases: ['Rhai', 'rhai'],
-				mimetypes: ['text/rhai'],
+				mimetypes: ['text/plain'],
 			});
 
-			// self.MonacoEnvironment = {
-			// 	getWorker: function (workerId, label) {
-			// 		function getWorkerModule(moduleUrl: string, label: string) {
-			// 			const url = new URL(moduleUrl, window.location.href).href;
+			// Use rust monarch for now.
+			monaco.languages.setMonarchTokensProvider('rhai', language);
+			monaco.languages.setLanguageConfiguration('rhai', conf);
+			monaco.editor.setTheme('vs');
 
-			// 			return new Worker(url, {
-			// 				name: label,
+			// window.MonacoEnvironment = {
+			// 	getWorker: function (id, label) {
+			// 		console.log('getWorker', id, label);
+
+			// 		return new Worker(
+			// 			'/node_modules/monaco-editor/esm/vs/editor/editor.worker.js',
+			// 			{
 			// 				type: 'module',
-			// 			});
-			// 		}
-
-			// 		if (label === 'rhai') {
-			// 			return getWorkerModule('wasm/monaco_lsp/worker.js', label);
-			// 		}
-
-			// 		throw new Error(`Unknown worker label: ${label}`);
+			// 			},
+			// 		);
 			// 	},
 			// };
 
 			editorRef.current = monaco.editor.create(ref.current, {
-				// model: monaco.editor.createModel(
-				// 	JSON.stringify(defaultLanguage),
-				// 	'rhai',
-				// 	monaco.Uri.parse('inmemory://model.json'),
-				// ),
+				language: 'rhai',
+				model: monaco.editor.createModel(
+					defaultLanguage,
+					'rhai',
+					monaco.Uri.parse('inmemory://file.rhai'),
+				),
 				glyphMargin: true,
 				lightbulb: {
 					enabled: false, // TODO
@@ -184,15 +197,18 @@ export default function ({ className, defaultLanguage }: EditorProps) {
 				automaticLayout: true, // TODO
 			});
 
+			console.log(monaco.editor.tokenize(defaultLanguage, 'rhai'));
+
 			MonacoServices.install();
 
-			languageClient = createLanguageServerClient({
-				reader: new WorkerMessageReader(webWorkerContext),
-				writer: new WorkerMessageWriter(webWorkerContext),
-				detached: true,
-			});
-
-			languageClient.start();
+			// TODO: Does nothing at the moment.
+			if (LanguageStateIsStarted()) {
+				languageClient.stop().then(() => {
+					languageClient.start();
+				});
+			} else {
+				languageClient.start();
+			}
 		}
 
 		window.onbeforeunload = function () {

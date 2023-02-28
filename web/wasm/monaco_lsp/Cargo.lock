@@ -595,6 +595,7 @@ dependencies = [
 name = "monaco_lsp"
 version = "0.1.0"
 dependencies = [
+ "js-sys",
  "lsp-async-stub",
  "rhai-common",
  "rhai-lsp",
@@ -602,6 +603,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]

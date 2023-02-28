@@ -84,7 +84,7 @@ const Environment = {
 	js_url_to_file_path: function (url) {
 		LogOnFunctionCall('js_url_to_file_path', arguments);
 
-		url;
+		return url;
 	}, // TODO
 	js_write_file: async function (path, data) {
 		LogOnFunctionCall('js_write_file', arguments);
@@ -100,17 +100,25 @@ const LspInterface = {
 	js_on_message: function (message) {
 		LogOnFunctionCall('js_on_message', arguments);
 
-		postMessage({ from: 'lsp', data: message });
+		postMessage(message);
 	},
 };
 
 import(JS_PATH).then(async (wasm) => {
 	console.log('module', wasm);
 
-	const wasm_memory = await wasm.default();
+	await wasm.default();
+	wasm.initialize();
 
-	wasm.start(Environment, LspInterface);
+	wasm.start(Environment, LspInterface, function (cb) {
+		self.onmessage = (event) => {
+			console.log('onmessage', event.data);
 
+			cb(event.data);
+		};
+	});
+
+	console.log('start done');
 	// const asd = wasm_memory.memory.buffer[0];
 
 	// onmessage = (event) => {
