@@ -22,7 +22,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 	await db.schema
 		.createTable('channels')
-		.addColumn('name', 'text', (col) => col.notNull().primaryKey().unique())
+		.addColumn('name', 'varchar', (col) => col.notNull().primaryKey().unique())
 		.addColumn('user_id', 'varchar', (col) => col.notNull().unique())
 		.addColumn('live', 'boolean', (col) => col.notNull().defaultTo(false))
 		.addColumn('bot_permission', 'bigint', (col) => col.notNull().defaultTo(1))
@@ -31,7 +31,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 	await db.schema
 		.createTable('commands')
 		.addColumn('id', 'serial', (col) => col.notNull().primaryKey())
-		.addColumn('name', 'text', (col) => col.notNull().unique())
+		.addColumn('name', 'text', (col) => col.notNull())
 		.addColumn('description', 'text', (col) => col.notNull())
 		.addColumn('perm', 'integer', (col) => col.notNull())
 		.execute();
@@ -45,15 +45,15 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 	await db.schema
 		.createTable('stats')
-		.addColumn('name', 'text', (col) => col.notNull().references('channels.name'))
+		.addColumn('name', 'varchar', (col) => col.notNull().references('channels.name'))
 		.addColumn('commands_handled', 'bigint', (col) => col.notNull().defaultTo(0))
 		.execute();
 
 	await db.schema
 		.createTable('users')
 		.addColumn('id', 'serial', (col) => col.notNull().primaryKey())
-		.addColumn('name', 'text', (col) => col.notNull())
-		.addColumn('twitch_uid', 'varchar', (col) => col.notNull().unique())
+		.addColumn('name', 'text', (col) => col.notNull().unique())
+		.addColumn('twitch_uid', 'varchar', (col) => col.notNull())
 		.addColumn('first_seen', 'timestamp', (col) =>
 			col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
 		)
