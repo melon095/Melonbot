@@ -1,6 +1,6 @@
 import DankTwitch from '@kararty/dank-twitch-irc';
 import * as tools from './tools/tools.js';
-import { Channel } from './controller/Channel/index.js';
+import { Channel, ExecuteCommand } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
@@ -231,7 +231,7 @@ export default class Twitch {
 				return;
 			}
 
-			const result = await channel.tryCommand(user, input, commandName, msg);
+			const result = await ExecuteCommand(channel, user, input, commandName, msg);
 
 			if (!result || !result.message) {
 				return;

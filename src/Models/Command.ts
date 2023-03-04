@@ -1,6 +1,8 @@
 import { EPermissionLevel, ECommandFlags } from '../Typings/enums.js';
 import { Channel } from '../controller/Channel/index.js';
 import User from './../controller/User/index.js';
+import { PrivmsgMessage } from '@kararty/dank-twitch-irc';
+import { ParseArgumentsError } from './Errors.js';
 
 export enum ArgType {
 	String = 'string',
@@ -10,6 +12,7 @@ export enum ArgType {
 export type LongDescriptionFunction = (prefix: string) => Promise<string[]>;
 
 export type TExecuteFunction<M extends object = object> = (
+	this: CommandModel,
 	arg0: TCommandContext,
 	arg1: M,
 ) => Promise<CommandResult>;
@@ -41,7 +44,7 @@ export type TContextData = {
 	/**
 	 * Extra data that twitch sends with the user.
 	 */
-	User: object;
+	User: PrivmsgMessage;
 };
 
 export type CommandResult = {
@@ -55,20 +58,6 @@ export type CommandResult = {
 	 */
 	Result: string;
 };
-
-export class ParseArgumentsError extends Error {
-	constructor(message: string) {
-		super(message);
-		this.name = 'ParseArgumentsError';
-	}
-}
-
-export class SafeResponseError extends Error {
-	constructor(prefix: string, message: string) {
-		super(`${prefix} Error: ${message}`);
-		this.name = 'SafeResponseError';
-	}
-}
 
 export interface ArgsParseResult {
 	output: string[];
@@ -146,28 +135,48 @@ export interface CommandModel<Mods extends object = object> {
 	/**
 	 * Big description on how to use the command.
 	 * Supports markdown
-	 * @url /bot/commands/:commandName
+	 * @url /bot/commands-list/:commandName
 	 */
 	readonly LongDescription?: LongDescriptionFunction;
 
 	readonly Execute: CommandExecutor<Mods>;
 	readonly HasFlag: FlagChecker;
 
-	// async Execute(ctx: TCommandContext, mods: Mods): Promise<CommandResult> {
-	// 	return this.Code(ctx, mods);
-	// }
-	// HasFlag(flag: ECommandFlags): boolean {
-	// 	return this.Flags.includes(flag);
-	// }
+	/**
+	 * Options for early ending the command
+	 *
+	 * The method has a list of different options for specifying why the command ended early.
+	 */
+	readonly EarlyEnd: EarlyEndOptions;
 }
 
-interface CommandExecutor<Mods extends object = object> {
+export interface CommandExecutor<Mods extends object = object> {
 	(ctx: TCommandContext, mods: Mods): Promise<CommandResult>;
 }
 
-interface FlagChecker {
+export interface FlagChecker {
 	(flag: ECommandFlags): boolean;
 }
+
+export interface EarlyEndOptions {
+	/**
+	 * Specify the input, the user gave was invalid.
+	 */
+	InvalidInput: (reason?: string) => never;
+
+	/**
+	 * A third party api failed to respond.
+	 */
+	ThirdPartyError: (reason?: string) => never;
+}
+
+/**
+ * CreatableCommand defines the properties a new command should manually set.
+ */
+export type CreatableCommand<Mods extends object = object> = Omit<
+	CommandModel<Mods>,
+	'Execute' | 'HasFlag' | 'EarlyEnd'
+>;
 
 /**
  * Argument parser

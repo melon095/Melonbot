@@ -1,16 +1,22 @@
 import assert from 'node:assert';
-import { CommandModel } from './../../Models/Command.js';
-
-type CreatableCommand<Mods extends object = object> = Omit<
-	CommandModel<Mods>,
-	'Execute' | 'HasFlag'
->;
+import { InvalidInputError, ThirdPartyError } from '../../Models/Errors.js';
+import { CommandModel, CreatableCommand, EarlyEndOptions } from './../../Models/Command.js';
 
 const LoadedCommands = new Map<string, CommandModel>();
+
+const EarlyEndOptions: EarlyEndOptions = {
+	InvalidInput: function (reason) {
+		throw new InvalidInputError(reason || 'Unknown');
+	},
+	ThirdPartyError: function (reason) {
+		throw new ThirdPartyError(reason || 'Unknown');
+	},
+} as const;
 
 function InjectFunctions(command: CreatableCommand): CommandModel {
 	return {
 		...command,
+		EarlyEnd: EarlyEndOptions,
 		Execute: async function (ctx, mods) {
 			return this.Code(ctx, mods);
 		},
