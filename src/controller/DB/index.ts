@@ -1,118 +1,122 @@
-/* eslint-disable @typescript-eslint/ban-types */
-import postgres from 'postgres';
-import fs from 'node:fs';
-import { resolve } from 'node:path';
+import { promises as fs } from 'node:fs';
+import pg from 'pg';
+import * as path from 'node:path';
+import PgCursor from 'pg-cursor';
+import { Kysely, PostgresDialect, Migrator, sql, MigrationProvider, Migration } from 'kysely';
+import { getDirname } from './../../tools/tools.js';
+import ChannelTable from './Tables/ChannelTable.js';
+import CommandTable from './Tables/CommandTable.js';
+import ErrorLogsTable from './Tables/ErrorLogsTable.js';
+import StatsTable from './Tables/StatsTable.js';
+import SuggestionsTable from './Tables/SuggestionsTable.js';
+import TimerTable from './Tables/TimerTable.js';
+import UserTable from './Tables/UserTable.js';
+import CommandsExecutionTable from './Tables/CommandsExecutionTable.js';
+import WebReqeustLogTable from './Tables/WebRequestLogTable.js';
 
-interface MigrationResult {
-	OldVersion: number;
-	NewVersion: number;
+const { Pool } = pg;
+
+export type KyselyDB = Kysely<Database>;
+
+export interface Database {
+	channels: ChannelTable;
+	commands: CommandTable;
+	// TODO: Move into the logs database
+	error_logs: ErrorLogsTable;
+	stats: StatsTable;
+	suggestions: SuggestionsTable;
+	timers: TimerTable;
+	users: UserTable;
+	'logs.commands_execution': CommandsExecutionTable;
+	'logs.web_request': WebReqeustLogTable;
 }
 
-const createDefaultMigrationTable = async (db: SQLController) => {
-	await db.Query`CREATE SCHEMA IF NOT EXISTS bot`;
-	await db.Query`ALTER DATABASE melonbot RESET search_path`;
-	await db.Query`ALTER DATABASE melonbot SET search_path TO 'bot'`;
-	await db.Query`
-        CREATE TABLE IF NOT EXISTS migration (
-            version INTEGER NOT NULL,
-            PRIMARY KEY (version)
-        )
-    `;
-};
-
-const getCurrentVersion = async (db: SQLController) =>
-	await db.Query<Database.migration[]>`
-            SELECT version FROM migration
-            ORDER BY version DESC
-            LIMIT 1
-        `.then(async ([row]) => {
-		if (row === undefined) {
-			await createDefaultMigrationTable(db);
-			await db.Query`INSERT INTO migration (version) VALUES (0)`;
-			return 0;
-		}
-		return row.version;
+export default function (): KyselyDB {
+	const db = new Kysely<Database>({
+		dialect: new PostgresDialect({
+			pool: new Pool({
+				connectionString: Bot.Config.SQL.Address,
+			}),
+			cursor: PgCursor,
+		}),
 	});
 
-const defaultOpts: postgres.Options<{}> = {
-	// Shush
-	// eslint-disable-next-line @typescript-eslint/no-empty-function
-	onnotice: () => {},
-};
+	return db;
+}
 
-export class SQLController {
-	private static instance: SQLController;
+export async function DoMigration(db: KyselyDB): Promise<void> {
+	const relativeFolder = path.join(getDirname(import.meta.url), 'Migrations');
 
-	private Conn!: postgres.Sql<{}>;
+	const migrator = new Migrator({
+		db,
+		provider: new ESMFileMigrationProvider(relativeFolder),
+	});
 
-	public static New(): SQLController {
-		if (!SQLController.instance) {
-			SQLController.instance = new SQLController();
+	const { error, results } = await migrator.migrateToLatest();
+
+	if (error) {
+		Bot.Log.Error(error as Error, 'Failed to run migration');
+
+		process.exit(1);
+	}
+
+	if (results === undefined || results?.length === 0) {
+		Bot.Log.Info('No migrations to run');
+
+		return;
+	}
+
+	for (const result of results) {
+		switch (result.status) {
+			case 'Success': {
+				Bot.Log.Info('Migration %s was successful', result.migrationName);
+				break;
+			}
+			case 'Error': {
+				// Documentation specify result.error will contain the error message, if the result.status is of Error. So unsure...
+				const { error } = result as unknown as { error: string };
+
+				Bot.Log.Error(
+					'Migration %s failed with error: %o',
+					result.migrationName,
+					error ?? 'Unknown error',
+				);
+				break;
+			}
+			case 'NotExecuted': {
+				Bot.Log.Warn('Migration %s was not executed', result.migrationName);
+				break;
+			}
 		}
-		return SQLController.instance;
 	}
 
-	private getAddress(): string {
-		return Bot.Config.SQL.Address;
-	}
+	Bot.Log.Info('Migration complete');
+}
 
-	private constructor(opts: postgres.Options<{}> = defaultOpts) {
-		this.Conn = postgres(this.getAddress(), opts);
-	}
+// https://github.com/koskimas/kysely/issues/112#issuecomment-1177546703
+export function GenerateSqlEnum(...args: string[]) {
+	return sql`enum(${sql.join(args.map(sql.literal))})`;
+}
 
-	public get Get(): postgres.Sql<{}> {
-		return this.Conn;
-	}
+// https://github.com/koskimas/kysely/issues/277#issuecomment-1385995789
+class ESMFileMigrationProvider implements MigrationProvider {
+	constructor(protected path: string) {}
 
-	get Query() {
-		return this.Conn;
-	}
+	async getMigrations(): Promise<Record<string, Migration>> {
+		const migrations: Record<string, Migration> = {};
+		const files = await fs.readdir(this.path);
 
-	get Transaction() {
-		return this.Conn.begin;
-	}
+		for (const file of files) {
+			if (!file.endsWith('.js')) continue;
 
-	async RunMigration(): Promise<MigrationResult> {
-		await createDefaultMigrationTable(this);
-		const currentVersion = await getCurrentVersion(this);
-		let newVersion = currentVersion;
+			const modulePath = path.join('file://', this.path, file).replaceAll('\\', '/');
+			const module = await import(modulePath);
 
-		const migrationsToRun: [number, string][] = fs
-			.readdirSync(resolve(process.cwd(), 'Migrations'), {
-				withFileTypes: true,
-			})
-			.map((file) => {
-				if (file.isFile()) return file.name;
-				return;
-			})
-			.filter(Boolean)
-			.map((file) => {
-				// Don't think this can happen..
-				if (!file) return [0, ''] as [number, string];
-				// 2_fix_join.sql --> [2, 'fix_join.sql']
-				const [version, name] = file.split(/_(.*)/s).filter(Boolean);
-				return [Number(version), name] as [number, string];
-			})
-			.filter(([fileVersion]) => fileVersion > currentVersion);
+			const key = file.replace(/\.js$/, '');
 
-		for (const [version, name] of migrationsToRun) {
-			Bot.Log.Info('Running migration %d_%s', version, name);
-
-			await this.Conn.begin(async (sql) => {
-				await sql.file(resolve(process.cwd(), 'Migrations', `${version}_${name}`));
-			}).catch((error) => {
-				Bot.Log.Error(`Error running migration %d_%s %O`, version, name, { error });
-				process.exit(1);
-			});
-
-			await this.Query`UPDATE migration SET version = ${version}`;
-
-			newVersion = version;
+			migrations[key] = module;
 		}
 
-		return {
-			NewVersion: newVersion,
-			OldVersion: currentVersion,
-		};
+		return migrations;
 	}
 }

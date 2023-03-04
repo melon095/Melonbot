@@ -15,8 +15,6 @@ export default class extends CommandModel {
 	Flags = [];
 	PreHandlers = [];
 	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		await Bot.SQL.Query`DELETE FROM channels WHERE user_id = ${ctx.channel.Id}`;
-
 		const { channel } = ctx;
 		const subs = channel.EventSubs.GetSubscription();
 
@@ -31,6 +29,8 @@ export default class extends CommandModel {
 		setTimeout(() => {
 			Bot.Twitch.Controller.client.part(ctx.channel.Name);
 		}, 10000); // Leave after 10 seconds.
+
+		await Bot.SQL.deleteFrom('channels').where('user_id', '=', ctx.channel.Id).execute();
 
 		return {
 			Success: true,

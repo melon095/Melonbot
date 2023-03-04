@@ -9,11 +9,12 @@ export default async function (req: FastifyRequest, reply: FastifyReply) {
 		return reply;
 	}
 
-	const has_channel = await Bot.SQL.Query`
-        SELECT name FROM channels where user_id = ${user.identifier} LIMIT 1
-    `;
+	const has_channel = await Bot.SQL.selectFrom('channels')
+		.select('user_id')
+		.where('user_id', '=', user.identifier)
+		.executeTakeFirst();
 
-	if (!has_channel.length) {
+	if (!has_channel) {
 		reply.redirect('/');
 
 		return reply;

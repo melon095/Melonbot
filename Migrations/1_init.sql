@@ -1,4 +1,0 @@
-CREATE SCHEMA IF NOT EXISTS bot;
-CREATE SCHEMA IF NOT EXISTS web;
-ALTER DATABASE melonbot RESET search_path;
-ALTER DATABASE melonbot SET search_path TO 'bot';

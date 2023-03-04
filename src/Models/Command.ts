@@ -112,7 +112,7 @@ export abstract class CommandModel<Mods extends object = object> {
 	 * Permission in channel to run command
 	 * Broadcaster, Mod, Vip, Viewer.
 	 */
-	public abstract readonly Permission: EPermissionLevel;
+	public abstract readonly Permission: EPermissionLevel; // FIXME: Remove this
 
 	/**
 	 * If command can only be run while streamer is offline

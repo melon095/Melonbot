@@ -2,9 +2,11 @@ import User from './../../../../controller/User/index.js';
 import { FastifyInstance } from 'fastify';
 import { CommandModel } from './../../../../Models/Command.js';
 import { EPermissionLevel } from './../../../../Typings/enums.js';
-import AuthenticationValidator from './../../..//Hooks/AuthenticationValidator.js';
-import { NCommandFunctions } from './../../../../tools/tools.js';
-import { NCommand } from 'Typings/types.js';
+import AuthenticationValidator from './../../../Hooks/AuthenticationValidator.js';
+import {
+	CommandDatabaseToMode,
+	CommandPermissions,
+} from './../../../../controller/DB/Tables/CommandTable.js';
 
 export default async function (fastify: FastifyInstance) {
 	fastify.route({
@@ -12,7 +14,7 @@ export default async function (fastify: FastifyInstance) {
 		url: '/',
 		preParsing: AuthenticationValidator('REDIRECT', true),
 		handler: async (req, reply) => {
-			function MeetsPermissionLevel(user: User, permission: NCommand.Mode): boolean {
+			function MeetsPermissionLevel(user: User, permission: CommandPermissions): boolean {
 				if (permission === 'Admin') {
 					if (user.Role === 'admin') {
 						return true;
@@ -29,15 +31,12 @@ export default async function (fastify: FastifyInstance) {
 				user = await Bot.User.Get(identifier, username);
 			}
 
-			const commands = await Bot.SQL.Query<Database.commands[]>`SELECT * FROM commands`;
+			const tableStream = Bot.SQL.selectFrom('commands').selectAll().stream();
 
 			const table = [];
 
-			if (!commands.length) {
-				return { commands: [] };
-			}
-			for (const command of commands) {
-				const Permission = NCommandFunctions.DatabaseToMode(command.perm);
+			for await (const command of tableStream) {
+				const Permission = CommandDatabaseToMode(command.perm);
 
 				table.push({
 					Table: {
@@ -58,7 +57,7 @@ export default async function (fastify: FastifyInstance) {
 		url: '/:name',
 		preParsing: AuthenticationValidator('REDIRECT', true),
 		handler: async (req, reply) => {
-			function AllowedToRunCommand(command: CommandModel<object>, user: User): boolean {
+			function AllowedToRunCommand(command: CommandModel, user: User): boolean {
 				if (command.Permission === EPermissionLevel.ADMIN) {
 					if (user.Role === 'admin') {
 						return true;
@@ -98,7 +97,7 @@ export default async function (fastify: FastifyInstance) {
 				Aliases: Alias,
 				Description: command.Description,
 				Cooldown: `${command.Cooldown} Seconds`,
-				Permission: NCommandFunctions.DatabaseToMode(command.Permission),
+				Permission: CommandDatabaseToMode(command.Permission),
 				'Long Description': LongDescription,
 			};
 

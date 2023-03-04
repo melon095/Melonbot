@@ -4,7 +4,6 @@ import { exit } from 'node:process';
 import { resolve } from 'node:path';
 import { EPermissionLevel } from './../../Typings/enums.js';
 import { Import } from './../../tools/tools.js';
-import { Logger } from './../../logger.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare type Class = new (...args: any[]) => CommandModel;
@@ -28,13 +27,13 @@ export class CommandsHandler {
 		try {
 			// Read all commands into this.commandData
 			const _cmds_ = await this.FindCommands().catch((e) => {
-				Bot.Log.Error('Unable to read the directory of commands %O', e);
+				Bot.Log.Error(e as Error, 'Unable to read the directory of commands');
 				process.exitCode = -1;
 				exit();
 			});
 			const instantiatedCommands: CommandModel[] = [];
 
-			const dbCommands = await Bot.SQL.Query<Database.commands[]>`SELECT * FROM commands`;
+			const dbCommands = await Bot.SQL.selectFrom('commands').selectAll().execute();
 
 			for (const command of _cmds_) {
 				const c = new command();
@@ -60,10 +59,10 @@ export class CommandsHandler {
 							dbcommand.description !== command.Description ||
 							dbcommand.perm !== command.Permission
 						) {
-							await Bot.SQL.Query`
-                            UPDATE commands 
-                            SET ${Bot.SQL.Get(realCommand, 'description', 'perm')} 
-                            WHERE name=${realCommand.name}`;
+							await Bot.SQL.updateTable('commands')
+								.set(realCommand)
+								.where('name', '=', realCommand.name)
+								.execute();
 						}
 					}
 				}
@@ -82,17 +81,17 @@ export class CommandsHandler {
 					perm: command.Permission,
 				};
 
-				await Bot.SQL.Query`INSERT INTO commands ${Bot.SQL.Get(
-					realCommand,
-					'name',
-					'description',
-					'perm',
-				)}  ON CONFLICT(id) DO NOTHING`;
+				await Bot.SQL.insertInto('commands')
+					.values(realCommand)
+					.onConflict((opts) => opts.column('id').doNothing())
+					.execute();
 			}
 
-			for (const dbCommand of dbcommandDiff) {
-				await Bot.SQL.Query`DELETE FROM commands WHERE name=${dbCommand.name}`;
-			}
+			await Promise.all(
+				dbcommandDiff.map((dbCommand) =>
+					Bot.SQL.deleteFrom('commands').where('name', '=', dbCommand.name).execute(),
+				),
+			);
 
 			return;
 		} catch (e) {

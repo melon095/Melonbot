@@ -1,6 +1,6 @@
+import { ChannelDatabaseToMode } from './../controller/DB/Tables/ChannelTable.js';
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
-import { NCommandFunctions } from './../tools/tools.js';
 
 export default class extends CommandModel {
 	Name = 'help';
@@ -35,12 +35,11 @@ export default class extends CommandModel {
 		}
 
 		const { Name, Description, Cooldown, Permission } = command;
+		const permissionLevel = ChannelDatabaseToMode(Permission);
 
 		return {
 			Success: true,
-			Result: `${Name}: Description: ${Description} Cooldown: ${Cooldown}s. Permission: ${NCommandFunctions.DatabaseToMode(
-				Permission,
-			)} ${website}/bot/commands-list/${Name}`,
+			Result: `${Name}: Description: ${Description} Cooldown: ${Cooldown}s. Permission: ${permissionLevel} ${website}/bot/commands-list/${Name}`,
 		};
 	};
 }

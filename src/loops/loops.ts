@@ -9,8 +9,8 @@ import { UnpingUser } from './../tools/tools.js';
 	const Helix = (await import('./../Helix/index.js')).default;
 	const gql = (await import('./../SevenTVGQL.js')).default;
 
-	const VIEWER_LIST_API = (stream: string) =>
-		`https://tmi.twitch.tv/group/user/${stream}/chatters`;
+	// const VIEWER_LIST_API = (stream: string) =>
+	// 	`https://tmi.twitch.tv/group/user/${stream}/chatters`;
 
 	const THIRTY_SECONDS = 30 * 1000;
 	const ONE_MINUTE = THIRTY_SECONDS * 2;
@@ -19,48 +19,49 @@ import { UnpingUser } from './../tools/tools.js';
 	const FIVE_MINUTES = ONE_MINUTE * 5;
 	const TEN_MINUTES = FIVE_MINUTES * 2;
 
-	interface ViewerResponse {
-		chatters: ViewerList;
-	}
+	// interface ViewerResponse {
+	// 	chatters: ViewerList;
+	// }
 
-	type ViewerList = {
-		broadcaster: string[];
-		vips: string[];
-		moderators: string[];
-		staff: string[];
-		admins: string[];
-		global_mods: string[];
-		viewers: string[];
-	};
+	// type ViewerList = {
+	// 	broadcaster: string[];
+	// 	vips: string[];
+	// 	moderators: string[];
+	// 	staff: string[];
+	// 	admins: string[];
+	// 	global_mods: string[];
+	// 	viewers: string[];
+	// };
 
-	setInterval(async () => {
-		try {
-			const channels = await Bot.SQL.Query<
-				Database.channels[]
-			>`SELECT name, user_id FROM channels`;
-			if (!channels.length) return;
+	// TODO: Endpoint removed.
+	// setInterval(async () => {
+	// 	try {
+	// 		// const channels = await Bot.SQL.Query<
+	// 		// 	Database.channels[]
+	// 		// >`SELECT name, user_id FROM channels`;
+	// 		// if (!channels.length) return;
 
-			const promises = channels.map(async (channel) => {
-				const response = (await Got('default')
-					.get(VIEWER_LIST_API(channel.name))
-					.json()) as ViewerResponse;
+	// 		const promises = channels.map(async (channel) => {
+	// 			const response = (await Got('default')
+	// 				.get(VIEWER_LIST_API(channel.name))
+	// 				.json()) as ViewerResponse;
 
-				const chatters = response.chatters;
+	// 			const chatters = response.chatters;
 
-				const viewers: string[] = [];
+	// 			const viewers: string[] = [];
 
-				for (const list of Object.values(chatters)) {
-					viewers.push(...list);
-				}
+	// 			for (const list of Object.values(chatters)) {
+	// 				viewers.push(...list);
+	// 			}
 
-				await Bot.Redis.SSet(`channel:${channel.user_id}:viewers`, JSON.stringify(viewers));
-			});
+	// 			await Bot.Redis.SSet(`channel:${channel.user_id}:viewers`, JSON.stringify(viewers));
+	// 		});
 
-			await Promise.allSettled(promises);
-		} catch (error) {
-			Bot.Log.Error(error as Error, '__loops/ViewerList');
-		}
-	}, ONE_MINUTE);
+	// 		await Promise.allSettled(promises);
+	// 	} catch (error) {
+	// 		Bot.Log.Error(error as Error, '__loops/ViewerList');
+	// 	}
+	// }, ONE_MINUTE);
 
 	/**
 	 * Fetches every channels emote set on 7TV.
