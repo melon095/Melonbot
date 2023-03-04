@@ -1,7 +1,7 @@
-import { EPermissionLevel } from './../Typings/enums.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
 
-import got from './../tools/Got.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import got from './../../tools/Got.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 const ADVICE_API = 'https://api.adviceslip.com/advice';
 

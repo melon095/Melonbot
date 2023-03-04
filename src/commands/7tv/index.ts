@@ -1,8 +1,8 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { TCommandContext, ArgType } from '../Models/Command.js';
-import gql, { EmoteSearchFilter } from '../SevenTVGQL.js';
-import { extractSeventTVID } from './../tools/regex.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { TCommandContext, ArgType } from '../../Models/Command.js';
+import gql, { EmoteSearchFilter } from '../../SevenTVGQL.js';
+import { extractSeventTVID } from './../../tools/regex.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: '7tv',

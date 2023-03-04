@@ -1,9 +1,9 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { ArgType } from '../Models/Command.js';
-import { SpotifyGetValidToken, SpotifyGot } from './../tools/spotify.js';
-import Got from './../tools/Got.js';
-import { SpotifyTypes } from './../Typings/types.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { ArgType } from '../../Models/Command.js';
+import { SpotifyGetValidToken, SpotifyGot } from './../../tools/spotify.js';
+import Got from './../../tools/Got.js';
+import { SpotifyTypes } from './../../Typings/types.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 type SongWhipResponse = {
 	data: {

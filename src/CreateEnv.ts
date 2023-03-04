@@ -67,6 +67,9 @@ export const Setup = {
 		await redis.Connect();
 
 		Bot.Redis = redis;
+
+		const commandLoader = await import('./commands/index.js');
+		await commandLoader.default();
 		await StoreToDB();
 
 		Bot.User = User;

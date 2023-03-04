@@ -1,5 +1,5 @@
-import { registerCommand } from '../controller/Commands/Handler.js';
-import { EPermissionLevel } from './../Typings/enums.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
 
 registerCommand({
 	Name: 'say',

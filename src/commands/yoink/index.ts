@@ -1,14 +1,14 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { TCommandContext, CommandResult, ArgType, CommandModel } from '../Models/Command.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { ArgType } from '../../Models/Command.js';
 import gql, {
 	ChangeEmoteInset,
 	ConnectionPlatform,
 	V3User,
 	EnabledEmote,
 	ListItemAction,
-} from '../SevenTVGQL.js';
-import { ExtractAllSettledPromises, UnpingUser } from './../tools/tools.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+} from '../../SevenTVGQL.js';
+import { ExtractAllSettledPromises, UnpingUser } from './../../tools/tools.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: 'yoink',

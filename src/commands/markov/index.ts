@@ -1,8 +1,8 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import Got from './../tools/Got.js';
-import { Unping } from './../tools/tools.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { ArgType } from '../../Models/Command.js';
+import Got from './../../tools/Got.js';
+import { Unping } from './../../tools/tools.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 interface ApiResponse {
 	success: boolean;

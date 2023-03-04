@@ -1,9 +1,9 @@
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
+import { TCommandContext, ArgType } from '../../Models/Command.js';
+import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 
 import vm from 'node:vm';
-import { Channel } from './../controller/Channel/index.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import { Channel } from './../../controller/Channel/index.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 async function Execute(script: string, ctx: TCommandContext): Promise<object | string> {
 	const crypto = await import('crypto');

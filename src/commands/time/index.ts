@@ -1,7 +1,7 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { TCommandContext, ParseArguments } from '../Models/Command.js';
-import { Fetch } from './../PreHandlers/index.js';
-import { GetCommandBy, registerCommand } from '../controller/Commands/Handler.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { TCommandContext, ParseArguments } from '../../Models/Command.js';
+import { Fetch } from './../../PreHandlers/index.js';
+import { GetCommandBy, registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: 'time',

@@ -1,7 +1,7 @@
-import { EPermissionLevel } from './../Typings/enums.js';
-import gql, { ListItemAction } from './../SevenTVGQL.js';
-import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
+import gql, { ListItemAction } from './../../SevenTVGQL.js';
+import SevenTVAllowed, { Get7TVUserMod } from './../../PreHandlers/7tv.can.modify.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 type PreHandlers = {
 	SevenTV: Get7TVUserMod;

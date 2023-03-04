@@ -1,9 +1,9 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { ArgType, TCommandContext } from '../Models/Command.js';
-import { Result, Ok, Err } from './../tools/result.js';
-import got from './../tools/Got.js';
-import Timers from './../Singletons/Timers/index.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { ArgType, TCommandContext } from '../../Models/Command.js';
+import { Result, Ok, Err } from './../../tools/result.js';
+import got from './../../tools/Got.js';
+import Timers from './../../Singletons/Timers/index.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 /** https://github.com/zer0bin-dev/zer0bin */
 type ZeroBinResponse = {

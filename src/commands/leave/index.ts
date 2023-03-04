@@ -1,7 +1,6 @@
-import Helix from './../Helix/index.js';
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
-import { EPermissionLevel } from './../Typings/enums.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import Helix from './../../Helix/index.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: 'leave',

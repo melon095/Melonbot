@@ -1,9 +1,9 @@
-import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
-import type { Ivr } from './../Typings/types';
-import { Channel } from './../controller/Channel/index.js';
-import User, { GetSafeError } from './../controller/User/index.js';
-import Got from './../tools/Got.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
+import type { Ivr } from './../../Typings/types';
+import { Channel } from './../../controller/Channel/index.js';
+import User, { GetSafeError } from './../../controller/User/index.js';
+import Got from './../../tools/Got.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 const isMod = async (user: User, channel: string) => {
 	const mods = (await Got('json')

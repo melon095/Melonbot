@@ -1,6 +1,6 @@
-import { ChannelDatabaseToMode } from './../controller/DB/Tables/ChannelTable.js';
-import { EPermissionLevel } from './../Typings/enums.js';
-import { GetCommandBy, registerCommand } from '../controller/Commands/Handler.js';
+import { ChannelDatabaseToMode } from './../../controller/DB/Tables/ChannelTable.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
+import { GetCommandBy, registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: 'help',

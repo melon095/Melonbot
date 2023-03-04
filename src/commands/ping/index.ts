@@ -1,7 +1,7 @@
-import * as tools from './../tools/tools.js';
+import * as tools from './../../tools/tools.js';
 import process from 'node:process';
-import { EPermissionLevel } from './../Typings/enums.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: 'ping',

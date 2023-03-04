@@ -1,8 +1,8 @@
-import { EPermissionLevel } from './../Typings/enums.js';
-import SevenTV from './../SevenTVGQL.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
+import SevenTV from './../../SevenTVGQL.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: 'reload',
@@ -26,7 +26,7 @@ registerCommand({
 
 		switch (setting) {
 			case 'config': {
-				const env = await import('./../CreateEnv.js');
+				const env = await import('./../../CreateEnv.js');
 				const config = JSON.parse(
 					fs.readFileSync(path.join(process.cwd() + '/config.json'), 'utf-8'),
 				);

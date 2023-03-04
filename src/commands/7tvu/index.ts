@@ -1,7 +1,7 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { DifferenceFmt } from './../tools/tools.js';
-import gql, { ConnectionPlatform } from '../SevenTVGQL.js';
-import { registerCommand } from '../controller/Commands/Handler.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { DifferenceFmt } from './../../tools/tools.js';
+import gql, { ConnectionPlatform } from '../../SevenTVGQL.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 type Roles = {
 	id: string;

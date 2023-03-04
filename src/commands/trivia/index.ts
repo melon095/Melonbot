@@ -1,6 +1,6 @@
-import { registerCommand } from '../controller/Commands/Handler.js';
-import { ArgType } from '../Models/Command.js';
-import { EPermissionLevel } from './../Typings/enums.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
+import { ArgType } from '../../Models/Command.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
 
 registerCommand({
 	Name: 'trivia',
