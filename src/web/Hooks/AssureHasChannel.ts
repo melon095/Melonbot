@@ -10,6 +10,7 @@ export default async function (req: FastifyRequest, reply: FastifyReply) {
 	}
 
 	const has_channel = await Bot.SQL.selectFrom('channels')
+		.select('user_id')
 		.where('user_id', '=', user.identifier)
 		.executeTakeFirst();
 

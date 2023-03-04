@@ -7,7 +7,7 @@ interface CommandsExecutionTable {
 	success: boolean;
 	command: string;
 	args: string[];
-	result: boolean;
+	result: string;
 	channel: string;
 }
 

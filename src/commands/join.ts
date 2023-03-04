@@ -70,10 +70,10 @@ export default class extends CommandModel {
 			other = true;
 		}
 
-		const [name] = await Bot.SQL.Query`
-                SELECT name 
-                FROM channels 
-                WHERE user_id = ${channel.TwitchUID}`;
+		const name = await Bot.SQL.selectFrom('channels')
+			.select('name')
+			.where('user_id', '=', channel.TwitchUID)
+			.executeTakeFirst();
 
 		if (name) {
 			return {

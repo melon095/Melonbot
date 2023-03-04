@@ -1,4 +1,4 @@
-import { NChannel, TUserCooldown, ChannelTalkOptions } from './../../Typings/types';
+import { TUserCooldown, ChannelTalkOptions } from './../../Typings/types';
 import { EPermissionLevel, ECommandFlags } from './../../Typings/enums.js';
 import { CheckMessageBanphrase } from './../Banphrase/index.js';
 import * as tools from './../../tools/tools.js';
@@ -24,8 +24,15 @@ import Helix, {
 	EventSubSubscription,
 } from './../../Helix/index.js';
 import { RedisSingleton } from './../../Singletons/Redis/index.js';
-import { EventsubTypes } from 'Singletons/Redis/Data.Types';
+import { EventsubTypes } from './../../Singletons/Redis/Data.Types';
 import { IPromolve, Promolve } from '@melon95/promolve';
+import { Insertable, sql } from 'kysely';
+import CommandsExecutionTable from '../DB/Tables/CommandsExecutionTable.js';
+import {
+	PermissionMode,
+	PermissionModeToCooldown,
+	PermissionModeToDatabase,
+} from '../DB/Tables/ChannelTable.js';
 
 /**
  * Encapsulated data for every channel.
@@ -51,7 +58,7 @@ export class Channel {
 	 * @description Moderator - Cooldown is 50 milliseconds - Enables moderation mode
 	 * @description Bot - Only the bot channel will have this.
 	 */
-	public Mode: NChannel.Mode;
+	public Mode: PermissionMode;
 
 	/**
 	 * @description The value of Mode just in number format
@@ -106,7 +113,7 @@ export class Channel {
 		return channel;
 	}
 
-	static async New(user: User, Mode: NChannel.Mode, Live: boolean): Promise<Channel> {
+	static async New(user: User, Mode: PermissionMode, Live: boolean): Promise<Channel> {
 		const Channel = new this(user, Mode, Live);
 		await Channel.EventSubs.Done;
 		return Channel;
@@ -120,20 +127,24 @@ export class Channel {
 
 		const user = await Bot.User.Get(Creds.user_id, Creds.name);
 
-		await Bot.SQL.Query`
-            INSERT INTO channels (name, user_id, bot_permission)
-            VALUES (${Creds.name}, ${Creds.user_id}, ${3})
-            ON CONFLICT (user_id) DO NOTHING;`;
+		await Bot.SQL.insertInto('channels')
+			.values({
+				name: Creds.name,
+				user_id: Creds.user_id,
+				bot_permission: 3,
+				live: false,
+			})
+			.onConflict((table) => table.column('user_id').doNothing())
+			.execute();
 
 		return new this(user, 'Bot', false);
 	}
 
-	constructor(user: User, Mode: NChannel.Mode, Live: boolean) {
+	constructor(user: User, Mode: PermissionMode, Live: boolean) {
 		this.Name = user.Name;
 		this.Id = user.TwitchUID;
 		this.Mode = Mode;
-		this.Cooldown = tools.NChannelFunctions.ModeToCooldown(Mode) ?? 1250;
-		// this.Banphrase = new Banphrase();
+		this.Cooldown = PermissionModeToCooldown(Mode) ?? 1250;
 		this.Live = Live;
 		this.Queue = new MessageScheduler();
 		this.UserCooldowns = {};
@@ -265,10 +276,10 @@ export class Channel {
 				return;
 			}
 
-			const doExecution = async (): Promise<[CommandExecutionResult, string]> => {
+			const doExecution = async (): Promise<[Insertable<CommandsExecutionTable>, string]> => {
 				try {
 					const data = await command.Execute(ctx, mods);
-					const result: CommandExecutionResult = {
+					const result: Insertable<CommandsExecutionTable> = {
 						user_id: user.TwitchUID,
 						username: user.Name,
 						channel: this.Id,
@@ -287,26 +298,24 @@ export class Channel {
 					return [result, data.Result];
 				} catch (error) {
 					Bot.Log.Error(error as Error, 'command/run/catch');
+					const extractedError = getStringFromError(error as string | Error);
 
 					if (user.HasSuperPermission()) {
-						this.say(
-							`❗ ${user.Name}: ${getStringFromError(error as string | Error)}`,
-							{
-								SkipBanphrase: true,
-							},
-						);
+						this.say(`❗ ${user.Name}: ${extractedError}`, {
+							SkipBanphrase: true,
+						});
 					} else {
 						this.say('PoroSad Command Failed...', {
 							SkipBanphrase: true,
 						});
 					}
 
-					const result: CommandExecutionResult = {
+					const result: Insertable<CommandsExecutionTable> = {
 						user_id: user.TwitchUID,
 						username: user.Name,
 						channel: this.Id,
 						success: false,
-						result: JSON.stringify(error),
+						result: extractedError,
 						args: ctx.input,
 						command: command.Name,
 					};
@@ -317,10 +326,11 @@ export class Channel {
 
 			const [result, toSay] = await doExecution();
 
-			this.logCommandExecution(result);
+			logCommandExecution(result);
 
-			await Bot.SQL
-				.Query`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`;
+			await sql`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`.execute(
+				Bot.SQL,
+			);
 
 			return {
 				message: toSay,
@@ -423,45 +433,28 @@ export class Channel {
 	}
 
 	private async setupTrivia(): Promise<void> {
-		const filter = await Bot.SQL.Query<Database.channels[]>`
-            SELECT disabled_commands
-            FROM channels
-            WHERE user_id = ${this.Id}`;
-
-		if (filter.length) {
-			this.Filter = filter[0].disabled_commands;
-			if (!filter[0].disabled_commands.includes('trivia')) {
-				this.InitiateTrivia();
-			}
-		} else this.InitiateTrivia();
+		this.InitiateTrivia();
 	}
 
 	static async Join(user: User) {
-		await Bot.SQL.Get.begin(async () => {
-			const queries = [];
+		await Bot.SQL.transaction().execute(async (tx) => {
+			await tx
+				.insertInto('channels')
+				.values({
+					name: user.Name,
+					user_id: user.TwitchUID,
+					bot_permission: 1,
+					live: false,
+				})
+				.execute();
 
-			await Bot.SQL
-				.Query`INSERT INTO channels (name, user_id) VALUES (${user.Name}, ${user.TwitchUID})`;
-
-			queries.push(Bot.SQL.Query`INSERT INTO stats (name) VALUES (${user.Name})`);
-
-			const triviaValues: Database.trivia = {
-				channel: user.Name,
-				user_id: user.TwitchUID,
-				cooldown: 60000,
-				filter: { exclude: [], include: [] },
-				leaderboard: [],
-			};
-
-			queries.push(
-				Bot.SQL.Query`
-                INSERT INTO trivia ${Bot.SQL.Get(triviaValues)}`,
-			);
-
-			await Promise.all(queries);
-		}).catch((error) => {
-			Bot.Log.Error(error as Error, 'channel/join');
-			throw '';
+			await tx
+				.insertInto('stats')
+				.values({
+					name: user.Name,
+					commands_handled: 0,
+				})
+				.execute();
 		});
 
 		try {
@@ -495,20 +488,9 @@ export class Channel {
 
 			channel.say('FeelsDankMan 👋 Hi');
 		} catch (err) {
-			Bot.Log.Error(err as Error, 'Join');
 			await Bot.Twitch.Controller.client.part(user.Name);
-			throw '';
+			throw err;
 		}
-	}
-
-	async updateFilter(): Promise<void> {
-		const [filter] = await Bot.SQL.Query<Database.channels[]>`
-            SELECT disabled_commands
-            FROM channels
-            WHERE user_id = ${this.Id}`;
-
-		if (!filter) this.Filter = [];
-		else this.Filter = filter.disabled_commands;
 	}
 
 	// On self messages.
@@ -517,15 +499,15 @@ export class Channel {
 
 		// Moderator
 		if (badges.hasModerator || badges.hasBroadcaster) {
-			this.setMod();
+			await this.setPermissionMode('Moderator');
 		}
 		// Vip
 		else if (badges.hasVIP) {
-			this.setVip();
+			await this.setPermissionMode('VIP');
 		}
 		// Default user
 		else if (this.Mode !== 'Read' && !badges.hasModerator && !badges.hasVIP) {
-			this.setNorman();
+			await this.setPermissionMode('Write');
 		}
 	}
 
@@ -561,62 +543,44 @@ export class Channel {
 			}
 		}
 	}
-	setMod(): void {
-		if (this.Mode === 'Moderator') return;
-		this.Mode = 'Moderator';
-		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('Moderator') ?? 1250;
-		Bot.SQL.Query`UPDATE channels SET bot_permission = ${3} WHERE user_id = ${
-			this.Id
-		}`.execute();
-		Bot.Log.Info('%s is now set as Moderator.', this.Name);
-	}
 
-	setVip(): void {
-		if (this.Mode === 'VIP') return;
-		this.Mode = 'VIP';
-		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('VIP') ?? 1250;
-		Bot.SQL.Query`UPDATE channels SET bot_permission = ${2} WHERE user_id = ${
-			this.Id
-		}`.execute();
-		Bot.Log.Info('%s is now set as VIP.', this.Name);
-	}
+	public async setPermissionMode(mode: PermissionMode) {
+		const asDatabase = PermissionModeToDatabase(mode);
 
-	// Norman meaning.. Normal. WutFace
-	setNorman(): void {
-		if (this.Mode === 'Write') return;
-		this.Mode = 'Write';
-		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('Write') ?? 1250;
-		Bot.SQL.Query`UPDATE channels SET bot_permission = ${1} WHERE user_id = ${
-			this.Id
-		}`.execute();
-		Bot.Log.Info('%s is now set as Norman.', this.Name);
+		await Bot.SQL.updateTable('channels')
+			.set({
+				bot_permission: asDatabase,
+			})
+			.where('user_id', '=', this.Id)
+			.execute();
+
+		this.Mode = mode;
+		this.Cooldown = PermissionModeToCooldown(mode) ?? 1250;
+
+		Bot.Log.Info('%s is now set as %s.', this.Name, mode);
 	}
 
 	async UpdateName(newName: string): Promise<void> {
-		this.Name = newName;
-		await Bot.SQL.Query`UPDATE channels SET name = ${newName} WHERE user_id = ${this.Id}`;
+		try {
+			await Bot.Twitch.Controller.TryRejoin(this, newName);
+			await Bot.SQL.updateTable('channels')
+				.set({
+					name: newName,
+				})
+				.where('user_id', '=', this.Id)
+				.execute();
 
-		await Bot.Twitch.Controller.TryRejoin(this, newName);
-
-		await this.say('FeelsDankMan TeaTime');
+			await Bot.Twitch.Controller.client.part(this.Name);
+			this.Name = newName;
+			await this.say('FeelsDankMan TeaTime');
+		} catch (error) {
+			Bot.Log.Error(error as Error, 'Failed to update name for %s', this.Name);
+		}
 	}
 
 	async UpdateLive(): Promise<void> {
 		this.Live = await tools.Live(this.Id);
 		return;
-	}
-
-	async UpdateMode(mode: NChannel.Mode): Promise<void> {
-		this.Mode = mode;
-		this.Cooldown = tools.NChannelFunctions.ModeToCooldown(mode) ?? 1250;
-	}
-
-	setMode(mode: NChannel.Mode): void {
-		this.Mode = mode;
-	}
-
-	setLive(_live: boolean): void {
-		this.Live = _live;
 	}
 
 	private getCooldown(id: number): TUserCooldown[] {
@@ -639,12 +603,6 @@ export class Channel {
 		if (this.Queue.hasMessage) {
 			this.say(message, { SkipBanphrase: true });
 		}
-	}
-
-	async logCommandExecution(result: CommandExecutionResult): Promise<void> {
-		await Bot.SQL.Query`
-            INSERT INTO logs.commands_execution ${Bot.SQL.Get(result)}
-        `;
 	}
 
 	private async InitiateTrivia(): Promise<void> {
@@ -697,19 +655,6 @@ export class Channel {
 		userPermission = (user.Role === 'admin' && EPermissionLevel.ADMIN) || userPermission;
 		return command.Permission <= userPermission ? true : false;
 	}
-}
-
-export interface CommandExecutionResult {
-	user_id: string;
-	username: string;
-
-	channel: string;
-
-	success: boolean;
-
-	command: string;
-	args: string[];
-	result: string;
 }
 
 const cleanMessage = (message: string): string => message.replace(/(\r\n|\n|\r)/gm, ' ');
@@ -899,4 +844,8 @@ export class EventSubHandler {
 
 		return this._subscriptions.filter((sub) => sub.Type() === type);
 	}
+}
+
+function logCommandExecution(resulton: Insertable<CommandsExecutionTable>) {
+	return Bot.SQL.insertInto('logs.commands_execution').values(resulton).execute();
 }

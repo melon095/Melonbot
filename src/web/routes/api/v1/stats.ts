@@ -1,16 +1,18 @@
 import { FastifyInstance } from 'fastify';
 
 export default async function (fastify: FastifyInstance) {
-	async function GetTotalUsers() {
+	function GetTotalUsers() {
 		return Bot.SQL.selectFrom('users')
 			.select((eq) => eq.fn.count('id').as('count'))
-			.execute();
+			.executeTakeFirst()
+			.then((c) => c?.count || 0);
 	}
 
-	async function GetJoinedChannelCount() {
+	function GetJoinedChannelCount() {
 		return Bot.SQL.selectFrom('channels')
 			.select((eq) => eq.fn.count('user_id').as('count'))
-			.execute();
+			.executeTakeFirst()
+			.then((c) => c?.count || 0);
 	}
 
 	// TODO: Not implemented yet.
@@ -18,10 +20,11 @@ export default async function (fastify: FastifyInstance) {
 		return 0;
 	}
 
-	async function GetTotalHandledCommands() {
+	function GetTotalHandledCommands() {
 		return Bot.SQL.selectFrom('stats')
 			.select((eq) => eq.fn.sum('commands_handled').as('sum'))
-			.execute();
+			.executeTakeFirst()
+			.then((c) => c?.sum || 0);
 	}
 
 	fastify.route({

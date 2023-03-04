@@ -6,7 +6,7 @@ import { GenerateSqlEnum } from '../index.js';
 
 export async function up(db: Kysely<any>): Promise<void> {
 	await sql`
-        CREATE FUNCITON bot.on_update_current_timestamp_error_logs() RETURNS trigger
+        CREATE OR REPLACE FUNCTION bot.on_update_current_timestamp_error_logs() RETURNS trigger
             LANGUAGE plpgsql
                 AS $$
             BEGIN
@@ -14,6 +14,10 @@ export async function up(db: Kysely<any>): Promise<void> {
                 RETURN NEW;
             END;
             $$;
+    `.execute(db);
+
+	await sql`
+        CREATE TYPE role AS ENUM ('user', 'moderator', 'admin');
     `.execute(db);
 
 	await db.schema
@@ -26,7 +30,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 	await db.schema
 		.createTable('commands')
-		.addColumn('id', 'bigint', (col) => col.notNull().primaryKey().autoIncrement())
+		.addColumn('id', 'serial', (col) => col.notNull().primaryKey())
 		.addColumn('name', 'text', (col) => col.notNull().unique())
 		.addColumn('description', 'text', (col) => col.notNull())
 		.addColumn('perm', 'integer', (col) => col.notNull())
@@ -34,9 +38,10 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 	await db.schema
 		.createTable('error_logs')
-		.addColumn('error_id', 'bigint', (col) => col.notNull().primaryKey().autoIncrement())
+		.addColumn('error_id', 'serial', (col) => col.notNull().primaryKey())
 		.addColumn('error_message', 'text', (col) => col.notNull())
-		.addColumn('timestamp', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`));
+		.addColumn('timestamp', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+		.execute();
 
 	await db.schema
 		.createTable('stats')
@@ -46,15 +51,13 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 	await db.schema
 		.createTable('users')
-		.addColumn('id', 'integer', (col) => col.notNull().primaryKey().autoIncrement())
+		.addColumn('id', 'serial', (col) => col.notNull().primaryKey())
 		.addColumn('name', 'text', (col) => col.notNull())
 		.addColumn('twitch_uid', 'varchar', (col) => col.notNull().unique())
 		.addColumn('first_seen', 'timestamp', (col) =>
 			col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
 		)
-		.addColumn('role', GenerateSqlEnum('user', 'moderator', 'admin'), (col) =>
-			col.notNull().defaultTo('user'),
-		)
+		.addColumn('role', sql`role`, (col) => col.notNull().defaultTo('user'))
 		.execute();
 
 	await db.schema
@@ -66,7 +69,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 				.defaultTo(sql`uuid_generate_v4()`),
 		)
 		.addColumn('suggestion', 'text', (col) => col.notNull())
-		.addColumn('user_id', 'varchar', (col) => col.notNull().references('users.user_id'))
+		.addColumn('user_id', 'integer', (col) => col.notNull().references('users.id'))
 		.execute();
 
 	await db.schema

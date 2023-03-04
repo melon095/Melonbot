@@ -8,7 +8,7 @@ import User from './controller/User/index.js';
 import { RedisSingleton } from './Singletons/Redis/index.js';
 import { RedisEvents } from './Singletons/Redis/Redis.Events.js';
 import { Kysely } from 'kysely';
-import { Database } from './controller/DB/index.js';
+import { KyselyDB } from './controller/DB/index.js';
 
 export declare interface RS extends RedisSingleton {
 	on<U extends keyof RedisEvents>(event: U, listener: RedisEvents[U]): ThisParameterType;
@@ -22,7 +22,7 @@ type TGlobalConfig = TConfigFile & {
 declare global {
 	var Bot: {
 		Config: TGlobalConfig;
-		SQL: Kysely<Database>;
+		SQL: KyselyDB;
 		Redis: RS;
 		Twitch: {
 			Controller: import('./Twitch.js').default;

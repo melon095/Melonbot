@@ -1,8 +1,8 @@
 import Got from './../../tools/Got.js';
-import { UserRole } from './../../Typings/models/bot/index.js';
+import UserTable, { UserRole } from './../DB/Tables/UserTable.js';
 import Helix from './../../Helix/index.js';
 import type { Ivr } from './../../Typings/types.js';
-import { ChannelSettings, GetSettings } from './../Channel/index.js';
+import { Selectable } from 'kysely';
 
 export class GetSafeError extends Error {
 	constructor(message: string) {
@@ -36,7 +36,7 @@ export default class User {
 	public Role: UserRole;
 	public FirstSeen: Date;
 
-	constructor(user: Database.users) {
+	constructor(user: Selectable<UserTable>) {
 		this.ID = user.id;
 		this.Name = user.name;
 		this.TwitchUID = user.twitch_uid;
@@ -59,15 +59,15 @@ export default class User {
 		// Find the user in the database
 		// Based of the twitch uid
 		// Name changes won't break it as it should pick the latest detected user
-		const dbUser = await Bot.SQL.Query<Database.users[]>`
-            SELECT * FROM users
-            WHERE twitch_uid = ${TwitchID}
-            ORDER BY first_seen DESC
-            LIMIT 1
-        `;
+		const dbUser = await Bot.SQL.selectFrom('users')
+			.selectAll()
+			.where('twitch_uid', '=', TwitchID)
+			.orderBy('first_seen', 'desc')
+			.limit(1)
+			.executeTakeFirst();
 
-		if (dbUser.length) {
-			const user = new User(dbUser[0]);
+		if (dbUser) {
+			const user = new User(dbUser);
 			User.Cache.set(Name, user);
 			return user;
 		}
@@ -77,13 +77,23 @@ export default class User {
 		}
 
 		// Create new user
-		const newUser = await Bot.SQL.Query<Database.users[]>`
-            INSERT INTO users (name, twitch_uid, role)
-            VALUES (${Name}, ${TwitchID}, 'user')
-            RETURNING *
-        `;
+		const newUser = await Bot.SQL.insertInto('users')
+			.values({
+				name: Name,
+				twitch_uid: TwitchID,
+				role: 'user',
+			})
+			.returningAll()
+			.executeTakeFirst();
 
-		const user = new User(newUser[0]);
+		if (!newUser) {
+			// FIXME
+			Bot.Log.Error(`Failed to create user ${Name}.`);
+
+			throw new GetSafeError(`Failed to create user ${Name}.`);
+		}
+
+		const user = new User(newUser);
 		User.Cache.set(Name, user);
 		return user;
 	}
@@ -101,11 +111,10 @@ export default class User {
 	static async GetEveryone(): Promise<User[]> {
 		// TODO can do this better.
 
-		const users = await Bot.SQL.Query<Database.users[]>`
-            SELECT * FROM users
-        `;
-
-		return users.map((user) => new User(user));
+		return Bot.SQL.selectFrom('users')
+			.selectAll()
+			.execute()
+			.then((users) => users.map((user) => new User(user)));
 	}
 
 	static CleanName(name: string) {
@@ -164,14 +173,14 @@ export default class User {
 			return cache;
 		}
 
-		const user = await Bot.SQL.Query<Database.users[]>`
-            SELECT * FROM users
-            WHERE name = ${username}
-            LIMIT 1
-        `;
+		const user = await Bot.SQL.selectFrom('users')
+			.selectAll()
+			.where('name', '=', username)
+			.limit(1)
+			.executeTakeFirst();
 
-		if (user.length) {
-			const dbUser = new User(user[0]);
+		if (user) {
+			const dbUser = new User(user);
 			User.Cache.set(username, dbUser);
 			return dbUser;
 		}
@@ -191,13 +200,22 @@ export default class User {
 
 		const { login, id } = response[0];
 
-		const newUser = await Bot.SQL.Query<Database.users[]>`
-            INSERT INTO users (name, twitch_uid, role)
-            VALUES (${login}, ${id}, 'user')
-            RETURNING *
-        `;
+		const newUser = await Bot.SQL.insertInto('users')
+			.values({
+				name: login,
+				twitch_uid: id,
+			})
+			.returningAll()
+			.executeTakeFirst();
 
-		const newIvr = new User(newUser[0]);
+		if (!newUser) {
+			// FIXME
+			Bot.Log.Error(`Failed to create user ${username}.`);
+
+			throw new GetSafeError(`Failed to create user ${username}.`);
+		}
+
+		const newIvr = new User(newUser);
 		User.Cache.set(login, newIvr);
 		return newIvr;
 	}
@@ -257,44 +275,39 @@ export default class User {
 	}
 
 	async UpdateName(newName: string): Promise<void> {
-		await Bot.SQL.Transaction(async (sql) => {
-			const users = await sql<Database.users[]>`
-                SELECT * FROM users
-                WHERE twitch_uid = ${this.TwitchUID}
-                ORDER BY first_seen ASC
-            `;
+		const usersWithUid = await Bot.SQL.selectFrom('users')
+			.selectAll()
+			.where('twitch_uid', '=', this.TwitchUID)
+			.orderBy('first_seen', 'asc')
+			.execute();
 
-			if (users.length > 1) {
-				Bot.Log.Warn(
-					'%s changed name to %s but there are multiple accounts with the same twitch_uid (%s)',
-					this.Name,
-					newName,
-					this.TwitchUID,
-				);
-
-				await sql<Database.users[]>`
-                    DELETE FROM users
-                    WHERE twitch_uid = ${this.TwitchUID}
-                    AND id != ${users[0].id}
-                `;
-
-				await sql<Database.users[]>`
-                    UPDATE users
-                    SET name = ${newName}
-                    WHERE id = ${users[0].id}
-                `;
-
-				this.Name = newName;
-				return;
+		await Bot.SQL.transaction().execute(async (tx) => {
+			if (usersWithUid.length <= 0) {
+				return tx
+					.updateTable('users')
+					.set({ name: newName })
+					.where('id', '=', this.ID)
+					.execute();
 			}
 
-			await sql<Database.users[]>`
-                UPDATE users
-                SET name = ${newName}
-                WHERE id = ${this.ID}
-            `;
+			Bot.Log.Warn(
+				'%s changed name to %s but there are multiple accounts with the same twitch_uid (%s)',
+				this.Name,
+				newName,
+				this.TwitchUID,
+			);
 
-			this.Name = newName;
+			await tx
+				.deleteFrom('users')
+				.where('twitch_uid', '=', this.TwitchUID)
+				.where('id', '!=', usersWithUid[0].id)
+				.execute();
+
+			await tx
+				.updateTable('users')
+				.set({ name: newName })
+				.where('id', '=', this.ID)
+				.execute();
 		});
 	}
 
@@ -309,10 +322,14 @@ export default class User {
 }
 
 export async function ResolveInternalID(id: number): Promise<User | null> {
-	const users = await Bot.SQL.Query<Database.users[]>`SELECT * FROM users WHERE id = ${id}`;
-	if (users.length === 0) return null;
+	const user = await Bot.SQL.selectFrom('users')
+		.selectAll()
+		.where('id', '=', id)
+		.executeTakeFirst();
 
-	const userObject = new Bot.User(users[0]);
+	if (user === undefined) return null;
+
+	const userObject = new Bot.User(user);
 
 	Bot.User.Cache.set(userObject.TwitchUID, userObject);
 

@@ -1,6 +1,6 @@
+import { ChannelDatabaseToMode } from './../controller/DB/Tables/ChannelTable.js';
 import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
-import { DatabaseToMode } from './../controller/DB/Tables/CommandTable.js';
 
 export default class extends CommandModel {
 	Name = 'help';
@@ -35,7 +35,7 @@ export default class extends CommandModel {
 		}
 
 		const { Name, Description, Cooldown, Permission } = command;
-		const permissionLevel = DatabaseToMode(Permission);
+		const permissionLevel = ChannelDatabaseToMode(Permission);
 
 		return {
 			Success: true,

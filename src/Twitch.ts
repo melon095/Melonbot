@@ -145,7 +145,7 @@ export default class Twitch {
 	async TryRejoin(channel: Channel, name: string): Promise<void> {
 		await this.client.join(name);
 		await channel.joinEventSub();
-		channel.UpdateMode('Write'); // TODO: Check database?
+		await channel.setPermissionMode('Write');
 	}
 
 	private async SetOwner(): Promise<void> {

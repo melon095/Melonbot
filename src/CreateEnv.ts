@@ -26,7 +26,7 @@ import User from './controller/User/index.js';
 import TimerSingleton from './Singletons/Timers/index.js';
 import logger from './logger.js';
 import SevenTVGQL from './SevenTVGQL.js';
-import { ChannelDatabaseToMode } from 'controller/DB/Tables/ChannelTable.js';
+import { ChannelDatabaseToMode } from './controller/DB/Tables/ChannelTable.js';
 
 type ProcessType = 'BOT' | 'WEB';
 

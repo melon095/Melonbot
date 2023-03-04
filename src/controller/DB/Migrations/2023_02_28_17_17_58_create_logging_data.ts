@@ -4,7 +4,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 	await db.schema
 		.withSchema('logs')
 		.createTable('commands_execution')
-		.addColumn('id', 'integer', (col) => col.notNull().primaryKey().autoIncrement())
+		.addColumn('id', 'serial', (col) => col.notNull().primaryKey())
 		.addColumn('user_id', 'varchar', (col) => col.notNull())
 		.addColumn('username', 'varchar', (col) => col.notNull())
 		.addColumn('success', 'boolean', (col) => col.notNull())
@@ -17,7 +17,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 	await db.schema
 		.withSchema('logs')
 		.createTable('web_request')
-		.addColumn('id', 'integer', (col) => col.notNull().primaryKey().autoIncrement())
+		.addColumn('id', 'serial', (col) => col.notNull().primaryKey())
 		.addColumn('method', 'varchar', (col) => col.notNull())
 		.addColumn('endpoint', 'text', (col) => col.notNull())
 		.addColumn('request_ip', 'varchar', (col) => col.notNull())

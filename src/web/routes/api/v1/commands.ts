@@ -2,8 +2,11 @@ import User from './../../../../controller/User/index.js';
 import { FastifyInstance } from 'fastify';
 import { CommandModel } from './../../../../Models/Command.js';
 import { EPermissionLevel } from './../../../../Typings/enums.js';
-import AuthenticationValidator from './../../..//Hooks/AuthenticationValidator.js';
-import { CommandDatabaseToMode, CommandPermissions } from 'controller/DB/Tables/CommandTable.js';
+import AuthenticationValidator from './../../../Hooks/AuthenticationValidator.js';
+import {
+	CommandDatabaseToMode,
+	CommandPermissions,
+} from './../../../../controller/DB/Tables/CommandTable.js';
 
 export default async function (fastify: FastifyInstance) {
 	fastify.route({

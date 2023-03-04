@@ -19,10 +19,6 @@ interface ChannelTable {
 	 * {4 = Bot} Own channel
 	 */
 	bot_permission: number;
-	/**
-	 * @deprecated
-	 */
-	disabled_commands: string;
 }
 
 type PermissionMode = 'Read' | 'Write' | 'VIP' | 'Moderator' | 'Bot';
@@ -45,6 +41,21 @@ function ChannelDatabaseToMode(value: number): PermissionMode {
 	}
 }
 
+function PermissionModeToDatabase(mode: PermissionMode): number {
+	switch (mode) {
+		case 'Read':
+			return 0;
+		case 'Write':
+			return 1;
+		case 'VIP':
+			return 2;
+		case 'Moderator':
+			return 3;
+		default:
+			return 0;
+	}
+}
+
 /**
  * Converts a permission mode to the equivalent message-interval value.
  */
@@ -64,4 +75,10 @@ function PermissionModeToCooldown(mode: PermissionMode): number | null {
 }
 
 export default ChannelTable;
-export { ChannelTable, PermissionMode, PermissionModeToCooldown, ChannelDatabaseToMode };
+export {
+	ChannelTable,
+	PermissionMode,
+	PermissionModeToCooldown,
+	ChannelDatabaseToMode,
+	PermissionModeToDatabase,
+};

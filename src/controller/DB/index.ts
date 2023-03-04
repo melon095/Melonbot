@@ -1,7 +1,8 @@
 import { promises as fs } from 'node:fs';
-import { Pool } from 'pg';
+import pg from 'pg';
 import * as path from 'node:path';
-import { Kysely, PostgresDialect, Migrator, FileMigrationProvider, sql } from 'kysely';
+import PgCursor from 'pg-cursor';
+import { Kysely, PostgresDialect, Migrator, sql, MigrationProvider, Migration } from 'kysely';
 import { getDirname } from './../../tools/tools.js';
 import ChannelTable from './Tables/ChannelTable.js';
 import CommandTable from './Tables/CommandTable.js';
@@ -12,6 +13,8 @@ import TimerTable from './Tables/TimerTable.js';
 import UserTable from './Tables/UserTable.js';
 import CommandsExecutionTable from './Tables/CommandsExecutionTable.js';
 import WebReqeustLogTable from './Tables/WebRequestLogTable.js';
+
+const { Pool } = pg;
 
 export type KyselyDB = Kysely<Database>;
 
@@ -34,6 +37,7 @@ export default function (): KyselyDB {
 			pool: new Pool({
 				connectionString: Bot.Config.SQL.Address,
 			}),
+			cursor: PgCursor,
 		}),
 	});
 
@@ -41,19 +45,17 @@ export default function (): KyselyDB {
 }
 
 export async function DoMigration(db: KyselyDB): Promise<void> {
+	const relativeFolder = path.join(getDirname(import.meta.url), 'Migrations');
+
 	const migrator = new Migrator({
 		db,
-		provider: new FileMigrationProvider({
-			fs,
-			path,
-			migrationFolder: getDirname(import.meta.url) + '/Migrations',
-		}),
+		provider: new ESMFileMigrationProvider(relativeFolder),
 	});
 
 	const { error, results } = await migrator.migrateToLatest();
 
 	if (error) {
-		Bot.Log.Error('Failed to run migration: %o', error);
+		Bot.Log.Error(error as Error, 'Failed to run migration');
 
 		process.exit(1);
 	}
@@ -94,4 +96,27 @@ export async function DoMigration(db: KyselyDB): Promise<void> {
 // https://github.com/koskimas/kysely/issues/112#issuecomment-1177546703
 export function GenerateSqlEnum(...args: string[]) {
 	return sql`enum(${sql.join(args.map(sql.literal))})`;
+}
+
+// https://github.com/koskimas/kysely/issues/277#issuecomment-1385995789
+class ESMFileMigrationProvider implements MigrationProvider {
+	constructor(protected path: string) {}
+
+	async getMigrations(): Promise<Record<string, Migration>> {
+		const migrations: Record<string, Migration> = {};
+		const files = await fs.readdir(this.path);
+
+		for (const file of files) {
+			if (!file.endsWith('.js')) continue;
+
+			const modulePath = path.join('file://', this.path, file).replaceAll('\\', '/');
+			const module = await import(modulePath);
+
+			const key = file.replace(/\.js$/, '');
+
+			migrations[key] = module;
+		}
+
+		return migrations;
+	}
 }
