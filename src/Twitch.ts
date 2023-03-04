@@ -1,10 +1,10 @@
 import DankTwitch from '@kararty/dank-twitch-irc';
 import * as tools from './tools/tools.js';
-import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Channel/index.js';
+import { Channel } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
-import ChannelTable from 'controller/DB/Tables/ChannelTable.js';
+import ChannelTable from './controller/DB/Tables/ChannelTable.js';
 
 interface IUserInformation {
 	data: [

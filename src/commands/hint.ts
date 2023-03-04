@@ -1,18 +1,17 @@
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
-import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
-
-export default class extends CommandModel {
-	Name = 'hint';
-	Ping = false;
-	Description = 'Displays the trivia hint.';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+import { registerCommand } from '../controller/Commands/Handler.js';
+import { EPermissionLevel } from './../Typings/enums.js';
+registerCommand({
+	Name: 'hint',
+	Ping: false,
+	Description: 'Displays the trivia hint.',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		if (!ctx.channel.Trivia?.initiated)
 			return {
 				Success: false,
@@ -25,9 +24,9 @@ export default class extends CommandModel {
 			Success: true,
 			Result: `(Trivia) Hints(${xd.length[0]}/${xd.length[1]}) ${xd.copy}`,
 		};
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`Get a hint for the current trivia question.`,
 		`Usage: ${prefix}hint`,
-	];
-}
+	],
+});

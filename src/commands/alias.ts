@@ -1,24 +1,24 @@
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
 import gql, { ListItemAction } from './../SevenTVGQL.js';
 import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
+import { registerCommand } from '../controller/Commands/Handler.js';
 
 type PreHandlers = {
 	SevenTV: Get7TVUserMod;
 };
 
-export default class extends CommandModel<PreHandlers> {
-	Name = 'alias';
-	Ping = false;
-	Description = "Sets the alias of an emote, don't give it a name and it will remove the alias";
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [];
-	Flags = [];
-	PreHandlers = [SevenTVAllowed];
-	Code = async (ctx: TCommandContext, mods: PreHandlers): Promise<CommandResult> => {
+registerCommand<PreHandlers>({
+	Name: 'alias',
+	Ping: false,
+	Description: "Sets the alias of an emote, don't give it a name and it will remove the alias",
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [SevenTVAllowed],
+	Code: async function (ctx, mods) {
 		const { EmoteSet } = mods.SevenTV;
 
 		if (ctx.input[0] === undefined) {
@@ -67,8 +67,8 @@ export default class extends CommandModel<PreHandlers> {
 				Result: `Failed to alias emote - ${error}`,
 			};
 		}
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`This command allows you to set the alias of an emote.`,
 		`If you don't give it a name, it will remove the alias.`,
 		'',
@@ -77,5 +77,5 @@ export default class extends CommandModel<PreHandlers> {
 		'',
 		'**Required 7TV Flags**',
 		'Modify Emotes',
-	];
-}
+	],
+});

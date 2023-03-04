@@ -1,22 +1,23 @@
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
+import { registerCommand } from '../controller/Commands/Handler.js';
+import { ArgType } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
 
-export default class extends CommandModel {
-	Name = 'trivia';
-	Ping = false;
-	Description =
-		'Initiates a new trivia in the channel, Uses the api created by gazatu at [https://gazatu.xyz]';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = ['t'];
-	Cooldown = 5;
-	Params = [
+registerCommand({
+	Name: 'trivia',
+	Ping: false,
+	Description:
+		'Initiates a new trivia in the channel, Uses the api created by gazatu at [https://gazatu.xyz]',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: ['t'],
+	Cooldown: 5,
+	Params: [
 		[ArgType.String, 'exclude'],
 		[ArgType.String, 'include'],
-	];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+	],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		if (ctx.channel.Trivia === null) {
 			return {
 				Success: false,
@@ -42,8 +43,8 @@ export default class extends CommandModel {
 			Success: true,
 			Result: '',
 		};
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`Starts a new trivia in the channel.`,
 		`Usage: ${prefix}trivia`,
 		'',
@@ -55,5 +56,5 @@ export default class extends CommandModel {
 		'You can also skip the current question.',
 		`Usage: ${prefix}trivia skip`,
 		'However only the one who started the trivia can skip the question.',
-	];
-}
+	],
+});

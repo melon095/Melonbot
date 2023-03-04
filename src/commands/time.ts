@@ -1,19 +1,20 @@
 import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { TCommandContext, ParseArguments } from '../Models/Command.js';
 import { Fetch } from './../PreHandlers/index.js';
+import { GetCommandBy, registerCommand } from '../controller/Commands/Handler.js';
 
-export default class extends CommandModel {
-	Name = 'time';
-	Ping = false;
-	Description = 'Time a command, similar to the time command in unix';
-	Permission = EPermissionLevel.ADMIN;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+registerCommand({
+	Name: 'time',
+	Ping: false,
+	Description: 'Time a command, similar to the time command in unix',
+	Permission: EPermissionLevel.ADMIN,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		const name = ctx.input[0];
 		if (!name) {
 			return {
@@ -22,7 +23,7 @@ export default class extends CommandModel {
 			};
 		}
 
-		const command = await Bot.Commands.get(name);
+		const command = await GetCommandBy(name);
 		if (!command) {
 			return {
 				Result: 'Command not found',
@@ -32,7 +33,7 @@ export default class extends CommandModel {
 
 		let params;
 		try {
-			params = CommandModel.ParseArguments(ctx.input.slice(1), command.Params);
+			params = ParseArguments(ctx.input.slice(1), command.Params);
 		} catch (error) {
 			return {
 				Result: (error as Error).message,
@@ -68,5 +69,5 @@ export default class extends CommandModel {
 			Result: resp,
 			Success: true,
 		};
-	};
-}
+	},
+});

@@ -8,22 +8,23 @@ import gql, {
 	ListItemAction,
 } from '../SevenTVGQL.js';
 import { ExtractAllSettledPromises, UnpingUser } from './../tools/tools.js';
+import { registerCommand } from '../controller/Commands/Handler.js';
 
-export default class extends CommandModel {
-	Name = 'yoink';
-	Ping = false;
-	Description = 'Steal several 7TV emotes from another channel TriHard ';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = ['steal'];
-	Cooldown = 10;
-	Params = [
+registerCommand({
+	Name: 'yoink',
+	Ping: false,
+	Description: 'Steal several 7TV emotes from another channel TriHard ',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: ['steal'],
+	Cooldown: 10,
+	Params: [
 		[ArgType.Boolean, 'case'],
 		[ArgType.Boolean, 'alias'],
-	];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+	],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		const errNoInputMsg = () =>
 			`Provide an emote name and if you want to add to the current channel, a channel to steal from prefixed with @ or #, e.g @${ctx.user.Name} FloppaL`;
 
@@ -140,8 +141,8 @@ export default class extends CommandModel {
 			Success: true,
 			Result: '',
 		};
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		'Steal several 7TV emotes from a channel.',
 		"If the current channel is not specified, target will be set to the current channel, and the bot will add to the user's channel.",
 		'',
@@ -160,8 +161,8 @@ export default class extends CommandModel {
 		'-a, --alias',
 		'   Add the emote while retaining the alias',
 		'',
-	];
-}
+	],
+});
 
 const getSevenTVAccount = async (channel: string) => {
 	const user = await Bot.User.ResolveUsername(channel);

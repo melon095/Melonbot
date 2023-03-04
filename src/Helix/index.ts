@@ -1,5 +1,5 @@
 import { Method } from 'got';
-import { EventsubTypes } from 'Singletons/Redis/Data.Types.js';
+import { EventsubTypes } from '../Singletons/Redis/Data.Types.js';
 import { Helix } from './../Typings/types.js';
 import got from './../tools/Got.js';
 import { Sleep, token } from './../tools/tools.js';

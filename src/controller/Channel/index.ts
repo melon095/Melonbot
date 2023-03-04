@@ -6,13 +6,14 @@ import { Result, Err, Ok } from './../../tools/result.js';
 import { MessageScheduler } from './../../tools/MessageScheduler.js';
 import DankTwitch from '@kararty/dank-twitch-irc';
 import {
-	CommandModel,
+	ParseArguments,
 	TCommandContext,
 	ParseArgumentsError,
 	ArgsParseResult,
 	SafeResponseError,
 	CommandLogFn,
 	CommandLogType,
+	CommandModel,
 } from '../../Models/Command.js';
 import TriviaController from './../Trivia/index.js';
 import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
@@ -33,6 +34,7 @@ import {
 	PermissionModeToCooldown,
 	PermissionModeToDatabase,
 } from '../DB/Tables/ChannelTable.js';
+import { GetCommandBy } from '../Commands/Handler.js';
 
 /**
  * Encapsulated data for every channel.
@@ -200,7 +202,7 @@ export class Channel {
 		extras: DankTwitch.PrivmsgMessage,
 	): Promise<{ message: string; flags: ChannelTalkOptions } | void> {
 		try {
-			const command = await Bot.Commands.get(commandName);
+			const command = GetCommandBy(commandName);
 
 			if (typeof command === 'undefined') return;
 
@@ -233,7 +235,7 @@ export class Channel {
 
 			let argsResult: ArgsParseResult;
 			try {
-				argsResult = CommandModel.ParseArguments(copy, command.Params);
+				argsResult = ParseArguments(copy, command.Params);
 			} catch (error) {
 				/// Indicates that the input is invalid
 				if (error instanceof ParseArgumentsError) {
@@ -344,10 +346,6 @@ export class Channel {
 				SkipBanphrase: true,
 			});
 		}
-	}
-
-	async VanishUser(username: string): Promise<void> {
-		await Bot.Twitch.Controller.client.timeout(this.Name, username, 1, 'Vanish Command Issued');
 	}
 
 	/**

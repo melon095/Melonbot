@@ -13,7 +13,7 @@ import CreateDatabaseConnection, { DoMigration } from './controller/DB/index.js'
 import Twitch from './Twitch.js';
 import { TConfigFile } from './Typings/types';
 import { exit } from 'node:process';
-import { CommandsHandler } from './controller/Commands/Handler.js';
+import { StoreToDB } from './controller/Commands/Handler.js';
 import { SevenTVEvent } from './controller/Emote/SevenTV/EventAPI.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -67,10 +67,7 @@ export const Setup = {
 		await redis.Connect();
 
 		Bot.Redis = redis;
-		Bot.Commands = new CommandsHandler();
-		await Bot.Commands.initialize().catch(() => {
-			process.exit();
-		});
+		await StoreToDB();
 
 		Bot.User = User;
 

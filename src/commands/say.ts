@@ -1,18 +1,18 @@
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
+import { registerCommand } from '../controller/Commands/Handler.js';
 import { EPermissionLevel } from './../Typings/enums.js';
 
-export default class extends CommandModel {
-	Name = 'say';
-	Ping = false;
-	Description = 'Says the direct input.';
-	Permission = EPermissionLevel.ADMIN;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+registerCommand({
+	Name: 'say',
+	Ping: false,
+	Description: 'Says the direct input.',
+	Permission: EPermissionLevel.ADMIN,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		return { Success: true, Result: ctx.input.join(' ') };
-	};
-}
+	},
+});

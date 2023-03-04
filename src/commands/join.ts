@@ -1,9 +1,9 @@
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
 import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 import type { Ivr } from './../Typings/types';
 import { Channel } from './../controller/Channel/index.js';
 import User, { GetSafeError } from './../controller/User/index.js';
 import Got from './../tools/Got.js';
+import { registerCommand } from '../controller/Commands/Handler.js';
 
 const isMod = async (user: User, channel: string) => {
 	const mods = (await Got('json')
@@ -13,18 +13,18 @@ const isMod = async (user: User, channel: string) => {
 	return mods.mods.some((mod) => mod.id === user.TwitchUID);
 };
 
-export default class extends CommandModel {
-	Name = 'join';
-	Ping = true;
-	Description = 'Join a channel. Works only in bots channel';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 20;
-	Params = [];
-	Flags = [ECommandFlags.NO_BANPHRASE];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+registerCommand({
+	Name: 'join',
+	Ping: true,
+	Description: 'Join a channel. Works only in bots channel',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 20,
+	Params: [],
+	Flags: [ECommandFlags.NO_BANPHRASE],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		if (ctx.channel.Name !== Bot.Config.BotUsername) {
 			return {
 				Success: false,
@@ -102,13 +102,13 @@ export default class extends CommandModel {
 					Result: 'Something went wrong :(',
 				};
 			});
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`Join a channel. Works only in bots channel`,
 		'',
 		`**Usage**: ${prefix}join`,
 		'',
 		'Can be used by mods in the channel you want me to join.',
 		`**Usage**: ${prefix}join [channel]`,
-	];
-}
+	],
+});

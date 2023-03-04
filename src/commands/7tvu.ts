@@ -1,25 +1,25 @@
 import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, CommandResult, TCommandContext } from '../Models/Command.js';
 import { DifferenceFmt } from './../tools/tools.js';
 import gql, { ConnectionPlatform } from '../SevenTVGQL.js';
+import { registerCommand } from '../controller/Commands/Handler.js';
 
 type Roles = {
 	id: string;
 	name: string;
 };
 
-export default class extends CommandModel {
-	Name = '7tvu';
-	Ping = true;
-	Description = 'Display information about a 7TV user';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+registerCommand({
+	Name: '7tvu',
+	Ping: true,
+	Description: 'Display information about a 7TV user',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		let internalUser;
 
 		if (ctx.input[0]) {
@@ -82,13 +82,13 @@ export default class extends CommandModel {
 			Success: true,
 			Result,
 		};
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`Display information about a 7TV user.`,
 		'',
 		`**Usage**: ${prefix}7tvu <username>`,
 		`**Example**: ${prefix}7tvu @melon095`,
 		'',
 		'Displays info such as the user id, username, 7TV ID, roles, creation date, and emote slots.',
-	];
-}
+	],
+});

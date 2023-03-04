@@ -2,23 +2,24 @@ import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.
 import { EPermissionLevel } from './../Typings/enums.js';
 import gql, { ListItemAction } from './../SevenTVGQL.js';
 import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
+import { registerCommand } from '../controller/Commands/Handler.js';
 
 type PreHandlers = {
 	SevenTV: Get7TVUserMod;
 };
 
-export default class extends CommandModel<PreHandlers> {
-	Name = 'remove';
-	Ping = false;
-	Description = 'Remove 7TV emotes';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [];
-	Flags = [];
-	PreHandlers = [SevenTVAllowed];
-	Code = async (ctx: TCommandContext, mods: PreHandlers): Promise<CommandResult> => {
+registerCommand<PreHandlers>({
+	Name: 'remove',
+	Ping: false,
+	Description: 'Remove 7TV emotes',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [SevenTVAllowed],
+	Code: async function (ctx, mods) {
 		const { EmoteSet } = mods.SevenTV;
 
 		if (ctx.input[0] === undefined) {
@@ -53,12 +54,12 @@ export default class extends CommandModel<PreHandlers> {
 			Success: true,
 			Result: `Removed the emote => ${emote.name}`,
 		};
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`Remove a 7TV emote from your emote set.`,
 		`Usage: ${prefix}remove <emote name>`,
 		'',
 		'**Required 7TV Permissions:**',
 		'Manage Emotes',
-	];
-}
+	],
+});

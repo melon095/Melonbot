@@ -1,8 +1,9 @@
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
+import { ArgType } from '../Models/Command.js';
 import { EPermissionLevel } from './../Typings/enums.js';
 import gql, { EmoteSearchFilter, EmoteSet, ListItemAction } from './../SevenTVGQL.js';
 import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
 import { extractSeventTVID } from './../tools/regex.js';
+import { registerCommand } from '../controller/Commands/Handler.js';
 
 type PreHandlers = {
 	SevenTV: Get7TVUserMod;
@@ -33,21 +34,21 @@ const getEmoteFromID = (name: string | undefined) => {
 	return null;
 };
 
-export default class extends CommandModel<PreHandlers> {
-	Name = 'add';
-	Ping = false;
-	Description = 'Add a 7TV emote';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [
+registerCommand<PreHandlers>({
+	Name: 'add',
+	Ping: false,
+	Description: 'Add a 7TV emote',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [
 		[ArgType.String, 'alias'],
 		[ArgType.Boolean, 'exact'],
-	];
-	Flags = [];
-	PreHandlers = [SevenTVAllowed];
-	Code = async (ctx: TCommandContext, mods: PreHandlers): Promise<CommandResult> => {
+	],
+	Flags: [],
+	PreHandlers: [SevenTVAllowed],
+	Code: async function (ctx, mods) {
 		const { EmoteSet } = mods.SevenTV;
 
 		const filters: EmoteSearchFilter = {};
@@ -90,8 +91,8 @@ export default class extends CommandModel<PreHandlers> {
 				Result: `Failed to add ${error}`,
 			};
 		}
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`Add a 7TV emote to your emote set.`,
 		`**Usage**: ${prefix}add <emote>`,
 		`**Example**: ${prefix}add FloppaL`,
@@ -112,5 +113,5 @@ export default class extends CommandModel<PreHandlers> {
 		'',
 		'**Required 7TV Permissions**',
 		'Modify Emotes',
-	];
-}
+	],
+});

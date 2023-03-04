@@ -3,6 +3,7 @@ import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
 
 import vm from 'node:vm';
 import { Channel } from './../controller/Channel/index.js';
+import { registerCommand } from '../controller/Commands/Handler.js';
 
 async function Execute(script: string, ctx: TCommandContext): Promise<object | string> {
 	const crypto = await import('crypto');
@@ -19,21 +20,21 @@ async function Execute(script: string, ctx: TCommandContext): Promise<object | s
 	return result;
 }
 
-export default class extends CommandModel {
-	Name = 'testman';
-	Ping = false;
-	Description = 'Debug command';
-	Permission = EPermissionLevel.ADMIN;
-	OnlyOffline = false;
-	Aliases = ['debug', 'js', 'eval'];
-	Cooldown = 5;
-	Params = [
+registerCommand({
+	Name: 'testman',
+	Ping: false,
+	Description: 'Debug command',
+	Permission: EPermissionLevel.ADMIN,
+	OnlyOffline: false,
+	Aliases: ['debug', 'js', 'eval'],
+	Cooldown: 5,
+	Params: [
 		[ArgType.String, 'username'],
 		[ArgType.String, 'id'],
-	];
-	Flags = [ECommandFlags.NO_BANPHRASE];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+	],
+	Flags: [ECommandFlags.NO_BANPHRASE],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		if (ctx.input[0] === 'bot' && ctx.input[1] === 'join') {
 			const { username, id } = ctx.data.Params;
 
@@ -93,17 +94,23 @@ export default class extends CommandModel {
 
 		const script = `(async () => {"use strict"; \n${ctx.input.join(' ')}\n})()`;
 
-		const res = await Execute(script, ctx);
-		if (typeof res !== 'undefined') {
-			return {
-				Success: true,
-				Result: JSON.stringify(res, null, 4),
-			};
-		} else {
-			return {
-				Success: true,
-				Result: 'No result',
-			};
+		let response: string = '';
+
+		try {
+			const res = await Execute(script, ctx);
+			if (typeof res !== 'undefined') {
+				response = JSON.stringify(res, null, 4);
+			} else {
+				response = 'No result';
+			}
+		} catch (e) {
+			response =
+				typeof (e as Error).message !== 'undefined' ? (e as Error).message : (e as string);
 		}
-	};
-}
+
+		return {
+			Success: true,
+			Result: response,
+		};
+	},
+});

@@ -1,9 +1,7 @@
 import got from 'got';
 import Got from './tools/Got.js';
-import { TCommandContext } from './Models/Command.js';
 import User from './controller/User/index.js';
 import { GetSettings } from './controller/Channel/index.js';
-import { Logger } from 'logger.js';
 
 const url = 'https://7tv.io/v3/gql';
 
