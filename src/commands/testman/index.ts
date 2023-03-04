@@ -39,10 +39,7 @@ registerCommand({
 			const { username, id } = ctx.data.Params;
 
 			if (!username || !id) {
-				return {
-					Success: false,
-					Result: 'You need to specify a username and an id',
-				};
+				this.EarlyEnd.InvalidInput('Specify a username and an id');
 			}
 
 			const user = await Bot.User.Get(username as string, id as string);
@@ -71,10 +68,7 @@ registerCommand({
 			const username = ctx.input[1];
 
 			if (!username) {
-				return {
-					Success: false,
-					Result: 'You need to specify a username',
-				};
+				this.EarlyEnd.InvalidInput('Specify a username input[1]');
 			}
 
 			const user = await Bot.User.ResolveUsername(username);

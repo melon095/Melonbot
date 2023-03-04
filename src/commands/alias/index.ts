@@ -21,11 +21,8 @@ registerCommand<PreHandlers>({
 	Code: async function (ctx, mods) {
 		const { EmoteSet } = mods.SevenTV;
 
-		if (ctx.input[0] === undefined) {
-			return {
-				Success: false,
-				Result: 'GIve me something to alias :)',
-			};
+		if (!ctx.input[0]) {
+			this.EarlyEnd.InvalidInput('give me something to alias :)');
 		}
 
 		const input = ctx.input[0];
@@ -41,32 +38,24 @@ registerCommand<PreHandlers>({
 
 		const dst = ctx.input[1] || '';
 
-		try {
-			const [_, newEmote] = await gql.ModifyEmoteSet(
-				EmoteSet(),
-				ListItemAction.UPDATE,
-				src.id,
-				dst,
-			);
+		const [_, newEmote] = await gql.ModifyEmoteSet(
+			EmoteSet(),
+			ListItemAction.UPDATE,
+			src.id,
+			dst,
+		);
 
-			if (dst === '') {
-				return {
-					Success: true,
-					Result: `I reset the alias of ${src.name} to ${newEmote}`,
-				};
-			}
-
+		if (dst === '') {
 			return {
 				Success: true,
-				Result: `I set the alias of ${src.name} to ${dst}`,
-			};
-		} catch (error) {
-			ctx.Log('info', '7TV - Failed to alias emote', error);
-			return {
-				Success: false,
-				Result: `Failed to alias emote - ${error}`,
+				Result: `I reset the alias of ${src.name} to ${newEmote}`,
 			};
 		}
+
+		return {
+			Success: true,
+			Result: `I set the alias of ${src.name} to ${dst}`,
+		};
 	},
 	LongDescription: async (prefix) => [
 		`This command allows you to set the alias of an emote.`,

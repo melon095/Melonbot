@@ -32,10 +32,7 @@ registerCommand<PreHandlers>({
 
 		const name = ctx.input[0];
 		if (!name) {
-			return {
-				Success: false,
-				Result: 'Please provide a username :(',
-			};
+			this.EarlyEnd.InvalidInput('provide a username');
 		}
 
 		try {

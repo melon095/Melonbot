@@ -184,10 +184,7 @@ registerCommand({
 		const { input } = ctx;
 
 		if (input.length === 0) {
-			return {
-				Success: false,
-				Result: `Specify something to do with timers... (${Bot.Config.Prefix}help timer)`,
-			};
+			this.EarlyEnd.InvalidInput(`${Bot.Config.Prefix}help timer`);
 		}
 
 		const [action, ...args] = input as [ACTION_TYPE, ...string[]];

@@ -51,6 +51,10 @@ registerCommand<PreHandlers>({
 	Code: async function (ctx, mods) {
 		const { EmoteSet } = mods.SevenTV;
 
+		if (!ctx.input[0]) {
+			this.EarlyEnd.InvalidInput('No emote provided');
+		}
+
 		const filters: EmoteSearchFilter = {};
 
 		if (ctx.data.Params.exact) {
@@ -59,15 +63,7 @@ registerCommand<PreHandlers>({
 
 		const specific = parseInt(ctx.input[1]);
 
-		let emote: EmoteSet | null;
-		try {
-			emote = await resolveEmote(ctx.input[0], filters, specific);
-		} catch (error) {
-			return {
-				Success: false,
-				Result: `7TV Error: ${error}`,
-			};
-		}
+		const emote = await resolveEmote(ctx.input[0], filters, specific);
 
 		if (!emote) {
 			return {
@@ -78,19 +74,11 @@ registerCommand<PreHandlers>({
 
 		const name = (ctx.data.Params.alias as string) || emote.name;
 
-		try {
-			await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.ADD, emote.id, name);
-			return {
-				Success: true,
-				Result: `Added the emote => ${name}`,
-			};
-		} catch (error) {
-			ctx.Log('info', '7TV - Failed to add emote', error);
-			return {
-				Success: false,
-				Result: `Failed to add ${error}`,
-			};
-		}
+		await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.ADD, emote.id, name);
+		return {
+			Success: true,
+			Result: `Added the emote => ${name}`,
+		};
 	},
 	LongDescription: async (prefix) => [
 		`Add a 7TV emote to your emote set.`,

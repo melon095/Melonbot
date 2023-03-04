@@ -20,14 +20,7 @@ registerCommand({
 	Flags: [],
 	PreHandlers: [],
 	Code: async function (ctx) {
-		const first = ctx.input[0];
-
-		if (first === undefined) {
-			return {
-				Success: false,
-				Result: 'Please provide a search term',
-			};
-		}
+		const first = ctx.input[0] ?? this.EarlyEnd.InvalidInput('provide a search term');
 
 		const id = extractSeventTVID(first);
 
@@ -66,15 +59,9 @@ const getEmoteFromName = async (ctx: TCommandContext) => {
 		filter.exact_match = true;
 	}
 
-	let emotes;
-	try {
-		emotes = await gql.SearchEmoteByName(ctx.input.join(' '), filter).then((res) => res.emotes);
-	} catch (error) {
-		return {
-			Success: false,
-			Result: `7TV Error: ${error}`,
-		};
-	}
+	const emotes = await gql
+		.SearchEmoteByName(ctx.input.join(' '), filter)
+		.then((res) => res.emotes);
 
 	if (!emotes.items.length) {
 		return {

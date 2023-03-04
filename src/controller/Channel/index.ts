@@ -615,7 +615,8 @@ export async function ExecuteCommand(
 				} 
                 else if (error instanceof ThirdPartyError) 
                 {
-					message = error.message;
+                    // TODO: Leak to everybody?
+                    message = error.message;
 				} 
                 else if (isNotObject())
                 {

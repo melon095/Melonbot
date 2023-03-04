@@ -59,11 +59,9 @@ registerCommand({
 			readChan = ctx.channel.Name;
 		}
 
-		if (writeChan === readChan)
-			return {
-				Success: false,
-				Result: "You can't steal an emote from yourself",
-			};
+		if (writeChan === readChan) {
+			this.EarlyEnd.InvalidInput("You can't steal an emote from yourself");
+		}
 
 		let readSet: string;
 		let writeSet: string;
@@ -96,19 +94,12 @@ registerCommand({
 		}
 
 		let toAdd: Set<EnabledEmote> = new Set();
-		try {
-			const channelEmotes = await gql.CurrentEnabledEmotes(readSet);
+		const channelEmotes = await gql.CurrentEnabledEmotes(readSet);
 
-			for (const emote of channelEmotes) {
-				(caseSensitive
-					? emotes.includes(emote.name)
-					: emotes.includes(emote.name.toLowerCase())) && toAdd.add(emote);
-			}
-		} catch {
-			return {
-				Success: false,
-				Result: 'That channel does not have any emotes',
-			};
+		for (const emote of channelEmotes) {
+			(caseSensitive
+				? emotes.includes(emote.name)
+				: emotes.includes(emote.name.toLowerCase())) && toAdd.add(emote);
 		}
 
 		if (!toAdd.size) {

@@ -17,29 +17,15 @@ registerCommand({
 	Code: async function (ctx) {
 		const name = ctx.input[0];
 		if (!name) {
-			return {
-				Result: 'Give a command..',
-				Success: false,
-			};
+			this.EarlyEnd.InvalidInput('No command specified');
 		}
 
-		const command = await GetCommandBy(name);
+		const command = GetCommandBy(name);
 		if (!command) {
-			return {
-				Result: 'Command not found',
-				Success: false,
-			};
+			this.EarlyEnd.InvalidInput('Command not found');
 		}
 
-		let params;
-		try {
-			params = ParseArguments(ctx.input.slice(1), command.Params);
-		} catch (error) {
-			return {
-				Result: (error as Error).message,
-				Success: false,
-			};
-		}
+		const params = ParseArguments(ctx.input.slice(1), command.Params);
 
 		const context: TCommandContext = {
 			...ctx,
@@ -53,12 +39,7 @@ registerCommand({
 		const mods = await Fetch(context, command.PreHandlers);
 
 		const start = performance.now();
-		const response = await command.Code(context, mods).catch((err) => {
-			return {
-				Result: err,
-				Success: false,
-			};
-		});
+		const response = await command.Code(context, mods);
 
 		const end = performance.now();
 

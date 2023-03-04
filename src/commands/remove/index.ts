@@ -22,10 +22,7 @@ registerCommand<PreHandlers>({
 		const { EmoteSet } = mods.SevenTV;
 
 		if (ctx.input[0] === undefined) {
-			return {
-				Success: false,
-				Result: 'Give me something to remove :)',
-			};
+			this.EarlyEnd.InvalidInput('No emote name provided');
 		}
 
 		const emote = (await gql.CurrentEnabledEmotes(EmoteSet())).find(
