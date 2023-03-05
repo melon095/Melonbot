@@ -1,27 +1,18 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
 
-export default class extends CommandModel
-{
-    Name = "this would trigger the command, in lowercase, one word.";
-    Ping = false;
-    Description = "This would show up in the help command and on the website.";
-    Permission = EPermissionLevel.VIEWER;
-    OnlyOffline = false;
-    Aliases = [];
-    Cooldown = 5;
-    Params = [];
-    Flags = [];
-	PreHandlers = [];
-    Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-        return {
-            Success: true,
-            Result: "This would be the result of the command."
-        }
-    };
-    LongDescription = async (prefix: string) => [
-        `This is a long description`,
-        `I am used on the website`,
-        `I support **markdown**`
-    ]
-}
+registerCommand({
+	Name: 'name',
+	Ping: false,
+	Description: '',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
+		return { Success: true, Result: ctx.input.join(' ') };
+	},
+});
