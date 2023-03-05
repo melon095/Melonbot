@@ -84,6 +84,10 @@ registerCommand({
 				Success: true,
 				Result: user.toString(),
 			};
+		} else if (ctx.input[0] === 'earlyend') {
+			if (ctx.input[1] === 'api') this.EarlyEnd.ThirdPartyError('This is an early end');
+
+			this.EarlyEnd.InvalidInput('This is an early end');
 		}
 
 		const script = `(async () => {"use strict"; \n${ctx.input.join(' ')}\n})()`;
@@ -98,8 +102,9 @@ registerCommand({
 				response = 'No result';
 			}
 		} catch (e) {
-			response =
-				typeof (e as Error).message !== 'undefined' ? (e as Error).message : (e as string);
+			response = `Eval machine broke: ${
+				typeof (e as Error).message !== 'undefined' ? (e as Error).message : (e as string)
+			} `;
 		}
 
 		return {
