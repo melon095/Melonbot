@@ -648,7 +648,17 @@ export async function ExecuteCommand(
 			}
 		};
 
+		const now = Date.now();
 		const [result, toSay] = await doExecution();
+		const end = Date.now();
+
+		Bot.Log.Info('Command %O executed in %O ms', {
+			channel: channel.Name,
+			user: user.Name,
+			command: command.Name,
+			params: argsResult.values,
+			time: end - now,
+		});
 
 		logCommandExecution(result);
 
