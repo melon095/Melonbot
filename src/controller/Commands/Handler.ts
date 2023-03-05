@@ -87,7 +87,19 @@ export async function StoreToDB() {
 }
 
 export function GetCommandBy(identifier: string): CommandModel | undefined {
-	return LoadedCommands.get(identifier);
+	const command = LoadedCommands.get(identifier);
+
+	if (command) {
+		return command;
+	}
+
+	const aliased = Array.from(LoadedCommands.values()).find((x) => x.Aliases.includes(identifier));
+
+	if (aliased) {
+		return aliased;
+	}
+
+	return undefined;
 }
 
 // 	get Commands() {
