@@ -648,7 +648,7 @@ export async function ExecuteCommand(
 			}
 		};
 
-		const current = Date.now();
+		const now = Date.now();
 		const [result, toSay] = await doExecution();
 
 		Bot.Log.Info(
@@ -659,7 +659,7 @@ export async function ExecuteCommand(
 				command: command.Name,
 				params: argsResult.values,
 			},
-			Date.now() - current,
+			Date.now() - now,
 		);
 
 		logCommandExecution(result);
