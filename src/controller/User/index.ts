@@ -276,7 +276,9 @@ export default class User {
 			.execute();
 
 		await Bot.SQL.transaction().execute(async (tx) => {
-			if (usersWithUid.length <= 0) {
+			Bot.Log.Debug('%o', usersWithUid);
+
+			if (usersWithUid.length <= 1) {
 				return tx
 					.updateTable('users')
 					.set({ name: newName })
