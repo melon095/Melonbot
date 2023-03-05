@@ -1,22 +1,21 @@
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
-import { EPermissionLevel } from './../Typings/enums.js';
-
-import SevenTV from './../SevenTVGQL.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
+import SevenTV from './../../SevenTVGQL.js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
-export default class extends CommandModel {
-	Name = 'reload';
-	Ping = false;
-	Description = 'Reload Internal state';
-	Permission = EPermissionLevel.ADMIN;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+registerCommand({
+	Name: 'reload',
+	Ping: false,
+	Description: 'Reload Internal state',
+	Permission: EPermissionLevel.ADMIN,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		const setting = ctx.input[0];
 		if (!setting) {
 			return {
@@ -27,7 +26,7 @@ export default class extends CommandModel {
 
 		switch (setting) {
 			case 'config': {
-				const env = await import('./../CreateEnv.js');
+				const env = await import('./../../CreateEnv.js');
 				const config = JSON.parse(
 					fs.readFileSync(path.join(process.cwd() + '/config.json'), 'utf-8'),
 				);
@@ -47,5 +46,5 @@ export default class extends CommandModel {
 			Success: true,
 			Result: 'Done :D',
 		};
-	};
-}
+	},
+});

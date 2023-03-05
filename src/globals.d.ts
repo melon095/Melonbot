@@ -31,7 +31,6 @@ declare global {
 			};
 		};
 		User: typeof User;
-		Commands: import('./controller/Commands/Handler.js').CommandsHandler;
 		ID: string;
 		Log: Logger;
 	};

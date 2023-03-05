@@ -1,8 +1,9 @@
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import { ECommandFlags, EPermissionLevel } from './../Typings/enums.js';
+import { TCommandContext, ArgType } from '../../Models/Command.js';
+import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 
 import vm from 'node:vm';
-import { Channel } from './../controller/Channel/index.js';
+import { Channel } from './../../controller/Channel/index.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 async function Execute(script: string, ctx: TCommandContext): Promise<object | string> {
 	const crypto = await import('crypto');
@@ -19,29 +20,26 @@ async function Execute(script: string, ctx: TCommandContext): Promise<object | s
 	return result;
 }
 
-export default class extends CommandModel {
-	Name = 'testman';
-	Ping = false;
-	Description = 'Debug command';
-	Permission = EPermissionLevel.ADMIN;
-	OnlyOffline = false;
-	Aliases = ['debug', 'js', 'eval'];
-	Cooldown = 5;
-	Params = [
+registerCommand({
+	Name: 'testman',
+	Ping: false,
+	Description: 'Debug command',
+	Permission: EPermissionLevel.ADMIN,
+	OnlyOffline: false,
+	Aliases: ['debug', 'js', 'eval'],
+	Cooldown: 5,
+	Params: [
 		[ArgType.String, 'username'],
 		[ArgType.String, 'id'],
-	];
-	Flags = [ECommandFlags.NO_BANPHRASE];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+	],
+	Flags: [ECommandFlags.NO_BANPHRASE],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		if (ctx.input[0] === 'bot' && ctx.input[1] === 'join') {
 			const { username, id } = ctx.data.Params;
 
 			if (!username || !id) {
-				return {
-					Success: false,
-					Result: 'You need to specify a username and an id',
-				};
+				this.EarlyEnd.InvalidInput('Specify a username and an id');
 			}
 
 			const user = await Bot.User.Get(username as string, id as string);
@@ -70,10 +68,7 @@ export default class extends CommandModel {
 			const username = ctx.input[1];
 
 			if (!username) {
-				return {
-					Success: false,
-					Result: 'You need to specify a username',
-				};
+				this.EarlyEnd.InvalidInput('Specify a username input[1]');
 			}
 
 			const user = await Bot.User.ResolveUsername(username);
@@ -89,21 +84,32 @@ export default class extends CommandModel {
 				Success: true,
 				Result: user.toString(),
 			};
+		} else if (ctx.input[0] === 'earlyend') {
+			if (ctx.input[1] === 'api') this.EarlyEnd.ThirdPartyError('This is an early end');
+
+			this.EarlyEnd.InvalidInput('This is an early end');
 		}
 
 		const script = `(async () => {"use strict"; \n${ctx.input.join(' ')}\n})()`;
 
-		const res = await Execute(script, ctx);
-		if (typeof res !== 'undefined') {
-			return {
-				Success: true,
-				Result: JSON.stringify(res, null, 4),
-			};
-		} else {
-			return {
-				Success: true,
-				Result: 'No result',
-			};
+		let response: string = '';
+
+		try {
+			const res = await Execute(script, ctx);
+			if (typeof res !== 'undefined') {
+				response = JSON.stringify(res, null, 4);
+			} else {
+				response = 'No result';
+			}
+		} catch (e) {
+			response = `Eval machine broke: ${
+				typeof (e as Error).message !== 'undefined' ? (e as Error).message : (e as string)
+			} `;
 		}
-	};
-}
+
+		return {
+			Success: true,
+			Result: response,
+		};
+	},
+});

@@ -1,8 +1,8 @@
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
-import { EPermissionLevel } from './../Typings/enums.js';
-import gql, { UserEditorPermissions } from '../SevenTVGQL.js';
-import SevenTVAllowed, { Get7TVUserMod } from './../PreHandlers/7tv.can.modify.js';
-import PreHandlers from 'PreHandlers/index.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
+import gql, { UserEditorPermissions } from '../../SevenTVGQL.js';
+import SevenTVAllowed, { Get7TVUserMod } from './../../PreHandlers/7tv.can.modify.js';
+import PreHandlers from './../../PreHandlers/index.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 type PreHandlers = {
 	SevenTV: Get7TVUserMod;
@@ -14,28 +14,25 @@ const isAlreadyEditor = async (owner: string, editor: string) => {
 	);
 };
 
-export default class extends CommandModel<PreHandlers> {
-	Name = 'editor';
-	Ping = true;
-	Description = 'Allows the bot to add and remove users as 7TV editors';
-	Permission = EPermissionLevel.BROADCAST;
-	OnlyOffline = false;
-	Aliases = ['adde', 'addeditor', 'removee', 'removeeditor'];
-	Cooldown = 5;
-	Params = [];
-	Flags = [];
-	PreHandlers = [SevenTVAllowed];
-	Code = async (ctx: TCommandContext, mods: PreHandlers): Promise<CommandResult> => {
+registerCommand<PreHandlers>({
+	Name: 'editor',
+	Ping: true,
+	Description: 'Allows the bot to add and remove users as 7TV editors',
+	Permission: EPermissionLevel.BROADCAST,
+	OnlyOffline: false,
+	Aliases: ['adde', 'addeditor', 'removee', 'removeeditor'],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [SevenTVAllowed],
+	Code: async function (ctx, mods) {
 		const { EmoteSet, UserID } = mods.SevenTV;
 
 		let internalUser;
 
 		const name = ctx.input[0];
 		if (!name) {
-			return {
-				Success: false,
-				Result: 'Please provide a username :(',
-			};
+			this.EarlyEnd.InvalidInput('provide a username');
 		}
 
 		try {
@@ -114,8 +111,8 @@ export default class extends CommandModel<PreHandlers> {
 				Result: resultPrompt('Added', user.username),
 			};
 		}
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`This command allows the broadcaster to add and remove users as 7TV editors`,
 
 		`**Usage**: ${prefix}editor <username>`,
@@ -125,5 +122,5 @@ export default class extends CommandModel<PreHandlers> {
 		'However if the user is already an editor, this command will remove them',
 		`**Required 7TV Flags**`,
 		`Manage Editors`,
-	];
-}
+	],
+});

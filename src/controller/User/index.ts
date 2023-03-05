@@ -3,13 +3,7 @@ import UserTable, { UserRole } from './../DB/Tables/UserTable.js';
 import Helix from './../../Helix/index.js';
 import type { Ivr } from './../../Typings/types.js';
 import { Selectable } from 'kysely';
-
-export class GetSafeError extends Error {
-	constructor(message: string) {
-		super(message);
-		this.name = 'GetSafeError';
-	}
-}
+import { GetSafeError } from '../../Models/Errors.js';
 
 export enum UserDataStoreKeys {
 	SpotifyToken = 'spotify_token',

@@ -1,7 +1,7 @@
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
-import { EPermissionLevel } from './../Typings/enums.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
 
-import got from './../tools/Got.js';
+import got from './../../tools/Got.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 const ADVICE_API = 'https://api.adviceslip.com/advice';
 
@@ -12,19 +12,18 @@ interface IAdviceSlipObject {
 	};
 }
 
-export default class extends CommandModel {
-	Name = 'PotFriend';
-	Ping = true;
-	Description = 'PotFriend tells you an advice';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [];
-	Flags = [];
-	PreHandlers = [];
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+registerCommand({
+	Name: 'PotFriend',
+	Ping: true,
+	Description: 'PotFriend tells you an advice',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		const MESSAGE = (advice: string) => `PotFriend advice: ${advice} PotFriend`;
 
 		const result = await got('json')
@@ -45,5 +44,5 @@ export default class extends CommandModel {
 			Success: true,
 			Result: message,
 		};
-	};
-}
+	},
+});

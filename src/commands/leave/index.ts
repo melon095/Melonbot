@@ -1,20 +1,20 @@
-import Helix from './../Helix/index.js';
-import { CommandModel, TCommandContext, CommandResult } from '../Models/Command.js';
-import { EPermissionLevel } from './../Typings/enums.js';
+import Helix from './../../Helix/index.js';
+import { EPermissionLevel } from './../../Typings/enums.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
-export default class extends CommandModel {
-	Name = 'leave';
-	Ping = true;
-	Description =
-		'Leave your channel, works in your channel and the bots channel. All statistics about your channel will be removed.';
-	Permission = EPermissionLevel.BROADCAST;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+registerCommand({
+	Name: 'leave',
+	Ping: true,
+	Description:
+		'Leave your channel, works in your channel and the bots channel. All statistics about your channel will be removed.',
+	Permission: EPermissionLevel.BROADCAST,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		const { channel } = ctx;
 		const subs = channel.EventSubs.GetSubscription();
 
@@ -36,5 +36,5 @@ export default class extends CommandModel {
 			Success: true,
 			Result: ':( Ok',
 		};
-	};
-}
+	},
+});

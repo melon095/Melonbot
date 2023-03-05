@@ -1,13 +1,11 @@
-import { CommandModel, ArgType } from '../src/Models/Command';
-
-const parser = CommandModel.ParseArguments;
+import { ParseArguments, ArgType } from './../src/Models/Command';
 
 describe('CommandModel.ParseArguments', () => {
 	it('Should parse string arguments', () => {
 		const input = ['bad', 'data', 'aaaaah', '--foo', 'bar'];
 		const params = [[ArgType.String, 'foo']];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['bad', 'data', 'aaaaah'],
@@ -21,7 +19,7 @@ describe('CommandModel.ParseArguments', () => {
 		const input = ['lol', '--foo', 'bar'];
 		const params = [[ArgType.Boolean, 'foo']];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['lol', 'bar'],
@@ -38,7 +36,7 @@ describe('CommandModel.ParseArguments', () => {
 			[ArgType.Boolean, 'baz'],
 		];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: [],
@@ -53,7 +51,7 @@ describe('CommandModel.ParseArguments', () => {
 		const input = ['--foo', 'bar', '--baz', 'yes'];
 		const params = [[ArgType.String, 'foo']];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['--baz', 'yes'],
@@ -70,7 +68,7 @@ describe('CommandModel.ParseArguments', () => {
 			[ArgType.Boolean, 'baz'],
 		];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: [],
@@ -88,7 +86,7 @@ describe('CommandModel.ParseArguments', () => {
 			[ArgType.Boolean, 'baz'],
 		];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['something'],
@@ -106,7 +104,7 @@ describe('CommandModel.ParseArguments', () => {
 			[ArgType.String, 'baz'],
 		];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: [],
@@ -124,7 +122,7 @@ describe('CommandModel.ParseArguments', () => {
 			[ArgType.Boolean, 'baz'],
 		];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['bar'],
@@ -142,7 +140,7 @@ describe('CommandModel.ParseArguments', () => {
 			[ArgType.String, 'foo'],
 		];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['hi', 'xD'],
@@ -157,7 +155,7 @@ describe('CommandModel.ParseArguments', () => {
 		const input = 'hi --foo ["thing","thing2"]'.split(' ');
 		const params = [[ArgType.String, 'foo']];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['hi'],
@@ -171,7 +169,7 @@ describe('CommandModel.ParseArguments', () => {
 		const input = 'hi --foo 🤡'.split(' ');
 		const params = [[ArgType.String, 'foo']];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['hi'],
@@ -187,7 +185,7 @@ describe('CommandModel.ParseArguments', () => {
 		const input = `hi --foo "${FOO}"`.split(' ');
 		const params = [[ArgType.String, 'foo']];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['hi'],
@@ -203,7 +201,7 @@ describe('CommandModel.ParseArguments', () => {
 		const input = `hi --foo '${FOO}'`.split(' ');
 		const params = [[ArgType.String, 'foo']];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['hi'],
@@ -217,14 +215,14 @@ describe('CommandModel.ParseArguments', () => {
 		const input = `hi --foo "this is a sentence'`.split(' ');
 		const params = [[ArgType.String, 'foo']];
 
-		expect(() => parser(input, params)).toThrow();
+		expect(() => ParseArguments(input, params)).toThrow();
 	});
 
 	it('Can not parse sentences without an ending quote', () => {
 		const input = `hi --foo "this is a sentence`.split(' ');
 		const params = [[ArgType.String, 'foo']];
 
-		expect(() => parser(input, params)).toThrow();
+		expect(() => ParseArguments(input, params)).toThrow();
 	});
 
 	it('Can parse sentences in middle of input', () => {
@@ -237,7 +235,7 @@ describe('CommandModel.ParseArguments', () => {
 			[ArgType.String, 'bar'],
 		];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['hi', 'bye'],
@@ -258,7 +256,7 @@ describe('CommandModel.ParseArguments', () => {
 			[ArgType.String, 'bar'],
 		];
 
-		const result = parser(input, params);
+		const result = ParseArguments(input, params);
 
 		expect(result).toEqual({
 			output: ['hi', 'bye'],

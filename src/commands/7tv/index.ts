@@ -1,32 +1,26 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import gql, { EmoteSearchFilter } from '../SevenTVGQL.js';
-import { extractSeventTVID } from './../tools/regex.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { TCommandContext, ArgType } from '../../Models/Command.js';
+import gql, { EmoteSearchFilter } from '../../SevenTVGQL.js';
+import { extractSeventTVID } from './../../tools/regex.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
-export default class extends CommandModel {
-	Name = '7tv';
-	Ping = true;
-	Description = 'Search 7TV emotes';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [
+registerCommand({
+	Name: '7tv',
+	Ping: true,
+	Description: 'Search 7TV emotes',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [
 		[ArgType.String, 'index'],
 		[ArgType.Boolean, 'exact'],
 		[ArgType.String, 'author'],
-	];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
-		const first = ctx.input[0];
-
-		if (first === undefined) {
-			return {
-				Success: false,
-				Result: 'Please provide a search term',
-			};
-		}
+	],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
+		const first = ctx.input[0] ?? this.EarlyEnd.InvalidInput('provide a search term');
 
 		const id = extractSeventTVID(first);
 
@@ -35,8 +29,8 @@ export default class extends CommandModel {
 		}
 
 		return getEmoteFromName(ctx);
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`Searches up to 100 7TV emotes.`,
 		`**Usage**: ${prefix}7tv <search term>`,
 		`**Example**: ${prefix}7tv Apu`,
@@ -47,8 +41,8 @@ export default class extends CommandModel {
 		'   Return the emotes at the specified index',
 		'',
 		'By default the command will return the first 5 emotes',
-	];
-}
+	],
+});
 
 const getEmoteFromID = async (id: string) => {
 	const emote = await gql.GetEmoteByID(id);
@@ -65,15 +59,9 @@ const getEmoteFromName = async (ctx: TCommandContext) => {
 		filter.exact_match = true;
 	}
 
-	let emotes;
-	try {
-		emotes = await gql.SearchEmoteByName(ctx.input.join(' '), filter).then((res) => res.emotes);
-	} catch (error) {
-		return {
-			Success: false,
-			Result: `7TV Error: ${error}`,
-		};
-	}
+	const emotes = await gql
+		.SearchEmoteByName(ctx.input.join(' '), filter)
+		.then((res) => res.emotes);
 
 	if (!emotes.items.length) {
 		return {

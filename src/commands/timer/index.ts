@@ -1,8 +1,9 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import { Result, Ok, Err } from './../tools/result.js';
-import got from './../tools/Got.js';
-import Timers from './../Singletons/Timers/index.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { ArgType, TCommandContext } from '../../Models/Command.js';
+import { Result, Ok, Err } from './../../tools/result.js';
+import got from './../../tools/Got.js';
+import Timers from './../../Singletons/Timers/index.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 /** https://github.com/zer0bin-dev/zer0bin */
 type ZeroBinResponse = {
@@ -165,28 +166,25 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 	},
 };
 
-export default class extends CommandModel {
-	Name = 'timer';
-	Ping = true;
-	Description = 'Enabled or disable chat timers';
-	Permission = EPermissionLevel.MOD;
-	OnlyOffline = false;
-	Aliases = ['timers'];
-	Cooldown = 5;
-	Params = [
+registerCommand({
+	Name: 'timer',
+	Ping: true,
+	Description: 'Enabled or disable chat timers',
+	Permission: EPermissionLevel.MOD,
+	OnlyOffline: false,
+	Aliases: ['timers'],
+	Cooldown: 5,
+	Params: [
 		[ArgType.String, 'interval'],
 		[ArgType.String, 'titles'],
-	];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+	],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		const { input } = ctx;
 
 		if (input.length === 0) {
-			return {
-				Success: false,
-				Result: `Specify something to do with timers... (${Bot.Config.Prefix}help timer)`,
-			};
+			this.EarlyEnd.InvalidInput(`${Bot.Config.Prefix}help timer`);
 		}
 
 		const [action, ...args] = input as [ACTION_TYPE, ...string[]];
@@ -206,8 +204,8 @@ export default class extends CommandModel {
 			Success: result.err ? false : true,
 			Result: result.inner,
 		};
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`This command can be used to disable or enable chat timers.`,
 		`A Timer is a message that is sent every X seconds to a channel.`,
 		`${prefix}timer create|add <name> <message>`,
@@ -227,5 +225,5 @@ export default class extends CommandModel {
 		`**Example**: ${prefix}timer create test Test message --titles forsen`,
 		`**Example**: ${prefix}timer create test Test message --titles forsen,forsen2,forsen3`,
 		`**Example**: ${prefix}timer create test Test message --titles "this is a big title,forsen"`,
-	];
-}
+	],
+});

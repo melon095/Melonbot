@@ -1,6 +1,6 @@
 import type { Helix } from './../../../../Typings/types.js';
 import { Authenticator } from './../../../../web/index.js';
-import { GetSafeError, UserDataStoreKeys } from './../../../../controller/User/index.js';
+import { UserDataStoreKeys } from './../../../../controller/User/index.js';
 import HelixAPI from './../../../../Helix/index.js';
 import StrategyConstructor, {
 	AuthenticationMethod,

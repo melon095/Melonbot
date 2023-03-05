@@ -6,13 +6,12 @@ import { Result, Err, Ok } from './../../tools/result.js';
 import { MessageScheduler } from './../../tools/MessageScheduler.js';
 import DankTwitch from '@kararty/dank-twitch-irc';
 import {
-	CommandModel,
+	ParseArguments,
 	TCommandContext,
-	ParseArgumentsError,
 	ArgsParseResult,
-	SafeResponseError,
 	CommandLogFn,
 	CommandLogType,
+	CommandModel,
 } from '../../Models/Command.js';
 import TriviaController from './../Trivia/index.js';
 import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
@@ -33,6 +32,13 @@ import {
 	PermissionModeToCooldown,
 	PermissionModeToDatabase,
 } from '../DB/Tables/ChannelTable.js';
+import { GetCommandBy } from '../Commands/Handler.js';
+import {
+	InvalidInputError,
+	ParseArgumentsError,
+	PreHandlerError,
+	ThirdPartyError,
+} from '../../Models/Errors.js';
 
 /**
  * Encapsulated data for every channel.
@@ -185,169 +191,6 @@ export class Channel {
 		if (!this.Trivia || !this.Trivia.initiated) return;
 
 		this.Trivia.tryAnswer(user, input.join(' '));
-	}
-
-	/**
-	 * @param user The user
-	 * @param input The input
-	 * @param extras Extra Twitch data related to the user.
-	 * @returns
-	 */
-	async tryCommand(
-		user: User,
-		input: string[],
-		commandName: string,
-		extras: DankTwitch.PrivmsgMessage,
-	): Promise<{ message: string; flags: ChannelTalkOptions } | void> {
-		try {
-			const command = await Bot.Commands.get(commandName);
-
-			if (typeof command === 'undefined') return;
-
-			if (command.OnlyOffline && this.Live) {
-				return;
-			}
-
-			const current = Date.now();
-
-			const timeout = this.getCooldown(user.ID);
-			if (typeof timeout === 'object') {
-				// User has done commands before, find the specific value for current command.
-				const cr = timeout.find((time) => time.Command === command.Name);
-				// If found and is still on cooldown we return.
-				if (typeof cr !== 'undefined' && cr.TimeExecute > current) return;
-			}
-
-			// First time running command this instance or not on cooldown, so we set their cooldown.
-			this.setCooldown(user.ID, {
-				Command: command.Name,
-				TimeExecute: current + command.Cooldown * 1000,
-				Cooldown: Bot.Config.Development ? 0 : command.Cooldown,
-			});
-
-			if (!this.permissionCheck(command, user, extras)) {
-				return;
-			}
-
-			const copy = [...input];
-
-			let argsResult: ArgsParseResult;
-			try {
-				argsResult = CommandModel.ParseArguments(copy, command.Params);
-			} catch (error) {
-				/// Indicates that the input is invalid
-				if (error instanceof ParseArgumentsError) {
-					this.say(`❗ ${user.Name}: ${error.message}`, { SkipBanphrase: true });
-					return;
-				} else {
-					this.say(`❗ ${user.Name}: An error occurred while parsing arguments.`, {
-						SkipBanphrase: true,
-					});
-					return;
-				}
-			}
-
-			// Create context.
-			const ctx: TCommandContext = {
-				channel: this,
-				user: user,
-				input: argsResult.output,
-				data: {
-					Params: argsResult.values,
-					User: extras,
-				},
-				Log: CommandLog(command.Name, this.Name),
-			};
-
-			let mods: object;
-			try {
-				mods = await PreHandler.Fetch(ctx, command.PreHandlers);
-			} catch (error) {
-				if (error instanceof SafeResponseError) {
-					this.say(`❗ ${user.Name}: ${error.message}`, { SkipBanphrase: true });
-				} else {
-					Bot.Log.Error(error as Error, 'PreHandler');
-
-					this.say(`❗ ${user.Name}: An error occurred while running the command :(`, {
-						SkipBanphrase: true,
-					});
-				}
-
-				return;
-			}
-
-			const doExecution = async (): Promise<[Insertable<CommandsExecutionTable>, string]> => {
-				try {
-					const data = await command.Execute(ctx, mods);
-					const result: Insertable<CommandsExecutionTable> = {
-						user_id: user.TwitchUID,
-						username: user.Name,
-						channel: this.Id,
-						success: data.Success ?? false,
-						result: data.Result ?? '',
-						args: ctx.input,
-						command: command.Name,
-					};
-
-					if (!data.Result || !data.Result.length) return [result, ''];
-
-					if (command.Ping) data.Result = `@${user.Name}, ${data.Result}`;
-
-					if (!data.Success) data.Result = `❗ ${data.Result}`;
-
-					return [result, data.Result];
-				} catch (error) {
-					Bot.Log.Error(error as Error, 'command/run/catch');
-					const extractedError = getStringFromError(error as string | Error);
-
-					if (user.HasSuperPermission()) {
-						this.say(`❗ ${user.Name}: ${extractedError}`, {
-							SkipBanphrase: true,
-						});
-					} else {
-						this.say('PoroSad Command Failed...', {
-							SkipBanphrase: true,
-						});
-					}
-
-					const result: Insertable<CommandsExecutionTable> = {
-						user_id: user.TwitchUID,
-						username: user.Name,
-						channel: this.Id,
-						success: false,
-						result: extractedError,
-						args: ctx.input,
-						command: command.Name,
-					};
-
-					return [result, ''];
-				}
-			};
-
-			const [result, toSay] = await doExecution();
-
-			logCommandExecution(result);
-
-			await sql`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`.execute(
-				Bot.SQL,
-			);
-
-			return {
-				message: toSay,
-				flags: {
-					SkipBanphrase: command.HasFlag(ECommandFlags.NO_BANPHRASE),
-				},
-			};
-		} catch (e) {
-			Bot.Log.Error(e as Error, 'channel/tryCommand/catch');
-			this.say('BrokeBack command failed', {
-				SkipBanphrase: true,
-			});
-		}
-	}
-
-	async VanishUser(username: string): Promise<void> {
-		await Bot.Twitch.Controller.client.timeout(this.Name, username, 1, 'Vanish Command Issued');
 	}
 
 	/**
@@ -583,11 +426,11 @@ export class Channel {
 		return;
 	}
 
-	private getCooldown(id: number): TUserCooldown[] {
+	public getCooldown(id: number): TUserCooldown[] {
 		return this.UserCooldowns[id];
 	}
 
-	private setCooldown(id: number, val: TUserCooldown): void {
+	public setCooldown(id: number, val: TUserCooldown): void {
 		if (!this.UserCooldowns[id]) {
 			this.UserCooldowns[id] = [val];
 			return;
@@ -636,24 +479,189 @@ export class Channel {
 			});
 		});
 	}
+}
 
-	private permissionCheck(
-		command: CommandModel,
-		user: User,
-		privmsg: DankTwitch.PrivmsgMessage,
-	): boolean {
-		const { badges } = privmsg;
+function permissionCheck(
+	channel: Channel,
+	command: CommandModel,
+	user: User,
+	privmsg: DankTwitch.PrivmsgMessage,
+): boolean {
+	const { badges } = privmsg;
 
-		let userPermission = EPermissionLevel.VIEWER;
-		userPermission = (badges.hasVIP && EPermissionLevel.VIP) || userPermission;
+	let userPermission = EPermissionLevel.VIEWER;
+	userPermission = (badges.hasVIP && EPermissionLevel.VIP) || userPermission;
 
-		userPermission = (badges.hasModerator && EPermissionLevel.MOD) || userPermission;
+	userPermission = (badges.hasModerator && EPermissionLevel.MOD) || userPermission;
 
-		userPermission =
-			(this.Id === user.TwitchUID && EPermissionLevel.BROADCAST) || userPermission;
+	userPermission =
+		(channel.Id === user.TwitchUID && EPermissionLevel.BROADCAST) || userPermission;
 
-		userPermission = (user.Role === 'admin' && EPermissionLevel.ADMIN) || userPermission;
-		return command.Permission <= userPermission ? true : false;
+	userPermission = (user.Role === 'admin' && EPermissionLevel.ADMIN) || userPermission;
+	return command.Permission <= userPermission ? true : false;
+}
+
+export async function ExecuteCommand(
+	channel: Channel,
+	user: User,
+	input: string[],
+	commandName: string,
+	extras: DankTwitch.PrivmsgMessage,
+): Promise<{ message: string; flags: ChannelTalkOptions } | void> {
+	try {
+		const command = GetCommandBy(commandName);
+
+		if (typeof command === 'undefined') return;
+
+		if (command.OnlyOffline && channel.Live) {
+			return;
+		}
+
+		const current = Date.now();
+
+		const timeout = channel.getCooldown(user.ID);
+		if (typeof timeout === 'object') {
+			// User has done commands before, find the specific value for current command.
+			const cr = timeout.find((time) => time.Command === command.Name);
+			// If found and is still on cooldown we return.
+			if (typeof cr !== 'undefined' && cr.TimeExecute > current) return;
+		}
+
+		// First time running command this instance or not on cooldown, so we set their cooldown.
+		channel.setCooldown(user.ID, {
+			Command: command.Name,
+			TimeExecute: current + command.Cooldown * 1000,
+			Cooldown: Bot.Config.Development ? 0 : command.Cooldown,
+		});
+
+		if (!permissionCheck(channel, command, user, extras)) {
+			return;
+		}
+
+		const flags: ChannelTalkOptions = {
+			SkipBanphrase: command.HasFlag(ECommandFlags.NO_BANPHRASE),
+		};
+
+		const Return = (message: string) => {
+			return { message, flags };
+		};
+
+		let argsResult: ArgsParseResult;
+		try {
+			argsResult = ParseArguments(input, command.Params);
+		} catch (error) {
+			/// Indicates that the input is invalid
+			if (error instanceof ParseArgumentsError) {
+				return Return(`❗ ${user.Name}: ${error.message}`);
+			} else {
+				return Return(`❗ ${user.Name}: An error occurred while parsing arguments.`);
+			}
+		}
+
+		// Create context.
+		const ctx: TCommandContext = {
+			channel,
+			user,
+			input: argsResult.output,
+			data: {
+				Params: argsResult.values,
+				User: extras,
+			},
+			Log: CommandLog(command.Name, channel.Name),
+		};
+
+		let mods: object;
+		try {
+			mods = await PreHandler.Fetch(ctx, command.PreHandlers);
+		} catch (error) {
+			if (error instanceof PreHandlerError) {
+				return Return(`❗ ${user.Name}: ${error.message}`);
+			} else {
+				Bot.Log.Error(error as Error, 'PreHandler');
+
+				return Return(`❗ ${user.Name}: An error occurred while running the command :(`);
+			}
+		}
+
+		const doExecution = async (): Promise<[Insertable<CommandsExecutionTable>, string]> => {
+			try {
+				const data = await command.Execute(ctx, mods);
+				const result: Insertable<CommandsExecutionTable> = {
+					user_id: user.TwitchUID,
+					username: user.Name,
+					channel: channel.Id,
+					success: data.Success ?? false,
+					result: data.Result ?? '',
+					args: ctx.input,
+					command: command.Name,
+				};
+
+				if (!data.Result || !data.Result.length) return [result, ''];
+
+				if (command.Ping) data.Result = `@${user.Name}, ${data.Result}`;
+
+				if (!data.Success) data.Result = `❗ ${data.Result}`;
+
+				return [result, data.Result];
+			} catch (error) {
+				const isNotObject = () => typeof error !== 'object';
+
+				let message: string = '';
+
+				// prettier-ignore
+				if (error instanceof InvalidInputError) 
+                {
+					message = error.message;
+				} 
+                else if (error instanceof ThirdPartyError) 
+                {
+                    // TODO: Leak to everybody?
+                    message = error.message;
+				} 
+                else if (isNotObject())
+                {
+                    message = (error)?.toString() ?? 'Unknown error';
+                } 
+                // FIXME: Missing non-error object, but whatever.
+                else {
+					Bot.Log.Error(error as Error, 'command/run/catch');
+
+					if (user.HasSuperPermission()) {
+                        message = getStringFromError(error as Error);
+					} else {
+						message = 'FeelsDankMan command machine broken';
+					}
+                }
+				// end prettier-ignore
+
+				const result: Insertable<CommandsExecutionTable> = {
+					user_id: user.TwitchUID,
+					username: user.Name,
+					channel: channel.Id,
+					success: false,
+					result: message,
+					args: ctx.input,
+					command: command.Name,
+				};
+
+				return [result, `❗ @${user.Name} ${message}`];
+			}
+		};
+
+		const [result, toSay] = await doExecution();
+
+		logCommandExecution(result);
+
+		await sql`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${channel.Name}`.execute(
+			Bot.SQL,
+		);
+
+		return Return(toSay);
+	} catch (e) {
+		Bot.Log.Error(e as Error, 'channel/tryCommand/catch');
+		channel.say('BrokeBack command failed', {
+			SkipBanphrase: true,
+		});
 	}
 }
 
@@ -662,7 +670,7 @@ const getStringFromError = (error: Error | string): string => {
 	switch (typeof error) {
 		case 'object':
 			if (error instanceof Error) return error.message;
-			return JSON.stringify(error)?.replace(/(\r\n|\n|\r)/gm, ' ') ?? 'Unknown error';
+			return cleanMessage(JSON.stringify(error)) ?? 'Unknown error';
 		case 'string':
 		case 'number':
 			return error;

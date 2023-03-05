@@ -1,145 +1,114 @@
-import { CommandModel } from './../../Models/Command.js';
-import fs from 'node:fs';
-import { exit } from 'node:process';
-import { resolve } from 'node:path';
-import { EPermissionLevel } from './../../Typings/enums.js';
-import { Import } from './../../tools/tools.js';
+import assert from 'node:assert';
+import { InvalidInputError, ThirdPartyError } from '../../Models/Errors.js';
+import { CommandModel, CreatableCommand, EarlyEndOptions } from './../../Models/Command.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare type Class = new (...args: any[]) => CommandModel;
+const LoadedCommands = new Map<string, CommandModel>();
 
-/**
- * Controls the commands and loads commands from here.
- */
-export class CommandsHandler {
-	private commandNameList: {
-		Name: string;
-		Aliases: string[];
-		Description: string;
-		Permission: EPermissionLevel;
-	}[];
+const EarlyEndOptions: EarlyEndOptions = {
+	InvalidInput: function (reason) {
+		throw new InvalidInputError(reason || 'Unknown');
+	},
+	ThirdPartyError: function (reason) {
+		throw new ThirdPartyError(reason || 'Unknown');
+	},
+} as const;
 
-	constructor() {
-		this.commandNameList = [];
-	}
+function InjectFunctions(command: CreatableCommand): CommandModel {
+	return {
+		...command,
+		EarlyEnd: EarlyEndOptions,
+		Execute: async function (ctx, mods) {
+			return this.Code(ctx, mods);
+		},
+		HasFlag: function (flag) {
+			return this.Flags.includes(flag);
+		},
+	};
+}
 
-	async initialize(): Promise<void> {
-		try {
-			// Read all commands into this.commandData
-			const _cmds_ = await this.FindCommands().catch((e) => {
-				Bot.Log.Error(e as Error, 'Unable to read the directory of commands');
-				process.exitCode = -1;
-				exit();
-			});
-			const instantiatedCommands: CommandModel[] = [];
+export function registerCommand<Mods extends object = object>(command: CreatableCommand<Mods>) {
+	assert(LoadedCommands.has(command.Name) === false, `Command ${command.Name} already exists`);
 
-			const dbCommands = await Bot.SQL.selectFrom('commands').selectAll().execute();
+	// @ts-ignore // We really do not care if Mods and object something something cant go togheter..
+	LoadedCommands.set(command.Name, InjectFunctions(command));
+}
 
-			for (const command of _cmds_) {
-				const c = new command();
-				this.commandNameList.push({
-					Name: c.Name,
-					Aliases: c.Aliases,
-					Description: c.Description,
-					Permission: c.Permission,
-				});
-				instantiatedCommands.push(c);
-			}
+export async function StoreToDB() {
+	// FIXME: Fix this one day please.
+	try {
+		const dbCommands = await Bot.SQL.selectFrom('commands').selectAll().execute();
 
-			for (const command of instantiatedCommands) {
-				const realCommand = {
-					name: command.Name,
-					description: command.Description,
-					perm: command.Permission,
-				};
-
-				for (const dbcommand of dbCommands) {
-					if (dbcommand.name === command.Name) {
-						if (
-							dbcommand.description !== command.Description ||
-							dbcommand.perm !== command.Permission
-						) {
-							await Bot.SQL.updateTable('commands')
-								.set(realCommand)
-								.where('name', '=', realCommand.name)
-								.execute();
-						}
+		for (const [name, command] of LoadedCommands) {
+			const realCommand = {
+				name,
+				description: command.Description,
+				perm: command.Permission,
+			};
+			for (const dbcommand of dbCommands) {
+				if (dbcommand.name === command.Name) {
+					if (
+						dbcommand.description !== command.Description ||
+						dbcommand.perm !== command.Permission
+					) {
+						await Bot.SQL.updateTable('commands')
+							.set(realCommand)
+							.where('name', '=', realCommand.name)
+							.execute();
 					}
 				}
 			}
-
-			const commandNames = instantiatedCommands.map((x) => x.Name);
-			const dbcommandNames = dbCommands.map((x) => x.name);
-			const commandDiff = instantiatedCommands.filter(
-				(x) => !dbcommandNames.includes(x.Name),
-			);
-			const dbcommandDiff = dbCommands.filter((x) => !commandNames.includes(x.name));
-			for (const command of commandDiff) {
-				const realCommand = {
-					name: command.Name,
-					description: command.Description,
-					perm: command.Permission,
-				};
-
-				await Bot.SQL.insertInto('commands')
-					.values(realCommand)
-					.onConflict((opts) => opts.column('id').doNothing())
-					.execute();
-			}
-
-			await Promise.all(
-				dbcommandDiff.map((dbCommand) =>
-					Bot.SQL.deleteFrom('commands').where('name', '=', dbCommand.name).execute(),
-				),
-			);
-
-			return;
-		} catch (e) {
-			Bot.Log.Error(e as Error, 'CommandsHandler/initialize');
-			return;
 		}
-	}
+		const dbcommandNames = dbCommands.map((x) => x.name);
 
-	async get(identifier: string): Promise<CommandModel | undefined> {
-		const command = this.commandNameList.find(
-			(command) => command.Name === identifier || command.Aliases?.includes(identifier),
+		const commandDiff = Array.from(LoadedCommands.values()).filter(
+			(x) => !dbcommandNames.includes(x.Name),
 		);
-
-		if (command === undefined) return undefined;
-
-		const c = Import(resolve(process.cwd(), 'build/commands'), `${command.Name}.js`)
-			.then((c) => new c())
-			.catch((e) => {
-				Bot.Log.Error(e as Error, 'CommandsHandler/getCommands');
-				return undefined;
-			});
-
-		return c;
-	}
-
-	get Commands() {
-		return this.commandNameList;
-	}
-	get Names() {
-		const names = [];
-		for (const command of this.commandNameList) {
-			names.push(command.Name);
+		const dbcommandDiff = dbCommands.filter((x) => !LoadedCommands.has(x.name));
+		for (const command of commandDiff) {
+			const realCommand = {
+				name: command.Name,
+				description: command.Description,
+				perm: command.Permission,
+			};
+			await Bot.SQL.insertInto('commands')
+				.values(realCommand)
+				.onConflict((opts) => opts.column('id').doNothing())
+				.execute();
 		}
-		return names;
-	}
 
-	private async FindCommands(): Promise<Class[]> {
-		const commands: NodeRequire[] = [];
-		const dirname = `${process.cwd()}/build/commands`;
-
-		const dir = fs.readdirSync(dirname, { withFileTypes: true });
-
-		for (const command of dir) {
-			if (command.name.split('.')[2] !== 'map') {
-				const file = await Import(resolve(process.cwd(), 'build/commands'), command.name);
-				commands.push(file);
-			}
-		}
-		return commands as unknown as Class[];
+		await Promise.all(
+			dbcommandDiff.map((dbCommand) =>
+				Bot.SQL.deleteFrom('commands').where('name', '=', dbCommand.name).execute(),
+			),
+		);
+	} catch (e) {
+		Bot.Log.Error(e as Error, 'CommandsHandler/initialize');
 	}
 }
+
+export function GetCommandBy(identifier: string): CommandModel | undefined {
+	const command = LoadedCommands.get(identifier);
+
+	if (command) {
+		return command;
+	}
+
+	const aliased = Array.from(LoadedCommands.values()).find((x) => x.Aliases.includes(identifier));
+
+	if (aliased) {
+		return aliased;
+	}
+
+	return undefined;
+}
+
+// 	get Commands() {
+// 		return this.commandNameList;
+// 	}
+// 	get Names() {
+// 		const names = [];
+// 		for (const command of this.commandNameList) {
+// 			names.push(command.Name);
+// 		}
+// 		return names;
+// 	}

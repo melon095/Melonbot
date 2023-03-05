@@ -1,29 +1,30 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { TCommandContext, CommandResult, ArgType, CommandModel } from '../Models/Command.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { ArgType } from '../../Models/Command.js';
 import gql, {
 	ChangeEmoteInset,
 	ConnectionPlatform,
 	V3User,
 	EnabledEmote,
 	ListItemAction,
-} from '../SevenTVGQL.js';
-import { ExtractAllSettledPromises, UnpingUser } from './../tools/tools.js';
+} from '../../SevenTVGQL.js';
+import { ExtractAllSettledPromises, UnpingUser } from './../../tools/tools.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
-export default class extends CommandModel {
-	Name = 'yoink';
-	Ping = false;
-	Description = 'Steal several 7TV emotes from another channel TriHard ';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = ['steal'];
-	Cooldown = 10;
-	Params = [
+registerCommand({
+	Name: 'yoink',
+	Ping: false,
+	Description: 'Steal several 7TV emotes from another channel TriHard ',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: ['steal'],
+	Cooldown: 10,
+	Params: [
 		[ArgType.Boolean, 'case'],
 		[ArgType.Boolean, 'alias'],
-	];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+	],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		const errNoInputMsg = () =>
 			`Provide an emote name and if you want to add to the current channel, a channel to steal from prefixed with @ or #, e.g @${ctx.user.Name} FloppaL`;
 
@@ -58,11 +59,9 @@ export default class extends CommandModel {
 			readChan = ctx.channel.Name;
 		}
 
-		if (writeChan === readChan)
-			return {
-				Success: false,
-				Result: "You can't steal an emote from yourself",
-			};
+		if (writeChan === readChan) {
+			this.EarlyEnd.InvalidInput("You can't steal an emote from yourself");
+		}
 
 		let readSet: string;
 		let writeSet: string;
@@ -95,19 +94,12 @@ export default class extends CommandModel {
 		}
 
 		let toAdd: Set<EnabledEmote> = new Set();
-		try {
-			const channelEmotes = await gql.CurrentEnabledEmotes(readSet);
+		const channelEmotes = await gql.CurrentEnabledEmotes(readSet);
 
-			for (const emote of channelEmotes) {
-				(caseSensitive
-					? emotes.includes(emote.name)
-					: emotes.includes(emote.name.toLowerCase())) && toAdd.add(emote);
-			}
-		} catch {
-			return {
-				Success: false,
-				Result: 'That channel does not have any emotes',
-			};
+		for (const emote of channelEmotes) {
+			(caseSensitive
+				? emotes.includes(emote.name)
+				: emotes.includes(emote.name.toLowerCase())) && toAdd.add(emote);
 		}
 
 		if (!toAdd.size) {
@@ -140,8 +132,8 @@ export default class extends CommandModel {
 			Success: true,
 			Result: '',
 		};
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		'Steal several 7TV emotes from a channel.',
 		"If the current channel is not specified, target will be set to the current channel, and the bot will add to the user's channel.",
 		'',
@@ -160,8 +152,8 @@ export default class extends CommandModel {
 		'-a, --alias',
 		'   Add the emote while retaining the alias',
 		'',
-	];
-}
+	],
+});
 
 const getSevenTVAccount = async (channel: string) => {
 	const user = await Bot.User.ResolveUsername(channel);

@@ -1,5 +1,4 @@
-import TimerTable, { InsertableTable, SelectableTable } from 'controller/DB/Tables/TimerTable.js';
-import { BinaryOperationNode, Generated } from 'kysely';
+import { InsertableTable, SelectableTable } from './../../controller/DB/Tables/TimerTable.js';
 import { Logger } from './../../logger.js';
 import { Result, Err, Ok } from './../../tools/result.js';
 

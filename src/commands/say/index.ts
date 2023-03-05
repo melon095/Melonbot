@@ -2,10 +2,10 @@ import { registerCommand } from '../../controller/Commands/Handler.js';
 import { EPermissionLevel } from './../../Typings/enums.js';
 
 registerCommand({
-	Name: 'name',
+	Name: 'say',
 	Ping: false,
-	Description: '',
-	Permission: EPermissionLevel.VIEWER,
+	Description: 'Says the direct input.',
+	Permission: EPermissionLevel.ADMIN,
 	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,

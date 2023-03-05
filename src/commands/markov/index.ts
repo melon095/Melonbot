@@ -1,7 +1,8 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import Got from './../tools/Got.js';
-import { Unping } from './../tools/tools.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { ArgType } from '../../Models/Command.js';
+import Got from './../../tools/Got.js';
+import { Unping } from './../../tools/tools.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 interface ApiResponse {
 	success: boolean;
@@ -27,18 +28,18 @@ const makeReq = async (channel: string, seed?: string): Promise<ApiResponse> => 
 		.json();
 };
 
-export default class extends CommandModel {
-	Name = 'markov';
-	Ping = false;
-	Description = 'Generate markov chains based of chat';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [[ArgType.String, 'channel']];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+registerCommand({
+	Name: 'markov',
+	Ping: false,
+	Description: 'Generate markov chains based of chat',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [[ArgType.String, 'channel']],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		const channel = (ctx.data.Params.channel as string) || ctx.channel.Name;
 		const seed = ctx.input.join(' ');
 
@@ -67,8 +68,8 @@ export default class extends CommandModel {
 			Success: true,
 			Result: `🔮 ${msg}`,
 		};
-	};
-	LongDescription = async (prefix: string) => [
+	},
+	LongDescription: async (prefix) => [
 		`Generate markov chains based of chat`,
 		``,
 		`**Usage**: ${prefix}markov [seed]`,
@@ -78,5 +79,5 @@ export default class extends CommandModel {
 		'',
 		'-c, --channel [channel]',
 		'   Channel to generate markov from',
-	];
-}
+	],
+});

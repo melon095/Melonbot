@@ -1,8 +1,9 @@
-import { EPermissionLevel } from '../Typings/enums.js';
-import { CommandModel, TCommandContext, CommandResult, ArgType } from '../Models/Command.js';
-import { SpotifyGetValidToken, SpotifyGot } from './../tools/spotify.js';
-import Got from './../tools/Got.js';
-import { SpotifyTypes } from './../Typings/types.js';
+import { EPermissionLevel } from '../../Typings/enums.js';
+import { ArgType } from '../../Models/Command.js';
+import { SpotifyGetValidToken, SpotifyGot } from './../../tools/spotify.js';
+import Got from './../../tools/Got.js';
+import { SpotifyTypes } from './../../Typings/types.js';
+import { registerCommand } from '../../controller/Commands/Handler.js';
 
 type SongWhipResponse = {
 	data: {
@@ -32,18 +33,18 @@ const getSongWhipURL = async (spotifyURL: string): Promise<SongWhipResponse> => 
 	}).json();
 };
 
-export default class extends CommandModel {
-	Name = 'spotify';
-	Ping = false;
-	Description = 'Get the currently playing song from Spotify.';
-	Permission = EPermissionLevel.VIEWER;
-	OnlyOffline = false;
-	Aliases = [];
-	Cooldown = 5;
-	Params = [[ArgType.String, 'channel']];
-	Flags = [];
-	PreHandlers = [];
-	Code = async (ctx: TCommandContext): Promise<CommandResult> => {
+registerCommand({
+	Name: 'spotify',
+	Ping: false,
+	Description: 'Get the currently playing song from Spotify.',
+	Permission: EPermissionLevel.VIEWER,
+	OnlyOffline: false,
+	Aliases: [],
+	Cooldown: 5,
+	Params: [[ArgType.String, 'channel']],
+	Flags: [],
+	PreHandlers: [],
+	Code: async function (ctx) {
 		const token = await SpotifyGetValidToken(ctx.user);
 
 		if (!token) {
@@ -116,5 +117,5 @@ export default class extends CommandModel {
 			Success: true,
 			Result: `${name} - ${artists} | https://songwhip.com${songwhipURL}`,
 		};
-	};
-}
+	},
+});

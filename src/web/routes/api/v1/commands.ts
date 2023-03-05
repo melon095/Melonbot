@@ -7,6 +7,7 @@ import {
 	CommandDatabaseToMode,
 	CommandPermissions,
 } from './../../../../controller/DB/Tables/CommandTable.js';
+import { GetCommandBy } from '../../../../controller/Commands/Handler.js';
 
 export default async function (fastify: FastifyInstance) {
 	fastify.route({
@@ -78,7 +79,7 @@ export default async function (fastify: FastifyInstance) {
 
 			const Name = req.params.name;
 
-			const command = await Bot.Commands.get(Name);
+			const command = GetCommandBy(Name);
 
 			if (!command) {
 				reply.status(404);
