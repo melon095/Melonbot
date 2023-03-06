@@ -298,14 +298,16 @@ export default {
 	/**
 	 * @returns A set of logins of all the viewers in the channel
 	 */
-	Viewers: async function (broadcaster_id: string, userToken: string): Promise<Set<string>> {
+	Viewers: async function (
+		identifier: { broadcaster: string; moderator?: string },
+		userToken: string,
+	): Promise<Set<string>> {
 		const users = new Set<string>();
 
 		const params = new URLSearchParams();
 
-		params.append('broadcaster_id', broadcaster_id);
-		// Why twitch?
-		params.append('moderator_id', broadcaster_id);
+		params.append('broadcaster_id', identifier.broadcaster);
+		params.append('moderator_id', identifier.moderator || identifier.broadcaster);
 		params.append('first', '1000');
 
 		await DoPagination<Helix.ViewerList>(

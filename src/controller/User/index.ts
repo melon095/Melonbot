@@ -300,8 +300,12 @@ export async function ResolveInternalID(id: number): Promise<User | null> {
 	return userObject;
 }
 
-export async function GetValidTwitchToken(user: User): Promise<string> {
+export async function GetValidTwitchToken(user: User): Promise<string | null> {
 	const tokenContainer = await GetUserData(user, UserDataStoreKeys.TwitchToken);
+
+	if (tokenContainer.IsEmpty()) {
+		return null;
+	}
 
 	const token = tokenContainer.ToJSON<OAuthToken>().unwrap();
 

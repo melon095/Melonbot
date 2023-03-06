@@ -51,6 +51,10 @@ export class DataStoreContainer {
 	public ToString(): string {
 		return this.value;
 	}
+
+	public IsEmpty(): boolean {
+		return this.value === '';
+	}
 }
 
 const DefaultDataStore = new DataStoreContainer('');

@@ -25,7 +25,10 @@ import User from './controller/User/index.js';
 import TimerSingleton from './Singletons/Timers/index.js';
 import logger from './logger.js';
 import SevenTVGQL from './SevenTVGQL.js';
-import { ChannelDatabaseToMode } from './controller/DB/Tables/ChannelTable.js';
+import {
+	ChannelDatabaseToMode,
+	PermissionModeToDatabase,
+} from './controller/DB/Tables/ChannelTable.js';
 
 type ProcessType = 'BOT' | 'WEB';
 
@@ -97,7 +100,10 @@ export const Setup = {
 		await twitch.client.join(Bot.Config.BotUsername);
 		twitch.channels.push(self);
 
-		const channels = await Bot.SQL.selectFrom('channels').selectAll().execute();
+		const channels = await Bot.SQL.selectFrom('channels')
+			.selectAll()
+			.where('bot_permission', '!=', PermissionModeToDatabase('Bot'))
+			.execute();
 
 		for (const channel of channels) {
 			let mode = ChannelDatabaseToMode(channel.bot_permission);

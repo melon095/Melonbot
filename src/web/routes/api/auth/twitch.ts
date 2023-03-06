@@ -39,7 +39,7 @@ export default async function (fastify: FastifyInstance) {
 			await SetUserData(user, UserDataStoreKeys.TwitchToken, {
 				access_token: oauth.accessToken,
 				refresh_token: oauth.accessToken,
-				expires_in: oauth.expiresIn,
+				expires_in: Date.now() + oauth.expiresIn * 1000,
 			});
 
 			const cookie: CookieOpts = {

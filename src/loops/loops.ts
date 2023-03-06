@@ -4,6 +4,7 @@ import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
 import { Helix } from './../Typings/types.js';
 import { UnpingUser } from './../tools/tools.js';
 import { GetValidTwitchToken } from '../controller/User/index.js';
+import { Channel } from '../controller/Channel/index.js';
 
 (async () => {
 	const Helix = (await import('./../Helix/index.js')).default;
@@ -17,19 +18,41 @@ import { GetValidTwitchToken } from '../controller/User/index.js';
 	const TEN_MINUTES = FIVE_MINUTES * 2;
 
 	setInterval(async () => {
+		async function GetBroadcasterToken(channel: Channel) {
+			const user = await channel.User();
+
+			try {
+				const token = await GetValidTwitchToken(user);
+				if (token === null) return null;
+
+				return { token, id: user.TwitchUID };
+			} catch (error) {
+				Bot.Log.Error(
+					error as Error,
+					'Failed to get valid token for user %s',
+					user.TwitchUID,
+				);
+			}
+
+			return null;
+		}
+
 		await Promise.all(
 			Bot.Twitch.Controller.channels.map(async (channel) => {
+				if (channel.Mode === 'Bot') return;
+
 				const user = await channel.User();
 
-				let token;
-				try {
-					token = await GetValidTwitchToken(user);
-				} catch (error) {
-					Bot.Log.Error(error as Error);
+				// Check for broadcaster token (e.g logged in to website)
+				let token = await GetBroadcasterToken(channel);
+
+				if (token === null) {
 					return;
 				}
 
-				const users = await Helix.Viewers(user.TwitchUID, token);
+				const broadcaster = user.TwitchUID;
+				const moderator = token.id || user.TwitchUID;
+				const users = await Helix.Viewers({ broadcaster, moderator }, token.token);
 
 				const stringified = JSON.stringify(Array.from(users));
 
@@ -199,6 +222,8 @@ import { GetValidTwitchToken } from '../controller/User/index.js';
 				const currentEmoteSet = (
 					await channel.GetChannelData('SevenTVEmoteSet')
 				).ToString();
+
+				if (!currentEmoteSet) return;
 
 				const sevenUser = await gql.GetUser(user).catch(() => null);
 				if (!sevenUser) return;
