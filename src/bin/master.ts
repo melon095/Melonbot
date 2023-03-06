@@ -30,7 +30,7 @@
 
 	async function exitHandler(): Promise<void> {
 		// Wait for all messages to get sent before turning off bot.
-		const promises = [Bot.Twitch.Emotes.SevenTVEvent.Close()];
+		const promises = [];
 		for (const channel of Bot.Twitch.Controller.TwitchChannels) {
 			promises.push(channel.Queue.closeAll());
 		}

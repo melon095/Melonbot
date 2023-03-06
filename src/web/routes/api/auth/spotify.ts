@@ -5,7 +5,7 @@ import StrategyConstructor, {
 } from './../../../oauth.js';
 import { SpotifyTypes } from './../../../../Typings/types.js';
 import { CreateSpotifyRequestHeaders, SpotifyGot } from './../../../../tools/spotify.js';
-import { UserDataStoreKeys } from './../../../../controller/User/index.js';
+import { SetUserData, UserDataStoreKeys } from './../../../../IndividualData.js';
 import { FastifyInstance } from 'fastify';
 import AuthenticationValidator from './../../../Hooks/AuthenticationValidator.js';
 
@@ -30,7 +30,7 @@ export default async function (fastify: FastifyInstance) {
 			}
 
 			const unix_expires_in = Date.now() + oauth.expiresIn * 1000;
-			await user.Set(UserDataStoreKeys.SpotifyToken, {
+			await SetUserData(user, UserDataStoreKeys.SpotifyToken, {
 				access_token: oauth.accessToken,
 				refresh_token: oauth.refreshToken,
 				expires_in: unix_expires_in,

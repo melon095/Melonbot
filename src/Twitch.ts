@@ -96,11 +96,8 @@ export default class Twitch {
 		this.InitReady.resolve(true);
 	}
 
-	async AddChannelList(user: User, eventsub = false): Promise<Channel> {
+	async AddChannelList(user: User): Promise<Channel> {
 		const c = await Channel.New(user, 'Write', false);
-		if (eventsub) {
-			await c.joinEventSub();
-		}
 		this.channels.push(c);
 		return c;
 	}
@@ -144,7 +141,6 @@ export default class Twitch {
 
 	async TryRejoin(channel: Channel, name: string): Promise<void> {
 		await this.client.join(name);
-		await channel.joinEventSub();
 		await channel.setPermissionMode('Write');
 	}
 

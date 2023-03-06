@@ -1,12 +1,17 @@
 import got from 'got';
 import Got from './tools/Got.js';
 import User from './controller/User/index.js';
-import { GetSettings } from './controller/Channel/index.js';
+import { GetChannelData } from './IndividualData.js';
 import { ThirdPartyError } from './Models/Errors.js';
 
 const url = 'https://7tv.io/v3/gql';
 
 let api = got.extend();
+
+export interface SevenTVChannelIdentifier {
+	Channel: string;
+	EmoteSet: string;
+}
 
 export enum ConnectionPlatform {
 	TWITCH = 'TWITCH',
@@ -496,7 +501,10 @@ export default {
 		channelUser: User,
 		invokerUser: User /*ctx: TCommandContext*/,
 	): Promise<ModifyData> {
-		const emoteSet = (await GetSettings(channelUser).then((x) => x.SevenTVEmoteSet)).ToString();
+		const emoteSet = (
+			await GetChannelData(channelUser.TwitchUID, 'SevenTVEmoteSet')
+		).ToString();
+
 		const user = await this.GetUser(channelUser);
 
 		const editors = await Bot.Redis.SetMembers(`seventv:${emoteSet}:editors`);

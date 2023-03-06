@@ -26,9 +26,6 @@ declare global {
 		Redis: RS;
 		Twitch: {
 			Controller: import('./Twitch.js').default;
-			Emotes: {
-				SevenTVEvent: import('./controller/Emote/SevenTV/EventAPI.js').SevenTVEvent;
-			};
 		};
 		User: typeof User;
 		ID: string;

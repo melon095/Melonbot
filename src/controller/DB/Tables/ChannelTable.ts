@@ -36,6 +36,8 @@ function ChannelDatabaseToMode(value: number): PermissionMode {
 			return 'VIP';
 		case 3:
 			return 'Moderator';
+		case 4:
+			return 'Bot';
 		default:
 			return 'Read';
 	}
@@ -51,6 +53,8 @@ function PermissionModeToDatabase(mode: PermissionMode): number {
 			return 2;
 		case 'Moderator':
 			return 3;
+		case 'Bot':
+			return 4;
 		default:
 			return 0;
 	}
@@ -69,6 +73,8 @@ function PermissionModeToCooldown(mode: PermissionMode): number | null {
 			return 250;
 		case 'Moderator':
 			return 50;
+		case 'Bot':
+			return 0;
 		default:
 			return null;
 	}

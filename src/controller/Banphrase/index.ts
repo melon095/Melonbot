@@ -37,7 +37,7 @@ export async function CheckMessageBanphrase(
 		}
 	}
 
-	const pajbot1 = (await channel.GetSettings()).Pajbot1.ToString();
+	const pajbot1 = (await channel.GetChannelData('Pajbot1')).ToString();
 
 	if (pajbot1) {
 		// (Not allowing http)
