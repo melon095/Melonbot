@@ -13,6 +13,8 @@ import TimerTable from './Tables/TimerTable.js';
 import UserTable from './Tables/UserTable.js';
 import CommandsExecutionTable from './Tables/CommandsExecutionTable.js';
 import WebReqeustLogTable from './Tables/WebRequestLogTable.js';
+import ChannelDataStoreTable from './Tables/ChannelDataStoreTable.js';
+import UserDataStoreTable from './Tables/UserDataStoreTable.js';
 
 const { Pool } = pg;
 
@@ -27,6 +29,8 @@ export interface Database {
 	suggestions: SuggestionsTable;
 	timers: TimerTable;
 	users: UserTable;
+	channel_data_store: ChannelDataStoreTable;
+	user_data_store: UserDataStoreTable;
 	'logs.commands_execution': CommandsExecutionTable;
 	'logs.web_request': WebReqeustLogTable;
 }

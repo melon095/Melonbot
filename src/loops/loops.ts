@@ -1,16 +1,13 @@
 import { EventsubTypes } from './../Singletons/Redis/Data.Types.js';
-import { ChannelSettingsValue, GetSettings, UpdateSetting } from './../controller/Channel/index.js';
+import { DataStoreContainer, UpdateChannelData } from './../IndividualData.js';
 import { ConnectionPlatform, Editor } from './../SevenTVGQL.js';
 import { Helix } from './../Typings/types.js';
 import { UnpingUser } from './../tools/tools.js';
+import { GetValidTwitchToken } from '../controller/User/index.js';
 
 (async () => {
-	const Got = (await import('./../tools/Got.js')).default;
 	const Helix = (await import('./../Helix/index.js')).default;
 	const gql = (await import('./../SevenTVGQL.js')).default;
-
-	// const VIEWER_LIST_API = (stream: string) =>
-	// 	`https://tmi.twitch.tv/group/user/${stream}/chatters`;
 
 	const THIRTY_SECONDS = 30 * 1000;
 	const ONE_MINUTE = THIRTY_SECONDS * 2;
@@ -19,49 +16,35 @@ import { UnpingUser } from './../tools/tools.js';
 	const FIVE_MINUTES = ONE_MINUTE * 5;
 	const TEN_MINUTES = FIVE_MINUTES * 2;
 
-	// interface ViewerResponse {
-	// 	chatters: ViewerList;
-	// }
+	setInterval(async () => {
+		await Promise.all(
+			Bot.Twitch.Controller.channels.map(async (channel) => {
+				const user = await channel.User();
 
-	// type ViewerList = {
-	// 	broadcaster: string[];
-	// 	vips: string[];
-	// 	moderators: string[];
-	// 	staff: string[];
-	// 	admins: string[];
-	// 	global_mods: string[];
-	// 	viewers: string[];
-	// };
+				let token;
+				try {
+					token = await GetValidTwitchToken(user);
+				} catch (error) {
+					Bot.Log.Error(error as Error);
+					return;
+				}
 
-	// TODO: Endpoint removed.
-	// setInterval(async () => {
-	// 	try {
-	// 		// const channels = await Bot.SQL.Query<
-	// 		// 	Database.channels[]
-	// 		// >`SELECT name, user_id FROM channels`;
-	// 		// if (!channels.length) return;
+				const users = await Helix.Viewers(user.TwitchUID, token);
 
-	// 		const promises = channels.map(async (channel) => {
-	// 			const response = (await Got('default')
-	// 				.get(VIEWER_LIST_API(channel.name))
-	// 				.json()) as ViewerResponse;
+				const stringified = JSON.stringify(Array.from(users));
 
-	// 			const chatters = response.chatters;
+				await UpdateChannelData(
+					user.TwitchUID,
+					'ViewerList',
+					new DataStoreContainer(stringified),
+				);
 
-	// 			const viewers: string[] = [];
-
-	// 			for (const list of Object.values(chatters)) {
-	// 				viewers.push(...list);
-	// 			}
-
-	// 			await Bot.Redis.SSet(`channel:${channel.user_id}:viewers`, JSON.stringify(viewers));
-	// 		});
-
-	// 		await Promise.allSettled(promises);
-	// 	} catch (error) {
-	// 		Bot.Log.Error(error as Error, '__loops/ViewerList');
-	// 	}
-	// }, ONE_MINUTE);
+				Bot.Log.Info(
+					`Updated viewer list for ${user.Name} (${user.TwitchUID}) with ${users.size} viewers`,
+				);
+			}),
+		);
+	}, ONE_MINUTE);
 
 	/**
 	 * Fetches every channels emote set on 7TV.
@@ -99,7 +82,7 @@ import { UnpingUser } from './../tools/tools.js';
 				if (channel?.Mode === 'Read') return;
 
 				const currentEmoteSet = (
-					await GetSettings(channel.User()).then((s) => s.SevenTVEmoteSet)
+					await channel.GetChannelData('SevenTVEmoteSet')
 				).ToString();
 
 				// Get the default emote-set.
@@ -182,17 +165,13 @@ import { UnpingUser } from './../tools/tools.js';
 					default_emote_sets,
 				);
 
-				await UpdateSetting(
-					channel.User(),
+				await UpdateChannelData(
+					(
+						await channel.User()
+					).TwitchUID,
 					'SevenTVEmoteSet',
-					new ChannelSettingsValue(default_emote_sets),
+					new DataStoreContainer(default_emote_sets),
 				);
-
-				channel.joinEventSub({ Channel: channel.Name, EmoteSet: default_emote_sets });
-				channel.leaveEventSub({
-					Channel: channel.Name,
-					EmoteSet: currentEmoteSet,
-				});
 			}),
 		);
 	}, ONE_MINUTE);
@@ -217,7 +196,9 @@ import { UnpingUser } from './../tools/tools.js';
 		await Promise.allSettled(
 			Bot.Twitch.Controller.TwitchChannels.map(async (channel) => {
 				const user = await channel.User();
-				const currentEmoteSet = (await GetSettings(user)).SevenTVEmoteSet.ToString();
+				const currentEmoteSet = (
+					await channel.GetChannelData('SevenTVEmoteSet')
+				).ToString();
 
 				const sevenUser = await gql.GetUser(user).catch(() => null);
 				if (!sevenUser) return;
@@ -228,10 +209,10 @@ import { UnpingUser } from './../tools/tools.js';
 
 				if (emote_set_id === currentEmoteSet) return;
 
-				await UpdateSetting(
-					user,
+				await UpdateChannelData(
+					user.TwitchUID,
 					'SevenTVEmoteSet',
-					new ChannelSettingsValue(emote_set_id),
+					new DataStoreContainer(emote_set_id),
 				);
 				Bot.Log.Info(
 					'%s new 7TV emote set %s --> %s',
@@ -239,10 +220,6 @@ import { UnpingUser } from './../tools/tools.js';
 					currentEmoteSet,
 					emote_set_id,
 				);
-				return channel.joinEventSub({
-					Channel: user.Name,
-					EmoteSet: emoteSet.emote_set_id,
-				});
 			}),
 		);
 	}, ONE_MINUTE);

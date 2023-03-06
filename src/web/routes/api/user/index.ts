@@ -2,10 +2,10 @@ import { FastifyInstance } from 'fastify';
 import AuthenticationValidator from './../../../Hooks/AuthenticationValidator.js';
 import AssureHasChannel from './../../../Hooks/AssureHasChannel.js';
 import {
-	ChannelSettingsValue,
-	GetSettings,
-	UpdateSetting,
-} from './../../../../controller/Channel/index.js';
+	DataStoreContainer,
+	GetChannelData,
+	UpdateChannelData,
+} from './../../../../IndividualData.js';
 import assert from 'assert';
 
 interface BaseUpdateSetting {
@@ -56,7 +56,11 @@ export default async function (fastify: FastifyInstance) {
 
 					const { url } = body as UpdateSetting;
 					assert(typeof url === 'string', 'url is not a string');
-					await UpdateSetting(user, 'Pajbot1', new ChannelSettingsValue(CleanURL(url)));
+					await UpdateChannelData(
+						user.TwitchUID,
+						'Pajbot1',
+						new DataStoreContainer(CleanURL(url)),
+					);
 
 					break;
 				}
@@ -74,12 +78,12 @@ export default async function (fastify: FastifyInstance) {
 		handler: async (req, reply) => {
 			const { identifier, username } = req.authenticatedUser!;
 			const user = await Bot.User.Get(identifier, username);
-			const settings = await GetSettings(user);
+			const settings = await GetChannelData(user.TwitchUID, 'Pajbot1');
 
 			reply.send([
 				{
 					identifier: 'pajbot',
-					value: settings.Pajbot1.ToString(),
+					value: settings.ToString(),
 				},
 			]);
 		},

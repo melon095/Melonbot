@@ -1,14 +1,11 @@
 import Got from './../../tools/Got.js';
 import UserTable, { UserRole } from './../DB/Tables/UserTable.js';
 import Helix from './../../Helix/index.js';
-import type { Ivr } from './../../Typings/types.js';
+import type { Ivr, OAuthToken } from './../../Typings/types.js';
 import { Selectable } from 'kysely';
 import { GetSafeError } from '../../Models/Errors.js';
-
-export enum UserDataStoreKeys {
-	SpotifyToken = 'spotify_token',
-	TwitchToken = 'twitch_token',
-}
+import { GetUserData, SetUserData, UserDataStoreKeys } from '../../IndividualData.js';
+import Strategy, { AuthenticationMethod } from '../../web/oauth.js';
 
 export default class User {
 	// Two hours
@@ -239,35 +236,6 @@ export default class User {
 		return this.Role === 'admin' || this.Role === 'moderator';
 	}
 
-	async Set(option: UserDataStoreKeys, data: object | string | number): Promise<void> {
-		let store;
-		if (typeof data === 'object' || Array.isArray(data)) {
-			store = JSON.stringify(data);
-		} else if (typeof data === 'string') {
-			store = data;
-		} else if (typeof data === 'number') {
-			store = data.toString();
-		} else {
-			throw new Error('Invalid data type');
-		}
-
-		await Bot.Redis.HSet(`user:${this.TwitchUID}:data`, option, store);
-	}
-
-	async Get(option: UserDataStoreKeys): Promise<string | null> {
-		const data = await Bot.Redis.HGetAll(`user:${this.TwitchUID}:data`);
-
-		if (!data) {
-			return null;
-		}
-
-		return data[option] || null;
-	}
-
-	async Delete(option: UserDataStoreKeys): Promise<void> {
-		await Bot.Redis.HDel(`user:${this.TwitchUID}:data`, option);
-	}
-
 	async UpdateName(newName: string): Promise<void> {
 		const usersWithUid = await Bot.SQL.selectFrom('users')
 			.selectAll()
@@ -330,4 +298,29 @@ export async function ResolveInternalID(id: number): Promise<User | null> {
 	Bot.User.Cache.set(userObject.TwitchUID, userObject);
 
 	return userObject;
+}
+
+export async function GetValidTwitchToken(user: User): Promise<string> {
+	const tokenContainer = await GetUserData(user, UserDataStoreKeys.TwitchToken);
+
+	const token = tokenContainer.ToJSON<OAuthToken>().unwrap();
+
+	if (token.expires_in < Date.now()) {
+		const newToken = await RefreshTwitchToken(token.refresh_token);
+
+		await SetUserData(user, UserDataStoreKeys.TwitchToken, newToken);
+
+		return newToken.access_token;
+	}
+
+	return token.access_token;
+}
+
+function RefreshTwitchToken(refresh_token: string) {
+	return Strategy.RefreshToken(refresh_token, {
+		authenticationMethod: AuthenticationMethod.Query,
+		tokenURL: 'https://id.twitch.tv/oauth2/token',
+		clientID: Bot.Config.Twitch.ClientID,
+		clientSecret: Bot.Config.Twitch.ClientSecret,
+	});
 }

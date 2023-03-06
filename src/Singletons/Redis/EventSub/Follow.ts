@@ -17,7 +17,7 @@ export default {
 		}
 
 		const thankFn = async (name: string) => {
-			const message = (await channel?.GetSettings()).FollowMessage.ToString() ?? '';
+			const message = (await channel.GetChannelData('FollowMessage')).ToString() ?? '';
 
 			channel.say(message.replace(/{{name}}/g, name));
 		};

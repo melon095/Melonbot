@@ -1,6 +1,6 @@
 import type { Helix } from './../../../../Typings/types.js';
 import { Authenticator } from './../../../../web/index.js';
-import { UserDataStoreKeys } from './../../../../controller/User/index.js';
+import { SetUserData, UserDataStoreKeys } from './../../../../IndividualData.js';
 import HelixAPI from './../../../../Helix/index.js';
 import StrategyConstructor, {
 	AuthenticationMethod,
@@ -36,8 +36,7 @@ export default async function (fastify: FastifyInstance) {
 				v: 1,
 			});
 
-			// TODO: Move this into seperate 'Third party authenticated' data store.
-			await user.Set(UserDataStoreKeys.TwitchToken, {
+			await SetUserData(user, UserDataStoreKeys.TwitchToken, {
 				access_token: oauth.accessToken,
 				refresh_token: oauth.accessToken,
 				expires_in: oauth.expiresIn,
@@ -82,7 +81,7 @@ export default async function (fastify: FastifyInstance) {
 				response_type: 'code',
 				client_id: Bot.Config.Twitch.ClientID,
 				redirect_uri: RedirectURI,
-				scope: '',
+				scope: 'moderator:read:chatters',
 			});
 			const url = 'https://id.twitch.tv/oauth2/authorize?';
 

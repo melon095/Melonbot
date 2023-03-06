@@ -1,8 +1,9 @@
-import { SpotifyTypes } from './../Typings/types.js';
-import User, { UserDataStoreKeys } from './../controller/User/index.js';
+import { OAuthToken } from './../Typings/types.js';
+import User from './../controller/User/index.js';
 import Strategy, { AuthenticationMethod } from './../web/oauth.js';
 import Got from './Got.js';
 import assert from 'node:assert';
+import { GetUserData, SetUserData, UserDataStoreKeys } from '../IndividualData.js';
 
 export function SpotifyAuthorizationToken() {
 	const { ClientID, ClientSecret } = Bot.Config.Spotify;
@@ -20,21 +21,19 @@ export function CreateSpotifyRequestHeaders(): Record<string, string> {
 }
 
 export async function SpotifyGetValidToken(user: User): Promise<string | null> {
-	const token = await user.Get(UserDataStoreKeys.SpotifyToken).then((x) => {
-		if (!x) return null;
+	const tokenContainer = await GetUserData(user, UserDataStoreKeys.SpotifyToken);
 
-		return JSON.parse(x) as SpotifyTypes.Token;
-	});
+	const { inner, err } = tokenContainer.ToJSON<OAuthToken>();
 
-	if (!token) return null;
+	if (err) return null;
 
-	if (token.expires_in < Date.now()) {
+	if (inner.expires_in < Date.now()) {
 		try {
-			const newToken = await RefreshToken(token.refresh_token);
+			const newToken = await RefreshToken(inner.refresh_token);
 
-			await user.Set(UserDataStoreKeys.SpotifyToken, {
+			await SetUserData(user, UserDataStoreKeys.SpotifyToken, {
 				access_token: newToken.access_token,
-				refresh_token: token.refresh_token,
+				refresh_token: inner.refresh_token,
 				expires_in: Date.now() + newToken.expires_in * 1000,
 			});
 
@@ -45,7 +44,7 @@ export async function SpotifyGetValidToken(user: User): Promise<string | null> {
 		}
 	}
 
-	return token.access_token;
+	return inner.access_token;
 }
 
 export async function RefreshToken(refresh_token: string) {
