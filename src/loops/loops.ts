@@ -227,7 +227,7 @@ import { Channel } from '../controller/Channel/index.js';
 				if (!sevenUser) return;
 
 				const emoteSet = await gql.getDefaultEmoteSet(sevenUser.id).catch(() => null);
-				if (!emoteSet || emoteSet.emote_set_id) return;
+				if (!emoteSet || !emoteSet.emote_set_id) return;
 				const { emote_set_id } = emoteSet;
 
 				if (emote_set_id === currentEmoteSet) return;
