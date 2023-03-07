@@ -223,13 +223,11 @@ import { Channel } from '../controller/Channel/index.js';
 					await channel.GetChannelData('SevenTVEmoteSet')
 				).ToString();
 
-				if (!currentEmoteSet) return;
-
 				const sevenUser = await gql.GetUser(user).catch(() => null);
 				if (!sevenUser) return;
 
 				const emoteSet = await gql.getDefaultEmoteSet(sevenUser.id).catch(() => null);
-				if (!emoteSet) return;
+				if (!emoteSet || !emoteSet.emote_set_id) return;
 				const { emote_set_id } = emoteSet;
 
 				if (emote_set_id === currentEmoteSet) return;
@@ -239,6 +237,7 @@ import { Channel } from '../controller/Channel/index.js';
 					'SevenTVEmoteSet',
 					new DataStoreContainer(emote_set_id),
 				);
+
 				Bot.Log.Info(
 					'%s new 7TV emote set %s --> %s',
 					channel.Name,

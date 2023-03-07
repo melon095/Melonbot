@@ -49,7 +49,7 @@ export class DataStoreContainer {
 	}
 
 	public ToString(): string {
-		return this.value;
+		return this.value || '';
 	}
 
 	public IsEmpty(): boolean {
@@ -104,19 +104,31 @@ export async function UpdateChannelData(
 	name: ChannelDataNames | string,
 	value: DataStoreContainer,
 ): Promise<void> {
-	await Bot.SQL.insertInto('channel_data_store')
-		.values({
-			channel: channelIdentifier,
-			key: name,
-			value: value.ToString(),
-		})
-		.onConflict((cf) =>
-			cf.column('key').doUpdateSet({
+	// FIXME: One query?
+	const exists = await Bot.SQL.selectFrom('channel_data_store')
+		.select('value')
+		.where('channel', '=', channelIdentifier)
+		.where('key', '=', name)
+		.executeTakeFirst();
+
+	if (exists) {
+		await Bot.SQL.updateTable('channel_data_store')
+			.set({
 				value: value.ToString(),
 				last_edited: sql`NOW()`,
-			}),
-		)
-		.executeTakeFirst();
+			})
+			.where('channel', '=', channelIdentifier)
+			.where('key', '=', name)
+			.executeTakeFirst();
+	} else {
+		await Bot.SQL.insertInto('channel_data_store')
+			.values({
+				channel: channelIdentifier,
+				key: name,
+				value: value.ToString(),
+			})
+			.execute();
+	}
 }
 export const InsertChannelData = UpdateChannelData;
 
@@ -176,19 +188,30 @@ export async function SetUserData(
 		throw new Error('Invalid data type');
 	}
 
-	await Bot.SQL.insertInto('user_data_store')
-		.values({
-			user: user.ID,
-			key: key,
-			value: store,
-		})
-		.onConflict((cf) =>
-			cf.column('key').doUpdateSet({
+	const exists = await Bot.SQL.selectFrom('user_data_store')
+		.select('value')
+		.where('user', '=', user.ID)
+		.where('key', '=', key)
+		.executeTakeFirst();
+
+	if (exists) {
+		await Bot.SQL.updateTable('user_data_store')
+			.set({
 				value: store,
 				last_edited: sql`NOW()`,
-			}),
-		)
-		.executeTakeFirst();
+			})
+			.where('user', '=', user.ID)
+			.where('key', '=', key)
+			.execute();
+	} else {
+		await Bot.SQL.insertInto('user_data_store')
+			.values({
+				user: user.ID,
+				key: key,
+				value: store,
+			})
+			.execute();
+	}
 }
 
 export async function DeleteUserData(option: UserDataStoreKeys): Promise<void> {
