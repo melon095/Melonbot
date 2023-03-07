@@ -49,7 +49,7 @@ export class DataStoreContainer {
 	}
 
 	public ToString(): string {
-		return this.value;
+		return this.value || '';
 	}
 
 	public IsEmpty(): boolean {
@@ -104,6 +104,7 @@ export async function UpdateChannelData(
 	name: ChannelDataNames | string,
 	value: DataStoreContainer,
 ): Promise<void> {
+	// FIXME: One query?
 	const exists = await Bot.SQL.selectFrom('channel_data_store')
 		.select('value')
 		.where('channel', '=', channelIdentifier)
@@ -128,21 +129,6 @@ export async function UpdateChannelData(
 			})
 			.execute();
 	}
-
-	// onConflict machine broken lol
-	// await Bot.SQL.insertInto('channel_data_store')
-	// 	.values({
-	// 		channel: channelIdentifier,
-	// 		key: name,
-	// 		value: value.ToString(),
-	// 	})
-	// 	.onConflict((cf) =>
-	// 		cf.column('key').doUpdateSet({
-	// 			value: value.ToString(),
-	// 			last_edited: sql`NOW()`,
-	// 		}),
-	// 	)
-	// 	.execute();
 }
 export const InsertChannelData = UpdateChannelData;
 
@@ -226,21 +212,6 @@ export async function SetUserData(
 			})
 			.execute();
 	}
-
-	// broken
-	// await Bot.SQL.insertInto('user_data_store')
-	// 	.values({
-	// 		user: user.ID,
-	// 		key: key,
-	// 		value: store,
-	// 	})
-	// 	.onConflict((cf) =>
-	// 		cf.column('key').doUpdateSet({
-	// 			value: store,
-	// 			last_edited: sql`NOW()`,
-	// 		}),
-	// 	)
-	// 	.executeTakeFirst();
 }
 
 export async function DeleteUserData(option: UserDataStoreKeys): Promise<void> {
