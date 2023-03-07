@@ -43,6 +43,28 @@ export default function (): KyselyDB {
 			}),
 			cursor: PgCursor,
 		}),
+		log: function (evt) {
+			switch (evt.level) {
+				case 'error': {
+					const { error } = evt;
+
+					if (error instanceof Error) {
+						Bot.Log.Error(error, 'SQL Query failed');
+					} else {
+						Bot.Log.Warn('SQL Query failed: %o', error);
+					}
+
+					break;
+				}
+
+				case 'query': {
+					const { query, queryDurationMillis } = evt;
+					Bot.Log.Debug('SQL Query %o', { query, queryDurationMillis });
+
+					break;
+				}
+			}
+		},
 	});
 
 	return db;
