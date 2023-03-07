@@ -6,9 +6,10 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn('channel', 'varchar', (col) =>
 			col.notNull().references('channels.user_id').onUpdate('cascade').onDelete('cascade'),
 		)
-		.addColumn('key', 'text', (col) => col.notNull().primaryKey())
+		.addColumn('key', 'text', (col) => col.notNull())
 		.addColumn('value', 'text', (col) => col.notNull())
 		.addColumn('last_edited', 'timestamp', (col) => col.notNull().defaultTo(sql`now()`))
+		.addUniqueConstraint('channel_key_unique', ['channel', 'key'])
 		.execute();
 
 	await db.schema

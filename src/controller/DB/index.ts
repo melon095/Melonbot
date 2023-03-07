@@ -59,7 +59,11 @@ export default function (): KyselyDB {
 
 				case 'query': {
 					const { query, queryDurationMillis } = evt;
-					Bot.Log.Debug('SQL Query %o', { query, queryDurationMillis });
+					Bot.Log.Info('SQL Query %o', {
+						query: query.sql,
+						input: query.parameters,
+						queryDurationMillis,
+					});
 
 					break;
 				}

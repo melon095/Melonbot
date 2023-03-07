@@ -309,9 +309,7 @@ export class Channel {
 	async GetChannelData(key: string): Promise<DataStoreContainer>;
 	async GetChannelData(key: ChannelDataNames): Promise<DataStoreContainer>;
 	async GetChannelData(key: string | ChannelDataNames): Promise<DataStoreContainer> {
-		const user = await this.User();
-
-		return GetChannelData(user.TwitchUID, key);
+		return GetChannelData(this.Id, key);
 	}
 
 	async GetViewers(): Promise<string[]> {
