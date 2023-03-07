@@ -17,9 +17,10 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn('user', 'integer', (col) =>
 			col.notNull().references('users.id').onUpdate('cascade').onDelete('cascade'),
 		)
-		.addColumn('key', 'text', (col) => col.notNull().primaryKey())
+		.addColumn('key', 'text', (col) => col.notNull())
 		.addColumn('value', 'text', (col) => col.notNull())
 		.addColumn('last_edited', 'timestamp', (col) => col.notNull().defaultTo(sql`now()`))
+		.addUniqueConstraint('user_key_unique', ['user', 'key'])
 		.execute();
 }
 

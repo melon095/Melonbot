@@ -44,29 +44,13 @@ export default function (): KyselyDB {
 			cursor: PgCursor,
 		}),
 		log: function (evt) {
-			switch (evt.level) {
-				case 'error': {
-					const { error } = evt;
+			if (evt.level !== 'error') return;
+			const { error } = evt;
 
-					if (error instanceof Error) {
-						Bot.Log.Error(error, 'SQL Query failed');
-					} else {
-						Bot.Log.Warn('SQL Query failed: %o', error);
-					}
-
-					break;
-				}
-
-				case 'query': {
-					const { query, queryDurationMillis } = evt;
-					Bot.Log.Info('SQL Query %o', {
-						query: query.sql,
-						input: query.parameters,
-						queryDurationMillis,
-					});
-
-					break;
-				}
+			if (error instanceof Error) {
+				Bot.Log.Error(error, 'SQL Query failed');
+			} else {
+				Bot.Log.Warn('SQL Query failed: %o', error);
 			}
 		},
 	});
