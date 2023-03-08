@@ -38,7 +38,7 @@ export default async function (fastify: FastifyInstance) {
 
 			await SetUserData(user, UserDataStoreKeys.TwitchToken, {
 				access_token: oauth.accessToken,
-				refresh_token: oauth.accessToken,
+				refresh_token: oauth.refreshToken,
 				expires_in: Date.now() + oauth.expiresIn * 1000,
 			});
 
