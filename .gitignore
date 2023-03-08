@@ -12,3 +12,4 @@ EventSub/.evsub.secret.key
 .idea
 .backups
 logs
+target
