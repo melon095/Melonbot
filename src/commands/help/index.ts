@@ -19,7 +19,7 @@ registerCommand({
 		if (ctx.input.length <= 0) {
 			return {
 				Success: true,
-				Result: `You can find all the commands here, ${website}/bot/commands !`,
+				Result: `You can find all the commands here, ${website}/bot/commands-list`,
 			};
 		}
 
