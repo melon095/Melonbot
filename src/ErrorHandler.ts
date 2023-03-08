@@ -1,7 +1,7 @@
 export type ErrorFunction = <T>(Category: string, Err: T, ...args: string[]) => void;
 
-const Insert = (err: string | number) => {
-	Bot.SQL.Query`INSERT INTO error_logs (error_message) VALUES (${err})`.execute();
+const Insert = (error_message: string) => {
+	Bot.SQL.insertInto('error_logs').values({ error_message }).execute();
 };
 
 export default function () {
@@ -19,7 +19,10 @@ export default function () {
 				Insert(JSON.stringify(Err, null, 2));
 				break;
 			}
-			case 'number':
+			case 'number': {
+				Insert(Err.toString());
+				break;
+			}
 			case 'string': {
 				Insert(Err);
 				break;

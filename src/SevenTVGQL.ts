@@ -1,13 +1,17 @@
 import got from 'got';
 import Got from './tools/Got.js';
-import { TCommandContext } from './Models/Command.js';
 import User from './controller/User/index.js';
-import { GetSettings } from './controller/Channel/index.js';
-import { Logger } from 'logger.js';
+import { GetChannelData } from './IndividualData.js';
+import { ThirdPartyError } from './Models/Errors.js';
 
 const url = 'https://7tv.io/v3/gql';
 
 let api = got.extend();
+
+export interface SevenTVChannelIdentifier {
+	Channel: string;
+	EmoteSet: string;
+}
 
 export enum ConnectionPlatform {
 	TWITCH = 'TWITCH',
@@ -173,6 +177,23 @@ export enum ListItemAction {
 	UPDATE = 'UPDATE',
 }
 
+async function gql<ResponseBody>(query: string, variables: object = {}) {
+	const data: Base<ResponseBody> = await api
+		.post('', {
+			body: JSON.stringify({
+				query,
+				variables,
+			}),
+		})
+		.json();
+
+	if (data.errors) {
+		throw new ThirdPartyError(data.errors[0].message);
+	}
+
+	return data.data;
+}
+
 export default {
 	setup: (Bearer: string) => {
 		api = Got('json').extend({
@@ -210,41 +231,33 @@ export default {
 		});
 	},
 	getUserEmoteSets: async (id: string): Promise<GetCurrentUser> => {
-		const data: Base<GetCurrentUser> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `query GetCurrentUser ($id: ObjectID!) {
-                        user (id: $id) {
-                            id
+		const body = await gql<GetCurrentUser>(
+			`query GetCurrentUser ($id: ObjectID!) {
+                user (id: $id) {
+                    id
+                    username
+                    connections {
+                        id
+                        platform
+                    }
+                    editor_of {
+                        id
+                        user {
                             username
                             connections {
                                 id
                                 platform
                             }
-                            editor_of {
-                                id
-                                user {
-                                    username
-                                    connections {
-                                        id
-                                        platform
-                                    }
-                                }
-                            }
                         }
-                    }`,
-					variables: {
-						id: id,
-					},
-				}),
-			})
-			.json();
+                    }
+                }
+            }`,
+			{
+				id,
+			},
+		);
 
-		if (data.errors) {
-			throw data.errors[0].message;
-		}
-
-		return data.data;
+		return body;
 	},
 	getUserByEmoteSet: async function (id: string): Promise<GetCurrentUser> {
 		type data = {
@@ -255,109 +268,78 @@ export default {
 			};
 		};
 
-		const data: Base<data> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `query GetCurrentUser ($id: ObjectID!) {
-                        emoteSet (id: $id) {
-                            owner {
-                                id
-                            }
-                        }
-                    }`,
-					variables: {
-						id,
-					},
-				}),
-			})
-			.json();
+		const data = await gql<data>(
+			`query GetCurrentUser ($id: ObjectID!) {
+                emoteSet (id: $id) {
+                    owner {
+                        id
+                    }
+                }
+            }`,
+			{
+				id,
+			},
+		);
 
-		if (data.errors) {
-			throw data.errors[0].message;
-		}
-
-		return this.getUserEmoteSets(data.data.emoteSet.owner.id);
+		return this.getUserEmoteSets(data.emoteSet.owner.id);
 	},
 	SearchEmoteByName: async (
 		emote: string,
 		filter: EmoteSearchFilter = {},
 	): Promise<EmoteSearchResult> => {
-		const data: Base<EmoteSearchResult> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `query SearchEmotes($query: String! $page: Int $limit: Int $filter: EmoteSearchFilter) {
-                    emotes(query: $query page: $page limit: $limit filter: $filter) {
-                      items {
+		return gql<EmoteSearchResult>(
+			`query SearchEmotes($query: String! $page: Int $limit: Int $filter: EmoteSearchFilter) {
+                emotes(query: $query page: $page limit: $limit filter: $filter) {
+                    items {
                         id
                         name
-                      }
                     }
-                  }`,
-					variables: {
-						query: emote,
-						limit: 100,
-						page: 1,
-						filter: filter,
-					},
-				}),
-			})
-			.json();
-
-		if (data.errors) {
-			throw data.errors[0].message;
-		}
-		return data.data;
+                }
+            }`,
+			{
+				query: emote,
+				limit: 100,
+				page: 1,
+				filter,
+			},
+		);
 	},
 	GetEmoteByID: async (id: string): Promise<EmoteSet> => {
-		const data: Base<{ emote: EmoteSet }> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `query SearchEmote($id: ObjectID!) {
-                        emote(id: $id) {
-                            id
-                            name
-                        }
-                    }`,
-					variables: {
-						id,
-					},
-				}),
-			})
-			.json();
-
-		if (data.errors) throw data.errors[0].message;
-		else return data.data.emote;
+		const data = await gql<{ emote: EmoteSet }>(
+			`query SearchEmote($id: ObjectID!) {
+                emote(id: $id) {
+                    id
+                    name
+                }
+            }`,
+			{
+				id,
+			},
+		);
+		return data.emote;
 	},
 	CurrentEnabledEmotes: async (
 		emote_set: string,
 		filter?: (emote: EnabledEmote) => boolean,
 	): Promise<EnabledEmote[]> => {
-		const { data, errors }: Base<{ emoteSet: { emotes: EnabledEmote[] } }> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `query GetEmoteSet ($id: ObjectID!) {
-                            emoteSet (id: $id) {
-                                id
-                                name
-                                emotes {
-                                    id
-                                    name
-                                    data {
-                                        name
-                                    }
-                                }
-                            }
-                        }`,
-					variables: {
-						id: emote_set,
-					},
-				}),
-			})
-			.json();
-
-		if (errors) {
-			throw errors[0].message;
-		}
+		const data = await gql<{ emoteSet: { emotes: EnabledEmote[] } }>(
+			`query GetEmoteSet ($id: ObjectID!) {
+                emoteSet (id: $id) {
+                    id
+                    name
+                    emotes {
+                        id
+                        name
+                        data {
+                            name
+                        }
+                    }
+                }
+            }`,
+			{
+				id: emote_set,
+			},
+		);
 
 		const { emotes } = data.emoteSet;
 
@@ -372,65 +354,49 @@ export default {
 		return filter ? emotes.filter(filter) : emotes;
 	},
 	getEditors: async (id: string): Promise<UserEditor> => {
-		const data: Base<UserEditor> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `query GetCurrentUser ($id: ObjectID!) {
-                        user (id: $id) {
-                            id
-                            username
-                            editors {
-                                id
-                                user {
-                                    username
-                                    connections {
-                                        platform
-                                        id
-                                    }
-                                }
-                            }
-                        }
-                    }`,
-					variables: {
-						id,
-					},
-				}),
-			})
-			.json();
-
-		if (data.errors) {
-			throw data.errors[0].message;
-		}
-
-		return data.data;
-	},
-	getDefaultEmoteSet: async (id: string): Promise<{ emote_set_id: string }> => {
-		const data: Base<Connections> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `query GetCurrentUser ($id: ObjectID!) {
-                        user (id: $id) {
-                            id
+		const data = await gql<UserEditor>(
+			`query GetCurrentUser ($id: ObjectID!) {
+                user (id: $id) {
+                    id
+                    username
+                    editors {
+                        id
+                        user {
                             username
                             connections {
                                 platform
-                                emote_set_id
+                                id
                             }
                         }
-                    }`,
-					variables: {
-						id,
-					},
-				}),
-			})
-			.json();
+                    }
+                }
+            }`,
+			{
+				id,
+			},
+		);
 
-		if (data.errors) {
-			throw data.errors[0].message;
-		}
+		return data;
+	},
+	getDefaultEmoteSet: async (id: string): Promise<{ emote_set_id: string }> => {
+		const data = await gql<Connections>(
+			`query GetCurrentUser ($id: ObjectID!) {
+                user (id: $id) {
+                    id
+                    username
+                    connections {
+                        platform
+                        emote_set_id
+                    }
+                }
+            }`,
+			{
+				id,
+			},
+		);
 
 		return (
-			data.data.user.connections.find((x) => x.platform === ConnectionPlatform.TWITCH) || {
+			data.user.connections.find((x) => x.platform === ConnectionPlatform.TWITCH) || {
 				emote_set_id: '',
 			}
 		);
@@ -445,147 +411,101 @@ export default {
 		emote: string,
 		name?: string,
 	): Promise<[ChangeEmoteInset, string | null]> => {
-		const data: Base<ChangeEmoteInset> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `mutation ChangeEmoteInSet($id: ObjectID! $action: ListItemAction! $emote_id: ObjectID! $name: String) {
-                        emoteSet(id: $id) {
-                            id
-                            emotes(id: $emote_id action: $action name: $name) {
-                                id
-                                name
-                            }
-                        }
-                    }`,
-					variables: {
-						id: emote_set,
-						action,
-						emote_id: emote,
-						name,
-					},
-				}),
-			})
-			.json();
+		const data = await gql<ChangeEmoteInset>(
+			`mutation ChangeEmoteInSet($id: ObjectID! $action: ListItemAction! $emote_id: ObjectID! $name: String) {
+                emoteSet(id: $id) {
+                    id
+                    emotes(id: $emote_id action: $action name: $name) {
+                        id
+                        name
+                    }
+                }
+            }`,
+			{
+				id: emote_set,
+				action,
+				emote_id: emote,
+				name,
+			},
+		);
 
-		if (data.errors) {
-			throw data.errors[0].message;
-		}
+		const newEmote = data.emoteSet.emotes.find((x) => x.id === emote);
 
-		const newEmote = data.data.emoteSet.emotes.find((x) => x.id === emote);
-
-		return [data.data, newEmote?.name || null];
+		return [data, newEmote?.name || null];
 	},
 	GetUser: async function ({ TwitchUID }: User): Promise<V3User> {
-		const data: Base<{ userByConnection: V3User }> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `query GetUserByConnection($platform: ConnectionPlatform! $id: String!) {
-                        userByConnection (platform: $platform id: $id) {
+		const data = await gql<{ userByConnection: V3User }>(
+			`query GetUserByConnection($platform: ConnectionPlatform! $id: String!) {
+                userByConnection (platform: $platform id: $id) {
+                    id
+                    type
+                    username
+                    roles
+                    created_at
+                    connections {
+                        id
+                        platform
+                        emote_set_id
+                    }
+                    emote_sets {
+                        id
+                        emotes {
                             id
-                            type
-                            username
-                            roles
-                            created_at
-                            connections {
-                                id
-                                platform
-                                emote_set_id
-                            }
-                            emote_sets {
-                                id
-                                emotes {
-                                    id
-                                }
-                                capacity
-                            }
                         }
-                    }`,
-					variables: {
-						platform: ConnectionPlatform.TWITCH,
-						id: TwitchUID,
-					},
-				}),
-			})
-			.json();
+                        capacity
+                    }
+                }
+            }`,
+			{
+				platform: ConnectionPlatform.TWITCH,
+				id: TwitchUID,
+			},
+		);
 
-		if (data.errors) {
-			throw data.errors[0].message;
-		}
-
-		return data.data.userByConnection;
+		return data.userByConnection;
 	},
 	GetRoles: async (): Promise<{ id: string; name: string }[]> => {
-		const data: Base<{ roles: { id: string; name: string }[] }> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `query GetRoles{
+		const data = await gql<{ roles: { id: string; name: string }[] }>(`
+                    query GetRoles{
                         roles {
                             name
                             id
                         }
-                    }`,
-				}),
-			})
-			.json();
+                    }`);
 
-		if (data.errors) {
-			throw data.errors[0].message;
-		}
-
-		return data.data.roles;
+		return data.roles;
 	},
 	ModifyUserEditorPermissions: async (
 		owner: string,
 		editor: string,
 		permissions: UserEditorPermissions = UserEditorPermissions.DEFAULT,
 	) => {
-		const data: Base<UpdateUserEditors> = await api
-			.post('', {
-				body: JSON.stringify({
-					query: `mutation UpdateUserEditors($id: ObjectID! $editor_id: ObjectID! $d: UserEditorUpdate!) {
-                        user(id: $id) {
-                            editors(editor_id: $editor_id data: $d) {
-                                id
-                            }
-                        }
-                    }`,
-					variables: {
-						id: owner,
-						editor_id: editor,
-						d: {
-							permissions,
-						},
-					},
-				}),
-			})
-			.json();
-
-		if (data.errors) {
-			throw data.errors[0].message;
-		}
-		return data.data;
+		return gql<UpdateUserEditors>(
+			`mutation UpdateUserEditors($id: ObjectID! $editor_id: ObjectID! $d: UserEditorUpdate!) {
+                user(id: $id) {
+                    editors(editor_id: $editor_id data: $d) {
+                        id
+                    }
+                }
+            }`,
+			{
+				id: owner,
+				editor_id: editor,
+				d: {
+					permissions,
+				},
+			},
+		);
 	},
 	isAllowedToModify: async function (
 		channelUser: User,
 		invokerUser: User /*ctx: TCommandContext*/,
 	): Promise<ModifyData> {
-		const emoteSet = (await GetSettings(channelUser).then((x) => x.SevenTVEmoteSet)).ToString();
+		const emoteSet = (
+			await GetChannelData(channelUser.TwitchUID, 'SevenTVEmoteSet')
+		).ToString();
 
-		if (!emoteSet) {
-			return {
-				okay: false,
-				message: 'I am not an editor of this channel :/',
-			};
-		}
-
-		const user = await this.GetUser(channelUser).catch(() => null);
-
-		if (!user) {
-			return {
-				okay: false,
-				message: "You don't seem to have a 7TV profile.",
-			};
-		}
+		const user = await this.GetUser(channelUser);
 
 		const editors = await Bot.Redis.SetMembers(`seventv:${emoteSet}:editors`);
 

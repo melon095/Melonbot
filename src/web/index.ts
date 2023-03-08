@@ -1,7 +1,7 @@
 import path, { resolve } from 'node:path';
 import jwt from 'jsonwebtoken';
 import fastify, { FastifyInstance } from 'fastify';
-import { UserRole } from './../Typings/models/bot/users.js';
+import { UserRole } from './../controller/DB/Tables/UserTable.js';
 
 export type RouteConstructor = (app: FastifyInstance) => Promise<void> | void;
 
@@ -107,6 +107,11 @@ export const Authenticator = new (class {
 			methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 		});
 	}
+
+	app.setErrorHandler((error, _, res) => {
+		Bot.Log.Error(error);
+		res.status(500).send({ error: 'Internal Server Error' });
+	});
 
 	(await import('./Hooks/RequestLogger.js')).default(app);
 

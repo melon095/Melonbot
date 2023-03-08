@@ -1,20 +1,18 @@
 import { FastifyInstance } from 'fastify';
 
 export default async function (fastify: FastifyInstance) {
-	async function GetTotalUsers() {
-		const count = await Bot.SQL.Query`
-            SELECT COUNT(*) AS count FROM users
-        `;
-
-		return count[0].count;
+	function GetTotalUsers() {
+		return Bot.SQL.selectFrom('users')
+			.select((eq) => eq.fn.count('id').as('count'))
+			.executeTakeFirst()
+			.then((c) => c?.count || 0);
 	}
 
-	async function GetJoinedChannelCount() {
-		const count = await Bot.SQL.Query`
-            SELECT COUNT(*) AS count FROM channels
-        `;
-
-		return count[0].count;
+	function GetJoinedChannelCount() {
+		return Bot.SQL.selectFrom('channels')
+			.select((eq) => eq.fn.count('user_id').as('count'))
+			.executeTakeFirst()
+			.then((c) => c?.count || 0);
 	}
 
 	// TODO: Not implemented yet.
@@ -22,10 +20,11 @@ export default async function (fastify: FastifyInstance) {
 		return 0;
 	}
 
-	async function GetTotalHandledCommands() {
-		const sum = await Bot.SQL.Query`SELECT SUM(commands_handled) FROM stats`;
-
-		return sum[0].sum;
+	function GetTotalHandledCommands() {
+		return Bot.SQL.selectFrom('stats')
+			.select((eq) => eq.fn.sum('commands_handled').as('sum'))
+			.executeTakeFirst()
+			.then((c) => c?.sum || 0);
 	}
 
 	fastify.route({

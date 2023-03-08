@@ -9,23 +9,26 @@ Bot.Config.Twitch = {};
 // @ts-ignore
 Bot.Config.SQL = {};
 
-import { SQLController } from './controller/DB/index.js';
+import CreateDatabaseConnection, { DoMigration } from './controller/DB/index.js';
 import Twitch from './Twitch.js';
 import { TConfigFile } from './Typings/types';
 import { exit } from 'node:process';
-import { CommandsHandler } from './controller/Commands/Handler.js';
-import { SevenTVEvent } from './controller/Emote/SevenTV/EventAPI.js';
+import { StoreToDB } from './controller/Commands/Handler.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import ErrorHandler from './ErrorHandler.js';
-import { Channel, GetSettings } from './controller/Channel/index.js';
-import { NChannelFunctions, Sleep } from './tools/tools.js';
+import { Channel } from './controller/Channel/index.js';
+import { Sleep } from './tools/tools.js';
 import { RedisSingleton } from './Singletons/Redis/index.js';
 import * as tools from './tools/tools.js';
 import User from './controller/User/index.js';
 import TimerSingleton from './Singletons/Timers/index.js';
 import logger from './logger.js';
 import SevenTVGQL from './SevenTVGQL.js';
+import {
+	ChannelDatabaseToMode,
+	PermissionModeToDatabase,
+} from './controller/DB/Tables/ChannelTable.js';
 
 type ProcessType = 'BOT' | 'WEB';
 
@@ -51,18 +54,8 @@ export const Setup = {
 			fs.readFileSync(path.join(process.cwd() + '/config.json'), 'utf-8'),
 		);
 		addConfig(cfg);
-		Bot.SQL = SQLController.New();
-		const migrationVersion = await Bot.SQL.RunMigration().catch((error) => {
-			Bot.Log.Error(error, 'Migration Error');
-			exit();
-		});
-		if (migrationVersion.NewVersion > migrationVersion.OldVersion) {
-			Bot.Log.Info(
-				'Migrated from version %d to %d',
-				migrationVersion.OldVersion,
-				migrationVersion.NewVersion,
-			);
-		}
+		Bot.SQL = CreateDatabaseConnection();
+		await DoMigration(Bot.SQL);
 
 		SevenTVGQL.setup(Bot.Config.SevenTV.Bearer);
 
@@ -76,18 +69,14 @@ export const Setup = {
 		await redis.Connect();
 
 		Bot.Redis = redis;
-		Bot.Commands = new CommandsHandler();
-		await Bot.Commands.initialize().catch(() => {
-			process.exit();
-		});
+
+		const commandLoader = await import('./commands/index.js');
+		await commandLoader.default();
+		await StoreToDB();
 
 		Bot.User = User;
 
 		return;
-	},
-
-	Bot: async () => {
-
 	},
 };
 

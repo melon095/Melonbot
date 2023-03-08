@@ -1,10 +1,11 @@
 import DankTwitch from '@kararty/dank-twitch-irc';
 import * as tools from './tools/tools.js';
-import { Channel, ChannelSettingsValue, UpdateSetting } from './controller/Channel/index.js';
+import { Channel, ExecuteCommand } from './controller/Channel/index.js';
 import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
 import { LuaWebsocket, RequestType } from './experimental/lua.js';
+import ChannelTable from './controller/DB/Tables/ChannelTable.js';
 
 interface IUserInformation {
 	data: [
@@ -101,11 +102,8 @@ export default class Twitch {
 		this.InitReady.resolve(true);
 	}
 
-	async AddChannelList(user: User, eventsub = false): Promise<Channel> {
+	async AddChannelList(user: User): Promise<Channel> {
 		const c = await Channel.New(user, 'Write', false);
-		if (eventsub) {
-			await c.joinEventSub();
-		}
 		this.channels.push(c);
 		return c;
 	}
@@ -124,15 +122,17 @@ export default class Twitch {
 		return this.InitReady.promise;
 	}
 
-	async GetChannel(ID: string): Promise<Database.channels | null> {
-		const channel = await Bot.SQL.Query<Database.channels[]>`
-            SELECT * FROM channels
-             WHERE user_id = ${ID}`;
+	async GetChannel(ID: string): Promise<ChannelTable | null> {
+		const channel = await Bot.SQL.selectFrom('channels')
+			.selectAll()
+			.where('user_id', '=', ID)
+			.executeTakeFirst();
 
-		if (!channel.length) {
+		if (!channel) {
 			return null;
 		}
-		return channel[0];
+
+		return channel;
 	}
 
 	TwitchChannelSpecific({ ID, Name }: { ID?: string; Name?: string }) {
@@ -147,8 +147,7 @@ export default class Twitch {
 
 	async TryRejoin(channel: Channel, name: string): Promise<void> {
 		await this.client.join(name);
-		await channel.joinEventSub();
-		channel.UpdateMode('Write'); // TODO: Check database?
+		await channel.setPermissionMode('Write');
 	}
 
 	private async SetOwner(): Promise<void> {
@@ -234,7 +233,7 @@ export default class Twitch {
 				return;
 			}
 
-			const allowedTester = (await channel.GetSettings()).IsTester.ToBoolean() === true;
+			const allowedTester = (await channel.GetChannelData('IsTester')).ToBoolean() === true;
 			if (allowedTester) {
 				const invoker: [string, string] = [senderUserID, senderUsername];
 
@@ -256,7 +255,7 @@ export default class Twitch {
 				}
 			}
 
-			const result = await channel.tryCommand(user, input, commandName, msg);
+			const result = await ExecuteCommand(channel, user, input, commandName, msg);
 
 			if (!result || !result.message) {
 				return;

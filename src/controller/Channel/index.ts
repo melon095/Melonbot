@@ -1,21 +1,18 @@
-import { NChannel, TUserCooldown, ChannelTalkOptions } from './../../Typings/types';
+import { TUserCooldown, ChannelTalkOptions } from './../../Typings/types';
 import { EPermissionLevel, ECommandFlags } from './../../Typings/enums.js';
 import { CheckMessageBanphrase } from './../Banphrase/index.js';
 import * as tools from './../../tools/tools.js';
-import { Result, Err, Ok } from './../../tools/result.js';
 import { MessageScheduler } from './../../tools/MessageScheduler.js';
 import DankTwitch from '@kararty/dank-twitch-irc';
 import {
-	CommandModel,
+	ParseArguments,
 	TCommandContext,
-	ParseArgumentsError,
 	ArgsParseResult,
-	SafeResponseError,
 	CommandLogFn,
 	CommandLogType,
+	CommandModel,
 } from '../../Models/Command.js';
 import TriviaController from './../Trivia/index.js';
-import { SevenTVChannelIdentifier } from './../Emote/SevenTV/EventAPI';
 import User from './../User/index.js';
 import PreHandler from './../../PreHandlers/index.js';
 import Helix, {
@@ -24,8 +21,24 @@ import Helix, {
 	EventSubSubscription,
 } from './../../Helix/index.js';
 import { RedisSingleton } from './../../Singletons/Redis/index.js';
-import { EventsubTypes } from 'Singletons/Redis/Data.Types';
+import { EventsubTypes } from './../../Singletons/Redis/Data.Types';
 import { IPromolve, Promolve } from '@melon95/promolve';
+import { Insertable, sql } from 'kysely';
+import CommandsExecutionTable from '../DB/Tables/CommandsExecutionTable.js';
+import {
+	PermissionMode,
+	PermissionModeToCooldown,
+	PermissionModeToDatabase,
+} from '../DB/Tables/ChannelTable.js';
+import { GetCommandBy } from '../Commands/Handler.js';
+import {
+	InvalidInputError,
+	ParseArgumentsError,
+	PreHandlerError,
+	ThirdPartyError,
+} from '../../Models/Errors.js';
+import { ChannelDataNames, DataStoreContainer, GetChannelData } from '../../IndividualData.js';
+import { SevenTVChannelIdentifier } from '../../SevenTVGQL.js';
 
 /**
  * Encapsulated data for every channel.
@@ -51,7 +64,7 @@ export class Channel {
 	 * @description Moderator - Cooldown is 50 milliseconds - Enables moderation mode
 	 * @description Bot - Only the bot channel will have this.
 	 */
-	public Mode: NChannel.Mode;
+	public Mode: PermissionMode;
 
 	/**
 	 * @description The value of Mode just in number format
@@ -93,20 +106,7 @@ export class Channel {
 	 */
 	public EventSubs: EventSubHandler;
 
-	static async WithEventsub(channel: Channel, emoteSetID?: string): Promise<Channel> {
-		let identifier: SevenTVChannelIdentifier | undefined = undefined;
-		if (emoteSetID) {
-			identifier = {
-				Channel: channel.Name,
-				EmoteSet: emoteSetID ?? undefined,
-			};
-		}
-
-		await channel.joinEventSub(identifier);
-		return channel;
-	}
-
-	static async New(user: User, Mode: NChannel.Mode, Live: boolean): Promise<Channel> {
+	static async New(user: User, Mode: PermissionMode, Live: boolean): Promise<Channel> {
 		const Channel = new this(user, Mode, Live);
 		await Channel.EventSubs.Done;
 		return Channel;
@@ -120,20 +120,24 @@ export class Channel {
 
 		const user = await Bot.User.Get(Creds.user_id, Creds.name);
 
-		await Bot.SQL.Query`
-            INSERT INTO channels (name, user_id, bot_permission)
-            VALUES (${Creds.name}, ${Creds.user_id}, ${3})
-            ON CONFLICT (user_id) DO NOTHING;`;
+		await Bot.SQL.insertInto('channels')
+			.values({
+				name: Creds.name,
+				user_id: Creds.user_id,
+				bot_permission: 3,
+				live: false,
+			})
+			.onConflict((table) => table.column('user_id').doNothing())
+			.execute();
 
 		return new this(user, 'Bot', false);
 	}
 
-	constructor(user: User, Mode: NChannel.Mode, Live: boolean) {
+	constructor(user: User, Mode: PermissionMode, Live: boolean) {
 		this.Name = user.Name;
 		this.Id = user.TwitchUID;
 		this.Mode = Mode;
-		this.Cooldown = tools.NChannelFunctions.ModeToCooldown(Mode) ?? 1250;
-		// this.Banphrase = new Banphrase();
+		this.Cooldown = PermissionModeToCooldown(Mode) ?? 1250;
 		this.Live = Live;
 		this.Queue = new MessageScheduler();
 		this.UserCooldowns = {};
@@ -187,217 +191,14 @@ export class Channel {
 		this.Trivia.tryAnswer(user, input.join(' '));
 	}
 
-	/**
-	 * @param user The user
-	 * @param input The input
-	 * @param extras Extra Twitch data related to the user.
-	 * @returns
-	 */
-	async tryCommand(
-		user: User,
-		input: string[],
-		commandName: string,
-		extras: DankTwitch.PrivmsgMessage,
-	): Promise<{ message: string; flags: ChannelTalkOptions } | void> {
-		try {
-			const command = await Bot.Commands.get(commandName);
-
-			if (typeof command === 'undefined') return;
-
-			if (command.OnlyOffline && this.Live) {
-				return;
-			}
-
-			const current = Date.now();
-
-			const timeout = this.getCooldown(user.ID);
-			if (typeof timeout === 'object') {
-				// User has done commands before, find the specific value for current command.
-				const cr = timeout.find((time) => time.Command === command.Name);
-				// If found and is still on cooldown we return.
-				if (typeof cr !== 'undefined' && cr.TimeExecute > current) return;
-			}
-
-			// First time running command this instance or not on cooldown, so we set their cooldown.
-			this.setCooldown(user.ID, {
-				Command: command.Name,
-				TimeExecute: current + command.Cooldown * 1000,
-				Cooldown: Bot.Config.Development ? 0 : command.Cooldown,
-			});
-
-			if (!this.permissionCheck(command, user, extras)) {
-				return;
-			}
-
-			const copy = [...input];
-
-			let argsResult: ArgsParseResult;
-			try {
-				argsResult = CommandModel.ParseArguments(copy, command.Params);
-			} catch (error) {
-				/// Indicates that the input is invalid
-				if (error instanceof ParseArgumentsError) {
-					this.say(`❗ ${user.Name}: ${error.message}`, { SkipBanphrase: true });
-					return;
-				} else {
-					this.say(`❗ ${user.Name}: An error occurred while parsing arguments.`, {
-						SkipBanphrase: true,
-					});
-					return;
-				}
-			}
-
-			// Create context.
-			const ctx: TCommandContext = {
-				channel: this,
-				user: user,
-				input: argsResult.output,
-				data: {
-					Params: argsResult.values,
-					User: extras,
-				},
-				Log: CommandLog(command.Name, this.Name),
-			};
-
-			let mods: object;
-			try {
-				mods = await PreHandler.Fetch(ctx, command.PreHandlers);
-			} catch (error) {
-				if (error instanceof SafeResponseError) {
-					this.say(`❗ ${user.Name}: ${error.message}`, { SkipBanphrase: true });
-				} else {
-					Bot.Log.Error(error as Error, 'PreHandler');
-
-					this.say(`❗ ${user.Name}: An error occurred while running the command :(`, {
-						SkipBanphrase: true,
-					});
-				}
-
-				return;
-			}
-
-			const doExecution = async (): Promise<[CommandExecutionResult, string]> => {
-				try {
-					const data = await command.Execute(ctx, mods);
-					const result: CommandExecutionResult = {
-						user_id: user.TwitchUID,
-						username: user.Name,
-						channel: this.Id,
-						success: data.Success ?? false,
-						result: data.Result ?? '',
-						args: ctx.input,
-						command: command.Name,
-					};
-
-					if (!data.Result || !data.Result.length) return [result, ''];
-
-					if (command.Ping) data.Result = `@${user.Name}, ${data.Result}`;
-
-					if (!data.Success) data.Result = `❗ ${data.Result}`;
-
-					return [result, data.Result];
-				} catch (error) {
-					Bot.Log.Error(error as Error, 'command/run/catch');
-
-					if (user.HasSuperPermission()) {
-						this.say(
-							`❗ ${user.Name}: ${getStringFromError(error as string | Error)}`,
-							{
-								SkipBanphrase: true,
-							},
-						);
-					} else {
-						this.say('PoroSad Command Failed...', {
-							SkipBanphrase: true,
-						});
-					}
-
-					const result: CommandExecutionResult = {
-						user_id: user.TwitchUID,
-						username: user.Name,
-						channel: this.Id,
-						success: false,
-						result: JSON.stringify(error),
-						args: ctx.input,
-						command: command.Name,
-					};
-
-					return [result, ''];
-				}
-			};
-
-			const [result, toSay] = await doExecution();
-
-			this.logCommandExecution(result);
-
-			await Bot.SQL
-				.Query`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${this.Name}`;
-
-			return {
-				message: toSay,
-				flags: {
-					SkipBanphrase: command.HasFlag(ECommandFlags.NO_BANPHRASE),
-				},
-			};
-		} catch (e) {
-			Bot.Log.Error(e as Error, 'channel/tryCommand/catch');
-			this.say('BrokeBack command failed', {
-				SkipBanphrase: true,
-			});
-		}
-	}
-
-	async VanishUser(username: string): Promise<void> {
-		await Bot.Twitch.Controller.client.timeout(this.Name, username, 1, 'Vanish Command Issued');
-	}
-
-	/**
-	 * Listen for 7TV eventsub messages
-	 * Will only be enabled if the channel has the setting checked
-	 */
-	async joinEventSub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
-		const settings = await GetSettings(this.User());
-
-		const eventsub = settings.Eventsub.ToBoolean();
-		if (!eventsub) return;
-
-		if (!emoteSetID) {
-			const e = settings.SevenTVEmoteSet.ToString();
-			if (!e) return;
-			emoteSetID = {
-				EmoteSet: e,
-				Channel: this.Name,
-			};
-		}
-
-		if (!emoteSetID) {
-			return;
-		}
-
-		Bot.Twitch.Emotes.SevenTVEvent.addChannel(emoteSetID);
-	}
-
-	async leaveEventSub(emoteSetID?: SevenTVChannelIdentifier): Promise<void> {
-		if (!emoteSetID) {
-			try {
-				const e = await this.getEmoteSetID();
-				if (!e) return;
-				emoteSetID = e;
-			} catch (error) {
-				Bot.Log.Error(error as Error, 'channel/leaveEventSub');
-				return;
-			}
-		}
-
-		Bot.Twitch.Emotes.SevenTVEvent.removeChannel(emoteSetID);
-	}
-
 	async getEmoteSetID(): Promise<SevenTVChannelIdentifier | void> {
-		const settings = await GetSettings(this.User());
+		const emoteSet = (
+			await GetChannelData((await this.User()).TwitchUID, 'SevenTVEmoteSet')
+		).ToString();
 
-		if (settings.SevenTVEmoteSet) {
+		if (emoteSet) {
 			return {
-				EmoteSet: settings.SevenTVEmoteSet.ToString(),
+				EmoteSet: emoteSet,
 				Channel: this.Name,
 			};
 		}
@@ -432,45 +233,28 @@ export class Channel {
 	}
 
 	private async setupTrivia(): Promise<void> {
-		const filter = await Bot.SQL.Query<Database.channels[]>`
-            SELECT disabled_commands
-            FROM channels
-            WHERE user_id = ${this.Id}`;
-
-		if (filter.length) {
-			this.Filter = filter[0].disabled_commands;
-			if (!filter[0].disabled_commands.includes('trivia')) {
-				this.InitiateTrivia();
-			}
-		} else this.InitiateTrivia();
+		this.InitiateTrivia();
 	}
 
 	static async Join(user: User) {
-		await Bot.SQL.Get.begin(async () => {
-			const queries = [];
+		await Bot.SQL.transaction().execute(async (tx) => {
+			await tx
+				.insertInto('channels')
+				.values({
+					name: user.Name,
+					user_id: user.TwitchUID,
+					bot_permission: 1,
+					live: false,
+				})
+				.execute();
 
-			await Bot.SQL
-				.Query`INSERT INTO channels (name, user_id) VALUES (${user.Name}, ${user.TwitchUID})`;
-
-			queries.push(Bot.SQL.Query`INSERT INTO stats (name) VALUES (${user.Name})`);
-
-			const triviaValues: Database.trivia = {
-				channel: user.Name,
-				user_id: user.TwitchUID,
-				cooldown: 60000,
-				filter: { exclude: [], include: [] },
-				leaderboard: [],
-			};
-
-			queries.push(
-				Bot.SQL.Query`
-                INSERT INTO trivia ${Bot.SQL.Get(triviaValues)}`,
-			);
-
-			await Promise.all(queries);
-		}).catch((error) => {
-			Bot.Log.Error(error as Error, 'channel/join');
-			throw '';
+			await tx
+				.insertInto('stats')
+				.values({
+					name: user.Name,
+					commands_handled: 0,
+				})
+				.execute();
 		});
 
 		try {
@@ -504,20 +288,9 @@ export class Channel {
 
 			channel.say('FeelsDankMan 👋 Hi');
 		} catch (err) {
-			Bot.Log.Error(err as Error, 'Join');
 			await Bot.Twitch.Controller.client.part(user.Name);
-			throw '';
+			throw err;
 		}
-	}
-
-	async updateFilter(): Promise<void> {
-		const [filter] = await Bot.SQL.Query<Database.channels[]>`
-            SELECT disabled_commands
-            FROM channels
-            WHERE user_id = ${this.Id}`;
-
-		if (!filter) this.Filter = [];
-		else this.Filter = filter.disabled_commands;
 	}
 
 	// On self messages.
@@ -526,20 +299,26 @@ export class Channel {
 
 		// Moderator
 		if (badges.hasModerator || badges.hasBroadcaster) {
-			this.setMod();
+			await this.setPermissionMode('Moderator');
 		}
 		// Vip
 		else if (badges.hasVIP) {
-			this.setVip();
+			await this.setPermissionMode('VIP');
 		}
 		// Default user
 		else if (this.Mode !== 'Read' && !badges.hasModerator && !badges.hasVIP) {
-			this.setNorman();
+			await this.setPermissionMode('Write');
 		}
 	}
 
 	async User(): Promise<User> {
 		return Bot.User.Get(this.Id, this.Name);
+	}
+
+	async GetChannelData(key: string): Promise<DataStoreContainer>;
+	async GetChannelData(key: ChannelDataNames): Promise<DataStoreContainer>;
+	async GetChannelData(key: string | ChannelDataNames): Promise<DataStoreContainer> {
+		return GetChannelData(this.Id, key);
 	}
 
 	async GetViewers(): Promise<string[]> {
@@ -548,66 +327,38 @@ export class Channel {
 		) as string[];
 	}
 
-	public async GetSettings(): Promise<ChannelSettings> {
-		return GetSettings(this.User());
-	}
+	public async setPermissionMode(mode: PermissionMode) {
+		const asDatabase = PermissionModeToDatabase(mode);
 
-	public async ReflectSettings(): Promise<void> {
-		const settings = await GetSettings(this.User());
+		await Bot.SQL.updateTable('channels')
+			.set({
+				bot_permission: asDatabase,
+			})
+			.where('user_id', '=', this.Id)
+			.execute();
 
-		if (!settings) return;
+		this.Mode = mode;
+		this.Cooldown = PermissionModeToCooldown(mode) ?? 1250;
 
-		const eventsub = settings.Eventsub.ToBoolean();
-
-		if (eventsub !== undefined) {
-			switch (eventsub) {
-				case true:
-					await this.joinEventSub();
-					break;
-				case false:
-					await this.leaveEventSub();
-					break;
-			}
-		}
-	}
-	setMod(): void {
-		if (this.Mode === 'Moderator') return;
-		this.Mode = 'Moderator';
-		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('Moderator') ?? 1250;
-		Bot.SQL.Query`UPDATE channels SET bot_permission = ${3} WHERE user_id = ${
-			this.Id
-		}`.execute();
-		Bot.Log.Info('%s is now set as Moderator.', this.Name);
-	}
-
-	setVip(): void {
-		if (this.Mode === 'VIP') return;
-		this.Mode = 'VIP';
-		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('VIP') ?? 1250;
-		Bot.SQL.Query`UPDATE channels SET bot_permission = ${2} WHERE user_id = ${
-			this.Id
-		}`.execute();
-		Bot.Log.Info('%s is now set as VIP.', this.Name);
-	}
-
-	// Norman meaning.. Normal. WutFace
-	setNorman(): void {
-		if (this.Mode === 'Write') return;
-		this.Mode = 'Write';
-		this.Cooldown = tools.NChannelFunctions.ModeToCooldown('Write') ?? 1250;
-		Bot.SQL.Query`UPDATE channels SET bot_permission = ${1} WHERE user_id = ${
-			this.Id
-		}`.execute();
-		Bot.Log.Info('%s is now set as Norman.', this.Name);
+		Bot.Log.Info('%s is now set as %s.', this.Name, mode);
 	}
 
 	async UpdateName(newName: string): Promise<void> {
-		this.Name = newName;
-		await Bot.SQL.Query`UPDATE channels SET name = ${newName} WHERE user_id = ${this.Id}`;
+		try {
+			await Bot.Twitch.Controller.TryRejoin(this, newName);
+			await Bot.SQL.updateTable('channels')
+				.set({
+					name: newName,
+				})
+				.where('user_id', '=', this.Id)
+				.execute();
 
-		await Bot.Twitch.Controller.TryRejoin(this, newName);
-
-		await this.say('FeelsDankMan TeaTime');
+			await Bot.Twitch.Controller.client.part(this.Name);
+			this.Name = newName;
+			await this.say('FeelsDankMan TeaTime');
+		} catch (error) {
+			Bot.Log.Error(error as Error, 'Failed to update name for %s', this.Name);
+		}
 	}
 
 	async UpdateLive(): Promise<void> {
@@ -615,24 +366,11 @@ export class Channel {
 		return;
 	}
 
-	async UpdateMode(mode: NChannel.Mode): Promise<void> {
-		this.Mode = mode;
-		this.Cooldown = tools.NChannelFunctions.ModeToCooldown(mode) ?? 1250;
-	}
-
-	setMode(mode: NChannel.Mode): void {
-		this.Mode = mode;
-	}
-
-	setLive(_live: boolean): void {
-		this.Live = _live;
-	}
-
-	private getCooldown(id: number): TUserCooldown[] {
+	public getCooldown(id: number): TUserCooldown[] {
 		return this.UserCooldowns[id];
 	}
 
-	private setCooldown(id: number, val: TUserCooldown): void {
+	public setCooldown(id: number, val: TUserCooldown): void {
 		if (!this.UserCooldowns[id]) {
 			this.UserCooldowns[id] = [val];
 			return;
@@ -648,12 +386,6 @@ export class Channel {
 		if (this.Queue.hasMessage) {
 			this.say(message, { SkipBanphrase: true });
 		}
-	}
-
-	async logCommandExecution(result: CommandExecutionResult): Promise<void> {
-		await Bot.SQL.Query`
-            INSERT INTO logs.commands_execution ${Bot.SQL.Get(result)}
-        `;
 	}
 
 	private async InitiateTrivia(): Promise<void> {
@@ -687,38 +419,202 @@ export class Channel {
 			});
 		});
 	}
-
-	private permissionCheck(
-		command: CommandModel,
-		user: User,
-		privmsg: DankTwitch.PrivmsgMessage,
-	): boolean {
-		const { badges } = privmsg;
-
-		let userPermission = EPermissionLevel.VIEWER;
-		userPermission = (badges.hasVIP && EPermissionLevel.VIP) || userPermission;
-
-		userPermission = (badges.hasModerator && EPermissionLevel.MOD) || userPermission;
-
-		userPermission =
-			(this.Id === user.TwitchUID && EPermissionLevel.BROADCAST) || userPermission;
-
-		userPermission = (user.Role === 'admin' && EPermissionLevel.ADMIN) || userPermission;
-		return command.Permission <= userPermission ? true : false;
-	}
 }
 
-export interface CommandExecutionResult {
-	user_id: string;
-	username: string;
+function permissionCheck(
+	channel: Channel,
+	command: CommandModel,
+	user: User,
+	privmsg: DankTwitch.PrivmsgMessage,
+): boolean {
+	const { badges } = privmsg;
 
-	channel: string;
+	let userPermission = EPermissionLevel.VIEWER;
+	userPermission = (badges.hasVIP && EPermissionLevel.VIP) || userPermission;
 
-	success: boolean;
+	userPermission = (badges.hasModerator && EPermissionLevel.MOD) || userPermission;
 
-	command: string;
-	args: string[];
-	result: string;
+	userPermission =
+		(channel.Id === user.TwitchUID && EPermissionLevel.BROADCAST) || userPermission;
+
+	userPermission = (user.Role === 'admin' && EPermissionLevel.ADMIN) || userPermission;
+	return command.Permission <= userPermission ? true : false;
+}
+
+export async function ExecuteCommand(
+	channel: Channel,
+	user: User,
+	input: string[],
+	commandName: string,
+	extras: DankTwitch.PrivmsgMessage,
+): Promise<{ message: string; flags: ChannelTalkOptions } | void> {
+	try {
+		const command = GetCommandBy(commandName);
+
+		if (typeof command === 'undefined') return;
+
+		if (command.OnlyOffline && channel.Live) {
+			return;
+		}
+
+		const current = Date.now();
+
+		const timeout = channel.getCooldown(user.ID);
+		if (typeof timeout === 'object') {
+			// User has done commands before, find the specific value for current command.
+			const cr = timeout.find((time) => time.Command === command.Name);
+			// If found and is still on cooldown we return.
+			if (typeof cr !== 'undefined' && cr.TimeExecute > current) return;
+		}
+
+		// First time running command this instance or not on cooldown, so we set their cooldown.
+		channel.setCooldown(user.ID, {
+			Command: command.Name,
+			TimeExecute: current + command.Cooldown * 1000,
+			Cooldown: Bot.Config.Development ? 0 : command.Cooldown,
+		});
+
+		if (!permissionCheck(channel, command, user, extras)) {
+			return;
+		}
+
+		const flags: ChannelTalkOptions = {
+			SkipBanphrase: command.HasFlag(ECommandFlags.NO_BANPHRASE),
+		};
+
+		const Return = (message: string) => {
+			return { message, flags };
+		};
+
+		let argsResult: ArgsParseResult;
+		try {
+			argsResult = ParseArguments(input, command.Params);
+		} catch (error) {
+			/// Indicates that the input is invalid
+			if (error instanceof ParseArgumentsError) {
+				return Return(`❗ ${user.Name}: ${error.message}`);
+			} else {
+				return Return(`❗ ${user.Name}: An error occurred while parsing arguments.`);
+			}
+		}
+
+		// Create context.
+		const ctx: TCommandContext = {
+			channel,
+			user,
+			input: argsResult.output,
+			data: {
+				Params: argsResult.values,
+				User: extras,
+			},
+			Log: CommandLog(command.Name, channel.Name),
+		};
+
+		let mods: object;
+		try {
+			mods = await PreHandler.Fetch(ctx, command.PreHandlers);
+		} catch (error) {
+			if (error instanceof PreHandlerError) {
+				return Return(`❗ ${user.Name}: ${error.message}`);
+			} else {
+				Bot.Log.Error(error as Error, 'PreHandler');
+
+				return Return(`❗ ${user.Name}: An error occurred while running the command :(`);
+			}
+		}
+
+		const doExecution = async (): Promise<[Insertable<CommandsExecutionTable>, string]> => {
+			try {
+				const data = await command.Execute(ctx, mods);
+				const result: Insertable<CommandsExecutionTable> = {
+					user_id: user.TwitchUID,
+					username: user.Name,
+					channel: channel.Id,
+					success: data.Success ?? false,
+					result: data.Result ?? '',
+					args: ctx.input,
+					command: command.Name,
+				};
+
+				if (!data.Result || !data.Result.length) return [result, ''];
+
+				if (command.Ping) data.Result = `@${user.Name}, ${data.Result}`;
+
+				if (!data.Success) data.Result = `❗ ${data.Result}`;
+
+				return [result, data.Result];
+			} catch (error) {
+				const isNotObject = () => typeof error !== 'object';
+
+				let message: string = '';
+
+				// prettier-ignore
+				if (error instanceof InvalidInputError) 
+                {
+					message = error.message;
+				} 
+                else if (error instanceof ThirdPartyError) 
+                {
+                    // TODO: Leak to everybody?
+                    message = error.message;
+				} 
+                else if (isNotObject())
+                {
+                    message = (error)?.toString() ?? 'Unknown error';
+                } 
+                // FIXME: Missing non-error object, but whatever.
+                else {
+					Bot.Log.Error(error as Error, 'command/run/catch');
+
+					if (user.HasSuperPermission()) {
+                        message = getStringFromError(error as Error);
+					} else {
+						message = 'FeelsDankMan command machine broken';
+					}
+                }
+				// end prettier-ignore
+
+				const result: Insertable<CommandsExecutionTable> = {
+					user_id: user.TwitchUID,
+					username: user.Name,
+					channel: channel.Id,
+					success: false,
+					result: message,
+					args: ctx.input,
+					command: command.Name,
+				};
+
+				return [result, `❗ @${user.Name} ${message}`];
+			}
+		};
+
+		const now = Date.now();
+		const [result, toSay] = await doExecution();
+
+		Bot.Log.Info(
+			'Command %O executed in %i ms',
+			{
+				channel: channel.Name,
+				user: user.Name,
+				command: command.Name,
+				params: argsResult.values,
+			},
+			Date.now() - now,
+		);
+
+		logCommandExecution(result);
+
+		await sql`UPDATE stats SET commands_handled = commands_handled + 1 WHERE name = ${channel.Name}`.execute(
+			Bot.SQL,
+		);
+
+		return Return(toSay);
+	} catch (e) {
+		Bot.Log.Error(e as Error, 'channel/tryCommand/catch');
+		channel.say('BrokeBack command failed', {
+			SkipBanphrase: true,
+		});
+	}
 }
 
 const cleanMessage = (message: string): string => message.replace(/(\r\n|\n|\r)/gm, ' ');
@@ -726,7 +622,7 @@ const getStringFromError = (error: Error | string): string => {
 	switch (typeof error) {
 		case 'object':
 			if (error instanceof Error) return error.message;
-			return JSON.stringify(error)?.replace(/(\r\n|\n|\r)/gm, ' ') ?? 'Unknown error';
+			return cleanMessage(JSON.stringify(error)) ?? 'Unknown error';
 		case 'string':
 		case 'number':
 			return error;
@@ -734,109 +630,6 @@ const getStringFromError = (error: Error | string): string => {
 			return 'Unknown error';
 	}
 };
-
-export const GetSettings = async (channel: User | Promise<User>): Promise<ChannelSettings> => {
-	const done: ChannelSettings = {
-		Eventsub: DefaultChannelSetting(),
-		SevenTVEmoteSet: DefaultChannelSetting(),
-		FollowMessage: DefaultChannelSetting(),
-		IsTester: DefaultChannelSetting(),
-		Pajbot1: DefaultChannelSetting(),
-	};
-
-	const state = await Bot.Redis.HGetAll(`channel:${(await channel).TwitchUID}:settings`);
-
-	if (!state) {
-		return done;
-	}
-
-	for (const [key, value] of Object.entries(state)) {
-		done[key as ChannelSettingsNames] = new ChannelSettingsValue(value);
-	}
-
-	return new Proxy(done, {
-		get: (target, prop) => {
-			if (prop in target) return target[prop as ChannelSettingsNames];
-			return new ChannelSettingsValue('');
-		},
-	});
-};
-
-export async function UpdateSetting(
-	user: User | Promise<User>,
-	name: ChannelSettingsNames,
-	value: ChannelSettingsValue,
-): Promise<void> {
-	const ID = (await user).TwitchUID;
-
-	const key = `channel:${ID}:settings`;
-
-	await Bot.Redis.HSet(key, name, value.ToString());
-
-	Bot?.Twitch?.Controller?.TwitchChannelSpecific({ ID })?.ReflectSettings();
-}
-
-export async function DeleteSetting(
-	user: User | Promise<User>,
-	name: ChannelSettingsNames,
-): Promise<void> {
-	const ID = (await user).TwitchUID;
-
-	const key = `channel:${ID}:settings`;
-
-	await Bot.Redis.HDel(key, name);
-
-	Bot?.Twitch?.Controller?.TwitchChannelSpecific({ ID })?.ReflectSettings();
-}
-
-export type ChannelSettingsNames =
-	| 'Eventsub'
-	| 'SevenTVEmoteSet'
-	| 'FollowMessage'
-	| 'Pajbot1'
-	| 'IsTester';
-
-export type ChannelSettings = {
-	[key in ChannelSettingsNames]: ChannelSettingsValue;
-};
-
-export class ChannelSettingsValue {
-	static FromUnknown(value: unknown): ChannelSettingsValue {
-		switch (typeof value) {
-			case 'string':
-				return new ChannelSettingsValue(value);
-			case 'number':
-			case 'boolean':
-				return new ChannelSettingsValue(value.toString());
-			default:
-				return new ChannelSettingsValue(JSON.stringify(value));
-		}
-	}
-
-	constructor(protected value: string) {}
-
-	public ToJSON<Obj extends object>(): Result<Obj, string> {
-		try {
-			return new Ok(JSON.parse(this.value));
-		} catch (e) {
-			return Err.NormalizeError(e);
-		}
-	}
-
-	public ToBoolean(): boolean {
-		return this.value === 'true';
-	}
-
-	public ToNumber(): number {
-		return Number(this.value) || 0;
-	}
-
-	public ToString(): string {
-		return this.value;
-	}
-}
-
-const DefaultChannelSetting = () => new ChannelSettingsValue('');
 
 const CommandLog = (name: string, channel: string): CommandLogFn => {
 	// TODO: Error class handling.
@@ -899,4 +692,8 @@ export class EventSubHandler {
 
 		return this._subscriptions.filter((sub) => sub.Type() === type);
 	}
+}
+
+function logCommandExecution(resulton: Insertable<CommandsExecutionTable>) {
+	return Bot.SQL.insertInto('logs.commands_execution').values(resulton).execute();
 }

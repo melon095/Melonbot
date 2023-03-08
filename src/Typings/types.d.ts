@@ -19,23 +19,6 @@ export type TUserCooldown = {
 	Cooldown: number;
 };
 
-export declare namespace NChannel {
-	export type Mode = 'Read' | 'Write' | 'VIP' | 'Moderator' | 'Bot';
-	export interface Functions {
-		ModeToCooldown(mode: NChannel.Mode): number | null;
-		CooldownToMode(val: number): NChannel.Mode;
-		DatabaseToMode(val: number): NChannel.Mode;
-	}
-}
-
-export declare namespace NCommand {
-	export type Mode = 'Viewer' | 'VIP' | 'Moderator' | 'Broadcaster' | 'Admin';
-	export interface Functions {
-		DatabaseToMode(val: number): NCommand.Mode;
-		ModeToDatabase(mode: NCommand.Mode): number;
-	}
-}
-
 export type TConfigFile = {
 	Twitch: {
 		OAuth: string;
@@ -112,6 +95,18 @@ export namespace Helix {
 			tag_ids: string[];
 			is_mature: boolean;
 		}[];
+	}
+
+	export interface ViewerList {
+		data: {
+			user_id: string;
+			user_login: string;
+			user_name: string;
+		}[];
+		pagination: {
+			cursor: string;
+		};
+		total: number;
 	}
 }
 
@@ -369,10 +364,10 @@ export namespace SpotifyTypes {
 	interface Actions {
 		disallows: Disallows;
 	}
+}
 
-	export interface Token {
-		access_token: string;
-		refresh_token: string;
-		expires_in: number;
-	}
+export interface OAuthToken {
+	access_token: string;
+	refresh_token: string;
+	expires_in: number;
 }

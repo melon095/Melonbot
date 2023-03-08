@@ -1,4 +1,4 @@
-import { NChannel, TTokenFunction, NCommand } from './../Typings/types';
+import { TTokenFunction } from './../Typings/types';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import Got from './Got.js';
@@ -130,13 +130,12 @@ export const token = {
 };
 
 export async function Live(id: string): Promise<boolean> {
-	const [isLive] = await Bot.SQL.Query<Database.channels[]>`
-        SELECT live 
-        FROM channels 
-        WHERE user_id = ${id}`;
+	const isLive = await Bot.SQL.selectFrom('channels')
+		.select('live')
+		.where('user_id', '=', id)
+		.executeTakeFirst();
 
-	if (!isLive) return false;
-	return Boolean(isLive.live);
+	return Boolean(isLive?.live);
 }
 
 export async function ViewerList(id: string): Promise<string[]> {
@@ -144,89 +143,6 @@ export async function ViewerList(id: string): Promise<string[]> {
 	if (!viewers) return [];
 	return JSON.parse(viewers);
 }
-
-export const NChannelFunctions: NChannel.Functions = {
-	ModeToCooldown: function (mode: NChannel.Mode): number | null {
-		switch (mode) {
-			case 'Read':
-				return null;
-			case 'Write':
-				return 1250;
-			case 'VIP':
-				return 250;
-			case 'Moderator':
-				return 50;
-			default:
-				return null;
-		}
-	},
-
-	CooldownToMode: function (val: number): NChannel.Mode {
-		switch (val) {
-			case 0:
-				return 'Read';
-			case 1250:
-				return 'Write';
-			case 250:
-				return 'VIP';
-			case 50:
-				return 'Moderator';
-			default:
-				return 'Read';
-		}
-	},
-
-	DatabaseToMode: function (val: number): NChannel.Mode {
-		switch (val) {
-			case 0:
-				return 'Read';
-			case 1:
-				return 'Write';
-			case 2:
-				return 'VIP';
-			case 3:
-				return 'Moderator';
-			default:
-				return 'Read';
-		}
-	},
-};
-
-export const NCommandFunctions: NCommand.Functions = {
-	DatabaseToMode: function (val: number): NCommand.Mode {
-		switch (val) {
-			case 0:
-				return 'Viewer';
-			case 1:
-				return 'VIP';
-			case 2:
-				return 'Moderator';
-			case 3:
-				return 'Broadcaster';
-			case 4:
-				return 'Admin';
-			default:
-				return 'Viewer';
-		}
-	},
-
-	ModeToDatabase: function (mode: NCommand.Mode): number {
-		switch (mode) {
-			case 'Viewer':
-				return 0;
-			case 'VIP':
-				return 1;
-			case 'Moderator':
-				return 2;
-			case 'Broadcaster':
-				return 3;
-			case 'Admin':
-				return 4;
-			default:
-				return 0;
-		}
-	},
-};
 
 export const Sleep = async (seconds = 1): Promise<boolean> => {
 	return new Promise((Resolve) => {

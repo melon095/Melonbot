@@ -1,5 +1,5 @@
 import { IEventSubHandler } from './Base.js';
-import { IPubConnect } from 'Singletons/Redis/Data.Types.js';
+import { IPubConnect } from '../Data.Types.js';
 
 export default {
 	Type: () => 'connect',

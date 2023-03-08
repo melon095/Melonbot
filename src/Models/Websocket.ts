@@ -1,4 +1,3 @@
-import { Logger } from 'logger.js';
 import WebSocket from 'ws';
 import { Sleep } from './../tools/tools.js';
 
@@ -26,7 +25,6 @@ interface IWebsocket {
 export type WebsocketOpts = {
 	port?: number;
 	secure?: boolean;
-	logger?: Logger;
 };
 
 export default abstract class Websocket implements IWebsocket {
