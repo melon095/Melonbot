@@ -1,0 +1,19 @@
+[package]
+name = "twitch_firehose_server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.69"
+futures-util = "0.3.26"
+log = "0.4.17"
+reqwest = "0.11.14"
+serde = "1.0.153"
+serde_derive = "1.0.153"
+serde_json = "1.0.94"
+simplelog = "0.12.1"
+tokio = { version = "1.26.0", features = ["full"] }
+tokio-tungstenite = "0.18.0"
+twitch-irc = { version = "5.0.0", features = ["with-serde"] }
