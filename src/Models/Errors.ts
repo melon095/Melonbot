@@ -31,7 +31,7 @@ export class PreHandlerError extends Error {
  */
 export class InvalidInputError extends Error {
 	constructor(message: string) {
-		super(`Invalid input: ${message}`);
+		super(message);
 		this.name = 'InvalidInputError';
 	}
 }
@@ -41,7 +41,7 @@ export class InvalidInputError extends Error {
  */
 export class ThirdPartyError extends Error {
 	constructor(message: string) {
-		super(`Third party error: ${message}`);
+		super(message);
 		this.name = 'ThirdPartyError';
 	}
 }
