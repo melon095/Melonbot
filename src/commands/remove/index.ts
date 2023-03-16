@@ -72,11 +72,8 @@ registerCommand<PreHandlers>({
 
 			if (failed.length) {
 				this.Success = false;
-				this.Result += `${
-					this.Result.length ? ' \u{2022} ' : ''
-				}Error removing the following emote${failed.length > 1 ? 's' : ''}: ${failed.join(
-					' ',
-				)}}`;
+				// prettier-ignore
+				this.Result += `${this.Result.length ? ' \u{2022} ' : ''}Error removing the following emote${failed.length > 1 ? 's' : ''}: ${failed.join(' ')}}`;
 			} else if (!this.Result) this.Result = `All emotes were successfully removed`;
 
 			return this;
