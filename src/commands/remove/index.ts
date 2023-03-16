@@ -67,7 +67,8 @@ registerCommand<PreHandlers>({
 			Result: string;
 		};
 
-		return function (this: out) {
+		// prettier-ignore
+		return (function (this: out) {
 			if (emotes.length === 1) this.Result = `Removed the emote => ${emotes[0].name}`;
 
 			if (failed.length) {
@@ -77,7 +78,8 @@ registerCommand<PreHandlers>({
 			} else if (!this.Result) this.Result = `All emotes were successfully removed`;
 
 			return this;
-		}.call({
+		// prettier-ignore
+		}).call({
 			Success: true,
 			Result: '',
 		});
