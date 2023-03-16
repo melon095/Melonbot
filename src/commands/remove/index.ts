@@ -46,7 +46,7 @@ registerCommand<PreHandlers>({
 		}
 
 		if (ctx.input.length)
-			ctx.channel.say(`Could not find the following emote${ctx.input.length > 1 ? 's' : ''}: ${ctx.input.join(', ')}`)
+			ctx.channel.say(`Could not find the following emote${ctx.input.length > 1 ? 's' : ''}: ${ctx.input.join(' ')}`)
 
 		const failed: (undefined | string)[] = (await Promise.all(
 			emotes.map(async emote => {
@@ -71,7 +71,7 @@ registerCommand<PreHandlers>({
 
 			if (failed.length) {
 				this.Success = false
-				this.Result += `${this.Result.length ? ' \u{2022} ' : ''}Error removing the following emote${failed.length > 1 ? 's' : ''}: ${failed.join(', ')}}`
+				this.Result += `${this.Result.length ? ' \u{2022} ' : ''}Error removing the following emote${failed.length > 1 ? 's' : ''}: ${failed.join(' ')}}`
 			}
 			else if (!this.Result)
 				this.Result = `All emotes were successfully removed`
