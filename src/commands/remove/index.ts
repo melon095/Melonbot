@@ -48,18 +48,17 @@ registerCommand<PreHandlers>({
 		if (ctx.input.length)
 			ctx.channel.say(`Could not find the following emote${ctx.input.length > 1 ? 's' : ''}: ${ctx.input.join(', ')}`)
 
-		const failed: (never | string)[] = []
-		await Promise.all(
+		const failed: (undefined | string)[] = (await Promise.all(
 			emotes.map(async emote => {
 				try {
-					return await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.REMOVE, emote.id)
+					await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.REMOVE, emote.id)
 				}
 				catch (error) {
-					failed.push(emote.name)
 					ctx.Log('info', '7TV - Failed to remove emote', error)
+					return emote.name
 				}
 			})
-		)
+		)).filter(Boolean)
 
 		type out = {
 			Success: boolean
@@ -68,12 +67,14 @@ registerCommand<PreHandlers>({
 
 		return (function (this: out) {
 			if (emotes.length === 1)
-				this.Result += `Removed the emote => ${emotes[0].name}`
+				this.Result = `Removed the emote => ${emotes[0].name}`
 
 			if (failed.length) {
 				this.Success = false
 				this.Result += `${this.Result.length ? ' \u{2022} ' : ''}Error removing the following emote${failed.length > 1 ? 's' : ''}: ${failed.join(', ')}}`
 			}
+			else if (!this.Result)
+				this.Result = `All emotes were successfully removed`
 
 			return this
 		}).call({
