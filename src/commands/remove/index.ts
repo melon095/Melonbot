@@ -26,61 +26,64 @@ registerCommand<PreHandlers>({
 		}
 
 		ctx.input = ctx.input.reduce((args: string[], arg: string) => {
-			if (!args.includes(arg))
-				args.push(arg)
-			return args
-		}, [])
+			if (!args.includes(arg)) args.push(arg);
+			return args;
+		}, []);
 
-		const emotes: (never | EnabledEmote)[] = []
+		const emotes: (never | EnabledEmote)[] = [];
 		for (const emote of await gql.CurrentEnabledEmotes(EmoteSet())) {
-			const emoteIdx: number = ctx.input.indexOf(emote.name)
+			const emoteIdx: number = ctx.input.indexOf(emote.name);
 
-			if (emoteIdx === -1)
-				continue
+			if (emoteIdx === -1) continue;
 
-			emotes.push(emote)
-			ctx.input.splice(emoteIdx, 1)
+			emotes.push(emote);
+			ctx.input.splice(emoteIdx, 1);
 
-			if (!ctx.input.length)
-				break
+			if (!ctx.input.length) break;
 		}
 
 		if (ctx.input.length)
-			ctx.channel.say(`Could not find the following emote${ctx.input.length > 1 ? 's' : ''}: ${ctx.input.join(' ')}`)
+			ctx.channel.say(
+				`Could not find the following emote${
+					ctx.input.length > 1 ? 's' : ''
+				}: ${ctx.input.join(' ')}`,
+			);
 
-		const failed: (undefined | string)[] = (await Promise.all(
-			emotes.map(async emote => {
-				try {
-					await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.REMOVE, emote.id)
-				}
-				catch (error) {
-					ctx.Log('info', '7TV - Failed to remove emote', error)
-					return emote.name
-				}
-			})
-		)).filter(Boolean)
+		const failed: (undefined | string)[] = (
+			await Promise.all(
+				emotes.map(async (emote) => {
+					try {
+						await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.REMOVE, emote.id);
+					} catch (error) {
+						ctx.Log('info', '7TV - Failed to remove emote', error);
+						return emote.name;
+					}
+				}),
+			)
+		).filter(Boolean);
 
 		type out = {
-			Success: boolean
-			Result: string
-		}
+			Success: boolean;
+			Result: string;
+		};
 
-		return (function (this: out) {
-			if (emotes.length === 1)
-				this.Result = `Removed the emote => ${emotes[0].name}`
+		return function (this: out) {
+			if (emotes.length === 1) this.Result = `Removed the emote => ${emotes[0].name}`;
 
 			if (failed.length) {
-				this.Success = false
-				this.Result += `${this.Result.length ? ' \u{2022} ' : ''}Error removing the following emote${failed.length > 1 ? 's' : ''}: ${failed.join(' ')}}`
-			}
-			else if (!this.Result)
-				this.Result = `All emotes were successfully removed`
+				this.Success = false;
+				this.Result += `${
+					this.Result.length ? ' \u{2022} ' : ''
+				}Error removing the following emote${failed.length > 1 ? 's' : ''}: ${failed.join(
+					' ',
+				)}}`;
+			} else if (!this.Result) this.Result = `All emotes were successfully removed`;
 
-			return this
-		}).call({
+			return this;
+		}.call({
 			Success: true,
-			Result: ''
-		})
+			Result: '',
+		});
 	},
 	LongDescription: async (prefix) => [
 		'Remove 7TV emotes from your emote set.',
