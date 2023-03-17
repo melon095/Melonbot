@@ -26,28 +26,28 @@ registerCommand<PreHandlers>({
 			this.EarlyEnd.InvalidInput('No emote name provided');
 		}
 
-		ctx.input = ctx.input.reduce((args: string[], arg: string) => {
+		const requestedEmotes = ctx.input.reduce((args: string[], arg: string) => {
 			if (!args.includes(arg)) args.push(arg);
 			return args;
 		}, []);
 
 		const emotes: EnabledEmote[] = [];
 		for (const emote of await gql.CurrentEnabledEmotes(EmoteSet())) {
-			const emoteIdx: number = ctx.input.indexOf(emote.name);
+			const emoteIdx: number = requestedEmotes.indexOf(emote.name);
 
 			if (emoteIdx === -1) continue;
 
 			emotes.push(emote);
-			ctx.input.splice(emoteIdx, 1);
+			requestedEmotes.splice(emoteIdx, 1);
 
-			if (!ctx.input.length) break;
+			if (!requestedEmotes.length) break;
 		}
 
-		if (ctx.input.length)
+		if (requestedEmotes.length)
 			ctx.channel.say(
 				`Could not find the following emote${
-					ctx.input.length > 1 ? 's' : ''
-				}: ${ctx.input.join(' ')}`,
+					requestedEmotes.length > 1 ? 's' : ''
+				}: ${requestedEmotes.join(' ')}`,
 			);
 
 		const failed = (
