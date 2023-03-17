@@ -2,6 +2,7 @@ import { EPermissionLevel } from './../../Typings/enums.js';
 import gql, { EnabledEmote, ListItemAction } from './../../SevenTVGQL.js';
 import SevenTVAllowed, { Get7TVUserMod } from './../../PreHandlers/7tv.can.modify.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
+import { CommandResult } from '../../Models/Command.js';
 
 type PreHandlers = {
 	SevenTV: Get7TVUserMod;
@@ -30,7 +31,7 @@ registerCommand<PreHandlers>({
 			return args;
 		}, []);
 
-		const emotes: (never | EnabledEmote)[] = [];
+		const emotes: EnabledEmote[] = [];
 		for (const emote of await gql.CurrentEnabledEmotes(EmoteSet())) {
 			const emoteIdx: number = ctx.input.indexOf(emote.name);
 
@@ -60,18 +61,13 @@ registerCommand<PreHandlers>({
 					}
 				}),
 			)
-		).reduce((emts: string, emt) => {
+		).reduce((emts, emt) => {
 			if (!emt) return emts;
 			return (emts += ` ` + emt);
 		}, ``);
 
-		type out = {
-			Success: boolean;
-			Result: string;
-		};
-
 		// prettier-ignore
-		return (function (this: out) {
+		return (function (this: CommandResult) {
 			if (emotes.length === 1) this.Result = `Removed the emote => ${emotes[0].name}`;
 
 			if (failed) {
