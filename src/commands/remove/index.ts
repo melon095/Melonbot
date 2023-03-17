@@ -49,7 +49,7 @@ registerCommand<PreHandlers>({
 				}: ${ctx.input.join(' ')}`,
 			);
 
-		const failed: (undefined | string)[] = (
+		const failed = (
 			await Promise.all(
 				emotes.map(async (emote) => {
 					try {
@@ -60,7 +60,10 @@ registerCommand<PreHandlers>({
 					}
 				}),
 			)
-		).filter(Boolean);
+		).reduce((emts: string, emt) => {
+			if (!emt) return emts;
+			return (emts += ` ` + emt);
+		}, ``);
 
 		type out = {
 			Success: boolean;
@@ -71,14 +74,14 @@ registerCommand<PreHandlers>({
 		return (function (this: out) {
 			if (emotes.length === 1) this.Result = `Removed the emote => ${emotes[0].name}`;
 
-			if (failed.length) {
+			if (failed) {
 				this.Success = false;
 				// prettier-ignore
-				this.Result += `${this.Result.length ? ' \u{2022} ' : ''}Error removing the following emote${failed.length > 1 ? 's' : ''}: ${failed.join(' ')}}`;
+				this.Result += `${this.Result.length ? ' \u{2022} ' : ''}Error removing the following:${failed}`;
 			} else if (!this.Result) this.Result = `All emotes were successfully removed`;
 
 			return this;
-		// prettier-ignore
+			// prettier-ignore
 		}).call({
 			Success: true,
 			Result: '',
