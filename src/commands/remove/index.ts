@@ -3,6 +3,7 @@ import gql, { EnabledEmote, ListItemAction } from './../../SevenTVGQL.js';
 import SevenTVAllowed, { Get7TVUserMod } from './../../PreHandlers/7tv.can.modify.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
 import { CommandResult } from '../../Models/Command.js';
+import { ThirdPartyError } from '../../Models/Errors.js';
 
 type PreHandlers = {
 	SevenTV: Get7TVUserMod;
@@ -56,7 +57,11 @@ registerCommand<PreHandlers>({
 					try {
 						await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.REMOVE, emote.id);
 					} catch (error) {
-						ctx.Log('info', '7TV - Failed to remove emote', error);
+						ctx.Log(
+							'info',
+							'7TV - Failed to remove emote',
+							(error as ThirdPartyError).message,
+						);
 						return emote.name;
 					}
 				}),
