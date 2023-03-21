@@ -25,7 +25,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn('name', 'varchar', (col) => col.notNull().primaryKey().unique())
 		.addColumn('user_id', 'varchar', (col) => col.notNull().unique())
 		.addColumn('live', 'boolean', (col) => col.notNull().defaultTo(false))
-		.addColumn('bot_permission', 'bigint', (col) => col.notNull().defaultTo(1))
+		.addColumn('bot_permission', 'integer', (col) => col.notNull().defaultTo(1))
 		.execute();
 
 	await db.schema

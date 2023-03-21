@@ -1,8 +1,7 @@
-import { IPubBase, TPubRecType } from 'Singletons/Redis/Data.Types.js';
+import { IPubBase, TPubRecType } from '../Data.Types.js';
 import Promolve from '@melon95/promolve';
 import fs from 'node:fs/promises';
 import { getDirname } from './../../../tools/tools.js';
-import { Logger } from './../../../logger.js';
 
 const ready = Promolve<void>();
 const handlers: Record<string, IEventSubHandler<object>> = {};

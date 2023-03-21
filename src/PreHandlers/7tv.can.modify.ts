@@ -1,4 +1,5 @@
-import { TCommandContext, SafeResponseError, ModBuilder } from './../Models/Command.js';
+import { PreHandlerError } from '../Models/Errors.js';
+import { ModBuilder } from './../Models/Command.js';
 import gql from './../SevenTVGQL.js';
 
 export interface Get7TVUserMod {
@@ -8,7 +9,7 @@ export interface Get7TVUserMod {
 
 export default {
 	Name: () => 'SevenTV',
-	Build: async (ctx: TCommandContext): Promise<Get7TVUserMod> => {
+	Build: async (ctx) => {
 		const channel = await ctx.channel.User();
 
 		const { message, okay, emote_set, user_id } = await gql.isAllowedToModify(
@@ -17,15 +18,15 @@ export default {
 		);
 
 		if (!okay) {
-			throw new SafeResponseError('7TV', message);
+			throw new PreHandlerError('7TV', message);
 		}
 
 		if (!emote_set) {
-			throw new SafeResponseError('7TV', 'Broadcaster is missing a emote set.');
+			throw new PreHandlerError('7TV', 'Broadcaster is missing a emote set.');
 		}
 
 		if (!user_id) {
-			throw new SafeResponseError('7TV', 'Broadcaster has not setup a 7TV Account.');
+			throw new PreHandlerError('7TV', 'Broadcaster has not setup a 7TV Account.');
 		}
 
 		return {

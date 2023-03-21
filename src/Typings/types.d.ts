@@ -95,6 +95,18 @@ export namespace Helix {
 			is_mature: boolean;
 		}[];
 	}
+
+	export interface ViewerList {
+		data: {
+			user_id: string;
+			user_login: string;
+			user_name: string;
+		}[];
+		pagination: {
+			cursor: string;
+		};
+		total: number;
+	}
 }
 
 export namespace Ivr {
@@ -351,10 +363,10 @@ export namespace SpotifyTypes {
 	interface Actions {
 		disallows: Disallows;
 	}
+}
 
-	export interface Token {
-		access_token: string;
-		refresh_token: string;
-		expires_in: number;
-	}
+export interface OAuthToken {
+	access_token: string;
+	refresh_token: string;
+	expires_in: number;
 }

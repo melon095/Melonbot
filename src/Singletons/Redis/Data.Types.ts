@@ -1,4 +1,4 @@
-import { ChannelSettingsNames } from './../../controller/Channel/index.js';
+import { ChannelDataNames } from './../../IndividualData.js';
 
 export type TPubRecType =
 	| 'banphrase'
@@ -74,7 +74,7 @@ export type IPubChannelUpdate = IPubBroadcasterData & {
 export interface ISettings {
 	id: string;
 	inner: ReadonlyArray<{
-		name: ChannelSettingsNames;
+		name: ChannelDataNames;
 		value: unknown;
 	}>;
 }

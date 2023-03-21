@@ -1,5 +1,5 @@
 import { Method } from 'got';
-import { EventsubTypes } from 'Singletons/Redis/Data.Types.js';
+import { EventsubTypes } from '../Singletons/Redis/Data.Types.js';
 import { Helix } from './../Typings/types.js';
 import got from './../tools/Got.js';
 import { Sleep, token } from './../tools/tools.js';
@@ -149,6 +149,28 @@ const _request = async <T>(
 	return new Ok(json);
 };
 
+/**
+ * Helper function for dealing with pagination
+ */
+async function DoPagination<ResponseBody extends { pagination: { cursor: string } }>(
+	doRequestFn: (pagination: string) => Promise<Result<ResponseBody, string>>,
+	onDataReceived: (body: ResponseBody) => void,
+) {
+	let pagination = '';
+
+	do {
+		const response = await doRequestFn(pagination);
+
+		if (response.err) {
+			return;
+		}
+
+		onDataReceived(response.inner);
+
+		pagination = response.inner.pagination.cursor;
+	} while (pagination);
+}
+
 export default {
 	EventSub: {
 		Create: async function <T extends object = DefaultEventsubCondition>(
@@ -181,46 +203,29 @@ export default {
 				total_cost: 0,
 				max_total_cost: 0,
 			};
+			const params = new URLSearchParams();
 
-			let pagination = '';
+			status && params.append('status', status);
+			type && params.append('type', type);
+			const url = 'eventsub/subscriptions';
 
-			const makeReq = (pagination: string) => {
-				const params = new URLSearchParams();
+			await DoPagination<GetEventsubResponse>(
+				(pagination) => {
+					if (pagination) {
+						params.append('after', pagination);
+					}
 
-				status && params.append('status', status);
-				type && params.append('type', type);
+					return _request('GET', url, { params });
+				},
+				(body) => {
+					const { data, max_total_cost, total, total_cost } = body;
 
-				const url = 'eventsub/subscriptions';
-
-				if (pagination) {
-					params.append('after', pagination);
-				}
-
-				return _request<GetEventsubResponse>('GET', url, { params });
-			};
-
-			do {
-				const resp = await makeReq(pagination);
-
-				if (resp.err) {
-					return resp;
-				}
-
-				const {
-					data,
-					max_total_cost,
-					total,
-					total_cost,
-					pagination: newPagination,
-				} = resp.inner;
-
-				done.data.push(...data);
-				done.max_total_cost = max_total_cost;
-				done.total = total;
-				done.total_cost = total_cost;
-
-				pagination = newPagination?.cursor ?? null;
-			} while (pagination !== null);
+					done.data.push(...data);
+					done.max_total_cost = max_total_cost;
+					done.total = total;
+					done.total_cost = total_cost;
+				},
+			);
 
 			return new Ok(done);
 		},
@@ -238,6 +243,10 @@ export default {
 
 		await Promise.all(
 			[...chunkArr(users, 100)].map(async (chunk, i) => {
+				// Rate limit ... 0, 500, 1000, etc. Unsure if this is a good way to do it.
+				// 150 requests per second is the limit, this should be fine.
+				await Sleep(i * 500);
+
 				const url = new URLSearchParams();
 
 				chunk.map((u) => url.append('id', u.TwitchUID));
@@ -253,10 +262,6 @@ export default {
 				const { data } = res.inner;
 
 				done.push(...data);
-
-				// Rate limit ... 0, 500, 1000, etc. Unsure if this is a good way to do it.
-				// 150 requests per second is the limit, this should be fine.
-				await Sleep(i * 500);
 			}),
 		);
 
@@ -289,6 +294,49 @@ export default {
 		const notLive = result.map((r) => r[1]).flat();
 
 		return { data, notLive };
+	},
+	/**
+	 * @returns A set of logins of all the viewers in the channel
+	 */
+	Viewers: async function (
+		identifier: { broadcaster: string; moderator?: string },
+		userToken: string,
+	): Promise<Set<string>> {
+		const users = new Set<string>();
+
+		const params = new URLSearchParams();
+
+		params.append('broadcaster_id', identifier.broadcaster);
+		params.append('moderator_id', identifier.moderator || identifier.broadcaster);
+		params.append('first', '1000');
+
+		await DoPagination<Helix.ViewerList>(
+			async (pagination) => {
+				if (pagination) {
+					params.append('after', pagination);
+				}
+
+				return _request(
+					'GET',
+					'chat/chatters',
+					{ params },
+					{
+						CustomHeaders: {
+							Authorization: `Bearer ${userToken}`,
+						},
+					},
+				);
+			},
+			(body) => {
+				const { data } = body;
+
+				for (const user of data) {
+					users.add(user.user_login);
+				}
+			},
+		);
+
+		return users;
 	},
 	Raw: <T>() => _request<T>,
 };

@@ -108,6 +108,11 @@ export const Authenticator = new (class {
 		});
 	}
 
+	app.setErrorHandler((error, _, res) => {
+		Bot.Log.Error(error);
+		res.status(500).send({ error: 'Internal Server Error' });
+	});
+
 	(await import('./Hooks/RequestLogger.js')).default(app);
 
 	app.route({
