@@ -82,6 +82,9 @@ export type StrategyRefreshFn = (
 ) => Promise<Omit<BasicOauthResponse, 'refresh_token'>>;
 
 type StrategyOpts = QueryStrategyOpts | HeaderStrategyOpts;
+type RefreshStrategyOpts =
+	| Omit<QueryStrategyOpts, 'name' | 'redirectURL'>
+	| Omit<HeaderStrategyOpts, 'name' | 'redirectURL'>;
 
 class Strategy<ProfileKind> {
 	constructor(
@@ -163,36 +166,42 @@ class Strategy<ProfileKind> {
 
 	public static async RefreshToken(
 		refresh_token: string,
-		opts: {
-			tokenURL: string;
-			authenticationMethod: AuthenticationMethod;
-			headers?: Record<string, string>;
-		},
+		opts: RefreshStrategyOpts,
 	): Promise<ReturnType<StrategyRefreshFn>> {
 		const { tokenURL, authenticationMethod } = opts;
-
-		if (authenticationMethod === AuthenticationMethod.Query) {
-			// TODO add query refresh token
-			throw new Error('Not implemented for this authentication method');
-		}
 
 		const searchParams = new URLSearchParams({
 			grant_type: 'refresh_token',
 			refresh_token,
 		});
 
-		const json = await Got('default')
-			.post(tokenURL, {
-				searchParams,
-				throwHttpErrors: true,
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded',
-					...opts.headers,
-				},
-			})
-			.json();
+		if (authenticationMethod === AuthenticationMethod.Query) {
+			searchParams.set('client_id', opts.clientID);
+			searchParams.set('client_secret', opts.clientSecret);
 
-		return json as ReturnType<StrategyRefreshFn>;
+			return await Got('default')
+				.post(tokenURL, {
+					searchParams,
+					throwHttpErrors: true,
+					headers: {
+						'Content-Type': 'application/x-www-form-urlencoded',
+					},
+				})
+				.json();
+		} else if (authenticationMethod === AuthenticationMethod.Header) {
+			return await Got('default')
+				.post(tokenURL, {
+					searchParams,
+					throwHttpErrors: true,
+					headers: {
+						'Content-Type': 'application/x-www-form-urlencoded',
+						...opts.headers,
+					},
+				})
+				.json();
+		} else {
+			throw new Error('Invalid authentication method');
+		}
 	}
 
 	private async ResolveFastifyUser(

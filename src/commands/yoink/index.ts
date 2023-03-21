@@ -68,10 +68,10 @@ registerCommand({
 
 		switch (ctx.channel.Name) {
 			case readChan:
-				readSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString();
+				readSet = (await ctx.channel.GetChannelData('SevenTVEmoteSet')).ToString();
 				break;
 			case writeChan:
-				writeSet = (await ctx.channel.GetSettings()).SevenTVEmoteSet.ToString();
+				writeSet = (await ctx.channel.GetChannelData('SevenTVEmoteSet')).ToString();
 				break;
 		}
 

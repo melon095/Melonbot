@@ -1,6 +1,7 @@
-import User, { UserDataStoreKeys } from './../../../controller/User/index.js';
+import User from './../../../controller/User/index.js';
 import { FastifyInstance } from 'fastify';
 import AuthenticationValidator from '../../Hooks/AuthenticationValidator.js';
+import { UserDataStoreKeys, GetUserData } from '../../../IndividualData.js';
 
 async function UserHasChannel(user: User): Promise<boolean> {
 	return Boolean(
@@ -13,9 +14,9 @@ async function UserHasChannel(user: User): Promise<boolean> {
 }
 
 async function CheckUserSpotify(user: User): Promise<string | null> {
-	const spotify = await user.Get(UserDataStoreKeys.SpotifyToken);
+	const spotify = await GetUserData(user, UserDataStoreKeys.SpotifyToken);
 
-	if (spotify) {
+	if (spotify.ToString()) {
 		return 'Spotify';
 	}
 

@@ -14,11 +14,10 @@ import Twitch from './Twitch.js';
 import { TConfigFile } from './Typings/types';
 import { exit } from 'node:process';
 import { StoreToDB } from './controller/Commands/Handler.js';
-import { SevenTVEvent } from './controller/Emote/SevenTV/EventAPI.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import ErrorHandler from './ErrorHandler.js';
-import { Channel, GetSettings } from './controller/Channel/index.js';
+import { Channel } from './controller/Channel/index.js';
 import { Sleep } from './tools/tools.js';
 import { RedisSingleton } from './Singletons/Redis/index.js';
 import * as tools from './tools/tools.js';
@@ -26,7 +25,10 @@ import User from './controller/User/index.js';
 import TimerSingleton from './Singletons/Timers/index.js';
 import logger from './logger.js';
 import SevenTVGQL from './SevenTVGQL.js';
-import { ChannelDatabaseToMode } from './controller/DB/Tables/ChannelTable.js';
+import {
+	ChannelDatabaseToMode,
+	PermissionModeToDatabase,
+} from './controller/DB/Tables/ChannelTable.js';
 
 type ProcessType = 'BOT' | 'WEB';
 
@@ -86,9 +88,6 @@ export const Setup = {
 		// Create Twitch objects
 		Bot.Twitch = {
 			Controller: await Twitch.Init(),
-			Emotes: {
-				SevenTVEvent: new SevenTVEvent(),
-			},
 		};
 
 		await TimerSingleton.I().Initialize();
@@ -96,19 +95,19 @@ export const Setup = {
 		await Bot.Twitch.Controller.InitPromise;
 		const twitch = Bot.Twitch.Controller;
 
-		Bot.Twitch.Emotes.SevenTVEvent.Connect();
-
 		const self = await Channel.CreateBot();
 
 		await twitch.client.join(Bot.Config.BotUsername);
 		twitch.channels.push(self);
 
-		const channels = await Bot.SQL.selectFrom('channels').selectAll().execute();
+		const channels = await Bot.SQL.selectFrom('channels')
+			.selectAll()
+			.where('bot_permission', '!=', PermissionModeToDatabase('Bot'))
+			.execute();
 
 		for (const channel of channels) {
 			let mode = ChannelDatabaseToMode(channel.bot_permission);
 			const user = await Bot.User.Get(channel.user_id, channel.name);
-			let doEventsub = true;
 
 			Bot.Log.Info(`Twitch Joining %s`, channel.name);
 			try {
@@ -116,17 +115,8 @@ export const Setup = {
 			} catch (error) {
 				Bot.Log.Error(error as Error, `Joining ${channel.name}`);
 				mode = 'Read'; // We want to create a channel object, but since we can't join, we set the mode to read
-				doEventsub = false;
 			}
 			const newChannel = await Channel.New(user, mode, channel.live);
-
-			if (doEventsub) {
-				const emote_set = await GetSettings(user).then(
-					(settings) => settings.SevenTVEmoteSet.ToString() ?? undefined,
-				);
-
-				await Channel.WithEventsub(newChannel, emote_set);
-			}
 
 			twitch.channels.push(newChannel);
 
