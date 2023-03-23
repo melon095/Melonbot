@@ -18,25 +18,6 @@ import { Channel } from '../controller/Channel/index.js';
 	const TEN_MINUTES = FIVE_MINUTES * 2;
 
 	setInterval(async () => {
-		async function GetBroadcasterToken(channel: Channel) {
-			const user = await channel.User();
-
-			try {
-				const token = await GetValidTwitchToken(user);
-				if (token === null) return null;
-
-				return { token, id: user.TwitchUID };
-			} catch (error) {
-				Bot.Log.Error(
-					error as Error,
-					'Failed to get valid token for user %s',
-					user.TwitchUID,
-				);
-			}
-
-			return null;
-		}
-
 		await Promise.all(
 			Bot.Twitch.Controller.channels.map(async (channel) => {
 				if (channel.Mode === 'Bot') return;
@@ -44,15 +25,26 @@ import { Channel } from '../controller/Channel/index.js';
 				const user = await channel.User();
 
 				// Check for broadcaster token (e.g logged in to website)
-				let token = await GetBroadcasterToken(channel);
+				let token = null;
+				try {
+					token = await GetValidTwitchToken(user);
+				} catch (error) {
+					Bot.Log.Error(
+						error as Error,
+						'Failed to get valid token for user %s',
+						user.TwitchUID,
+					);
+
+					return;
+				}
 
 				if (token === null) {
 					return;
 				}
 
 				const broadcaster = user.TwitchUID;
-				const moderator = token.id || user.TwitchUID;
-				const users = await Helix.Viewers({ broadcaster, moderator }, token.token);
+				const moderator = user.TwitchUID;
+				const users = await Helix.Viewers({ broadcaster, moderator }, token);
 
 				const stringified = JSON.stringify(Array.from(users));
 
