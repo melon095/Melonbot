@@ -8,7 +8,7 @@ registerCommand({
   Permission: EPermissionLevel.VIEWER,
   OnlyOffline: false,
   Aliases: ["git"],
-  Cooldown: 5,
+  Cooldown: 10,
   Params: [],
   Flags: [],
   PreHandlers: [],
