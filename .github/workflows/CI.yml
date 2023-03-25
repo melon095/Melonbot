@@ -11,6 +11,7 @@ on:
 jobs:
   prettier:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout
@@ -35,7 +36,7 @@ jobs:
       - name: Jest
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
           cache: 'npm'
           cache-dependency-path: ./package-lock.json
       - run: npm ci
