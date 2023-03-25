@@ -36,7 +36,7 @@ jobs:
       - name: Jest
         uses: actions/setup-node@v3
         with:
-          node-version: 1
+          node-version: 18
           cache: 'npm'
           cache-dependency-path: ./package-lock.json
       - run: npm ci
