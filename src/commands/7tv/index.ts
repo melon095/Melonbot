@@ -70,7 +70,7 @@ async function filterByAuthor(
 		return seventv.id;
 	})();
 
-	return (emotes) => emotes.items.filter((e) => e.owner.id === sevenTvID);
+	return (emotes) => emotes.items.filter((e) => e.owner?.id === sevenTvID);
 }
 
 const getEmoteFromName = async (ctx: TCommandContext) => {

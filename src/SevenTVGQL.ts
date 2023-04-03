@@ -78,10 +78,11 @@ export interface EmoteSearchResult {
 	emotes: {
 		count: number;
 		items: (EmoteSet & {
+			/** Nullable on the chance the user is deleted */
 			owner: {
 				username: string;
 				id: string;
-			};
+			} | null;
 		})[];
 	};
 }
