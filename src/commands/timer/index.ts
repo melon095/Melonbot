@@ -205,25 +205,51 @@ registerCommand({
 			Result: result.inner,
 		};
 	},
-	LongDescription: async (prefix) => [
-		`This command can be used to disable or enable chat timers.`,
-		`A Timer is a message that is sent every X seconds to a channel.`,
-		`${prefix}timer create|add <name> <message>`,
-		`${prefix}timer delete|remove <name>`,
-		`${prefix}timer list`,
-		`${prefix}timer enable <name>`,
-		`${prefix}timer disable <name>`,
-		'',
-		`**Example**: ${prefix}timer create test This is a test message`,
-		'',
-		`-i, --interval <interval>`,
-		`The interval in seconds between each message. Default is 60 seconds.`,
-		'',
-		'-t, --titles <title>',
-		'Will only keep the timer alive if the title of the stream is one of the provided titles.',
-		'Commane separated list of titles.',
-		`**Example**: ${prefix}timer create test Test message --titles forsen`,
-		`**Example**: ${prefix}timer create test Test message --titles forsen,forsen2,forsen3`,
-		`**Example**: ${prefix}timer create test Test message --titles "this is a big title,forsen"`,
-	],
+	LongDescription: async function (prefix, user) {
+		let personal = '';
+		if (user) {
+			const timers = await Bot.SQL.selectFrom('timers')
+				.selectAll()
+				.where('owner', '=', user?.TwitchUID)
+				.execute();
+
+			if (timers.length > 0) {
+				personal = `You have ${timers.length} timers<details><summary>View them</summary>`;
+
+				personal += timers
+					.map((t) => {
+						return `<li>${t.name} - ${t.interval}s</li>`;
+					})
+					.join('\n');
+
+				personal += '</details>';
+			} else {
+				personal = 'You have no timers';
+			}
+		}
+
+		return [
+			`This command can be used to disable or enable chat timers.`,
+			`A Timer is a message that is sent every X seconds to a channel.`,
+			`${prefix}timer create|add <name> <message>`,
+			`${prefix}timer delete|remove <name>`,
+			`${prefix}timer list`,
+			`${prefix}timer enable <name>`,
+			`${prefix}timer disable <name>`,
+			'',
+			`**Example**: ${prefix}timer create test This is a test message`,
+			'',
+			`-i, --interval <interval>`,
+			`The interval in seconds between each message. Default is 60 seconds.`,
+			'',
+			'-t, --titles <title>',
+			'Will only keep the timer alive if the title of the stream is one of the provided titles.',
+			'Commane separated list of titles.',
+			`**Example**: ${prefix}timer create test Test message --titles forsen`,
+			`**Example**: ${prefix}timer create test Test message --titles forsen,forsen2,forsen3`,
+			`**Example**: ${prefix}timer create test Test message --titles "this is a big title,forsen"`,
+			'',
+			personal.trim(),
+		];
+	},
 });

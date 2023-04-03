@@ -39,7 +39,8 @@ registerCommand<PreHandlers>({
 			if (emoteIdx === -1) continue;
 
 			emotes.push(emote);
-			requestedEmotes.splice(emoteIdx, 1);
+			requestedEmotes[emoteIdx] = requestedEmotes[requestedEmotes.length - 1];
+			--requestedEmotes.length;
 
 			if (!requestedEmotes.length) break;
 		}

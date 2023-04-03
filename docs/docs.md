@@ -189,11 +189,13 @@ The code field optionally has a `mods` argument injected, however this is relate
 
 ### Long Description
 
-`Type: (prefix: string) => Promise<Array<string>>`
+`Type: (prefix: string, user?: User) => Promise<Array<string>>`
 
 Long Description is a way of going deep into the command, explaining how to use everything about it, wether it is is sub commands or parameters.
 
 It supports markdown and is used for the website.
+
+The function is passed a user object aswell, if the user is logged in. This allows for optionally giving more personal information to a user.
 
 ## Command Context
 
