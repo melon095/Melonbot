@@ -46,7 +46,7 @@
         "@fastify/cors": "^8.2.1",
         "@fastify/formbody": "^7.4.0",
         "@fastify/static": "^6.9.0",
-        "@kararty/dank-twitch-irc": "^5.0.1",
+        "@kararty/dank-twitch-irc": "^6.0.0",
         "@melon95/promolve": "^1.0.1",
         "@types/pg": "^8.6.6",
         "fastify": "^4.13.0",
