@@ -6,6 +6,7 @@ import useFetch from '../../../Hooks/useFetch';
 import { CommandInfo } from '../../../Types/commands';
 import ReactMarkdown from 'react-markdown';
 import { UserContext } from '../../../App';
+import rehypeRaw from 'rehype-raw';
 
 type Props = {
 	command: string;
@@ -60,7 +61,7 @@ export default function () {
 	const Markdown = (props: { value: string }) => (
 		<pre>
 			<code>
-				<ReactMarkdown>{props.value}</ReactMarkdown>
+				<ReactMarkdown rehypePlugins={[rehypeRaw]}>{props.value}</ReactMarkdown>
 			</code>
 		</pre>
 	);

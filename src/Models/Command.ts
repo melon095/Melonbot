@@ -9,7 +9,13 @@ export enum ArgType {
 	Boolean = 'boolean',
 }
 
-export type LongDescriptionFunction = (prefix: string) => Promise<string[]>;
+/**
+ * Long description describes how a command and its parameters work.
+ *
+ * @param prefix The prefix used to invoke the command.
+ * @param user Optional user data from an authenticated user on the website.
+ */
+export type LongDescriptionFunction = (prefix: string, user?: User) => Promise<string[]>;
 
 export type TExecuteFunction<M extends object = object> = (
 	this: CommandModel,
