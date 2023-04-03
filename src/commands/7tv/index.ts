@@ -92,31 +92,31 @@ const getEmoteFromName = async (ctx: TCommandContext) => {
 		};
 	}
 
-	if (emotes.length > 1) {
-		const intIdx = index ? parseInt(index as string) : 0 || 0;
-
-		const chunks = [];
-		for (let i = 0; i < emotes.length; i += 5) {
-			chunks.push(emotes.slice(i, i + 5));
-		}
-
-		let message;
-		if (intIdx < chunks.length) {
-			message = chunks[intIdx]
-				.map((emote) => `${emote.name} - https://7tv.app/emotes/${emote.id}`)
-				.join(' | ');
-		} else {
-			message = `Index out of range (0-${chunks.length - 1})`;
-		}
-
+	if (emotes.length === 1) {
 		return {
 			Success: true,
-			Result: message,
+			Result: `'${emotes[0].name}' - https://7tv.app/emotes/${emotes[0].id}`,
 		};
+	}
+
+	const intIdx = ~~index;
+
+	const chunks = [];
+	for (let i = 0; i < emotes.length; i += 5) {
+		chunks.push(emotes.slice(i, i + 5));
+	}
+
+	let message;
+	if (intIdx < chunks.length) {
+		message = chunks[intIdx]
+			.map((emote) => `${emote.name} - https://7tv.app/emotes/${emote.id}`)
+			.join(' | ');
+	} else {
+		message = `Index out of range (0-${chunks.length - 1})`;
 	}
 
 	return {
 		Success: true,
-		Result: `'${emotes[0].name}' - https://7tv.app/emotes/${emotes[0].id}`,
+		Result: message,
 	};
 };
