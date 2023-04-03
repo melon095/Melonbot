@@ -80,6 +80,7 @@ export interface EmoteSearchResult {
 		items: (EmoteSet & {
 			owner: {
 				username: string;
+				id: string;
 			};
 		})[];
 	};
@@ -296,6 +297,7 @@ export default {
                         name
                         owner {
                             username
+                            id
                         }
                     }
                 }

@@ -32,6 +32,7 @@ import {
 } from '../DB/Tables/ChannelTable.js';
 import { GetCommandBy } from '../Commands/Handler.js';
 import {
+	GetSafeError,
 	InvalidInputError,
 	ParseArgumentsError,
 	PreHandlerError,
@@ -548,7 +549,11 @@ export async function ExecuteCommand(
                 {
                     // TODO: Leak to everybody?
                     message = error.message;
-				} 
+				}
+                else if (error instanceof GetSafeError) 
+                {
+                    message = error.message;
+                } 
                 else if (isNotObject())
                 {
                     message = (error)?.toString() ?? 'Unknown error';

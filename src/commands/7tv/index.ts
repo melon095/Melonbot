@@ -15,7 +15,7 @@ registerCommand({
 	Params: [
 		[ArgType.String, 'index'],
 		[ArgType.Boolean, 'exact'],
-		[ArgType.String, 'author'],
+		[ArgType.String, 'uploader'],
 	],
 	Flags: [],
 	PreHandlers: [],
@@ -41,9 +41,9 @@ registerCommand({
 		'-i, --index <number>',
 		'   Return the emotes at the specified index',
 		'',
-		'-a, --author <name>',
+		'-u, --uploader <name>',
 		'   Search for emotes by a specific author',
-		'   It expects the username you have on the 7TV website.',
+		'   It expects the users current Twitch username.',
 		'',
 		'By default the command will return the first 5 emotes',
 	],
@@ -57,18 +57,26 @@ const getEmoteFromID = async (id: string) => {
 	};
 };
 
-function filterByAuthor(
-	author: string,
+async function filterByAuthor(
+	uploader: string,
 ): (emotes: EmoteSearchResult['emotes']) => EmoteSearchResult['emotes']['items'] {
-	if (author === '') return (emotes: EmoteSearchResult['emotes']) => emotes.items;
+	if (uploader === '') return (emotes: EmoteSearchResult['emotes']) => emotes.items;
+
+	const sevenTvID = await (async () => {
+		const internalUser = await Bot.User.ResolveUsername(uploader);
+
+		const seventv = await gql.GetUser(internalUser);
+
+		return seventv.id;
+	})();
 
 	return (emotes: EmoteSearchResult['emotes']) =>
-		emotes.items.filter((e) => e.owner.username === author);
+		emotes.items.filter((e) => e.owner.id === sevenTvID);
 }
 
 const getEmoteFromName = async (ctx: TCommandContext) => {
 	const filter: EmoteSearchFilter = {};
-	const { exact, index, author } = ctx.data.Params;
+	const { exact, index, uploader } = ctx.data.Params;
 	if (exact) {
 		filter.exact_match = true;
 	}
@@ -76,7 +84,7 @@ const getEmoteFromName = async (ctx: TCommandContext) => {
 	const emotes = await gql
 		.SearchEmoteByName(ctx.input.join(' '), filter)
 		.then((res) => res.emotes)
-		.then(filterByAuthor(author as string));
+		.then(filterByAuthor(uploader as string));
 
 	if (!emotes.length) {
 		return {
