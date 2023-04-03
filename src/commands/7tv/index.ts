@@ -59,8 +59,8 @@ const getEmoteFromID = async (id: string) => {
 
 async function filterByAuthor(
 	uploader: string,
-): (emotes: EmoteSearchResult['emotes']) => EmoteSearchResult['emotes']['items'] {
-	if (uploader === '') return (emotes: EmoteSearchResult['emotes']) => emotes.items;
+): Promise<(emotes: EmoteSearchResult['emotes']) => EmoteSearchResult['emotes']['items']> {
+	if (uploader === '') return (emotes) => emotes.items;
 
 	const sevenTvID = await (async () => {
 		const internalUser = await Bot.User.ResolveUsername(uploader);
@@ -70,8 +70,7 @@ async function filterByAuthor(
 		return seventv.id;
 	})();
 
-	return (emotes: EmoteSearchResult['emotes']) =>
-		emotes.items.filter((e) => e.owner.id === sevenTvID);
+	return (emotes) => emotes.items.filter((e) => e.owner.id === sevenTvID);
 }
 
 const getEmoteFromName = async (ctx: TCommandContext) => {
@@ -84,7 +83,7 @@ const getEmoteFromName = async (ctx: TCommandContext) => {
 	const emotes = await gql
 		.SearchEmoteByName(ctx.input.join(' '), filter)
 		.then((res) => res.emotes)
-		.then(filterByAuthor(uploader as string));
+		.then(await filterByAuthor(uploader as string));
 
 	if (!emotes.length) {
 		return {
