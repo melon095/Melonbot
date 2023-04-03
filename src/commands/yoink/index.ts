@@ -133,26 +133,30 @@ registerCommand({
 			Result: '',
 		};
 	},
-	LongDescription: async (prefix) => [
-		'Steal several 7TV emotes from a channel.',
-		"If the current channel is not specified, target will be set to the current channel, and the bot will add to the user's channel.",
-		'',
-		`**Usage**: ${prefix} yoink #channel emote`,
-		`**Example**: ${prefix} yoink NOTED`,
-		`**Example**: ${prefix} yoink #pajlada WideDankCrouching`,
-		`**Example**: ${prefix} yoink @melon095 FloppaDank FloppaL`,
-		`**Example**: ${prefix} yoink FloppaDank FloppaL #melon095`,
-		'',
-		'**Note**: Emotes are added case insensitive by default. Use the `-c` flag to make it case sensitive',
-		'',
-		`**Flags**`,
-		'-c, --case',
-		'   Case sensitive emote names',
-		'',
-		'-a, --alias',
-		'   Add the emote while retaining the alias',
-		'',
-	],
+	LongDescription: async function (prefix, user) {
+		const name = user?.Name || 'forsen';
+
+		return [
+			'Steal several 7TV emotes from a channel.',
+			"If the current channel is not specified, target will be set to the current channel, and the bot will add to the user's channel.",
+			'',
+			`**Usage**: ${prefix} yoink #channel emote`,
+			`**Example**: ${prefix} yoink NOTED`,
+			`**Example**: ${prefix} yoink #pajlada WideDankCrouching`,
+			`**Example**: ${prefix} yoink @${name} FloppaDank FloppaL`,
+			`**Example**: ${prefix} yoink FloppaDank FloppaL #${name}`,
+			'',
+			'**Note**: Emotes are added case insensitive by default. Use the `-c` flag to make it case sensitive',
+			'',
+			`**Flags**`,
+			'-c, --case',
+			'   Case sensitive emote names',
+			'',
+			'-a, --alias',
+			'   Add the emote while retaining the alias',
+			'',
+		];
+	},
 });
 
 const getSevenTVAccount = async (channel: string) => {

@@ -70,7 +70,7 @@ export default async function (fastify: FastifyInstance) {
 				return true;
 			}
 
-			let user;
+			let user: User | undefined;
 
 			if (req.authenticatedUser) {
 				const { identifier, username } = req.authenticatedUser!;
@@ -89,7 +89,7 @@ export default async function (fastify: FastifyInstance) {
 			const prefix = Bot.Config.Prefix;
 
 			const LongDescription =
-				(await command.LongDescription?.(prefix))?.join('\n') || 'No description';
+				(await command.LongDescription?.(prefix, user))?.join('\n') || 'No description';
 
 			const Alias = command.Aliases.length ? command.Aliases.join(', ') : 'None';
 

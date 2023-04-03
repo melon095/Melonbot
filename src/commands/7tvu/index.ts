@@ -2,11 +2,53 @@ import { EPermissionLevel } from '../../Typings/enums.js';
 import { DifferenceFmt } from './../../tools/tools.js';
 import gql, { ConnectionPlatform } from '../../SevenTVGQL.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
+import User from '../../controller/User/index.js';
 
 type Roles = {
 	id: string;
 	name: string;
 };
+
+async function GetInformation(internalUser: User) {
+	const user = await gql
+		.GetUser(internalUser)
+		.then((u) => u)
+		.catch(() => null);
+
+	if (!user) {
+		return `User ${internalUser.Name} not found.`;
+	}
+
+	const roles = await Bot.Redis.SGet(`seventv:roles`)
+		.then((res) => JSON.parse(res) as Roles[])
+		.then((res) => res.filter((r) => user.roles.includes(r.id) && r.name !== 'Default'))
+		.catch(() => []);
+
+	const roleString = roles.map((r) => r.name).join(', ');
+
+	const default_emote_set = await gql.getDefaultEmoteSet(user.id).catch(() => null);
+	if (!default_emote_set) {
+		return 'User is missing default emote set';
+	}
+
+	const emote_set = user.emote_sets.find((e) => e.id === default_emote_set.emote_set_id);
+
+	const slots = emote_set?.emotes.length || 0;
+	const max_slots = emote_set?.capacity || 0;
+	const id = user.connections.find((c) => c.platform === ConnectionPlatform.TWITCH)?.id ?? null;
+
+	const result = [
+		`${user.username} (${id})`,
+		`7TV ID: ${user.id}`,
+		roleString ? `Roles: ${roleString}` : '',
+		`Created: ${DifferenceFmt(new Date(user.created_at).getTime())} ago`,
+		`Slots: ${slots} / ${max_slots.toString().replace(/\B(?=(\d{3})+(?!\d))/g, `_`)}`,
+	]
+		.filter(Boolean)
+		.join(' | ');
+
+	return result;
+}
 
 registerCommand({
 	Name: '7tvu',
@@ -36,59 +78,27 @@ registerCommand({
 			internalUser = ctx.user;
 		}
 
-		const user = await gql
-			.GetUser(internalUser)
-			.then((u) => u)
-			.catch(() => null);
-
-		if (!user) {
-			return {
-				Success: false,
-				Result: `User ${internalUser.Name} not found.`,
-			};
-		}
-
-		const roles = await Bot.Redis.SGet(`seventv:roles`)
-			.then((res) => JSON.parse(res) as Roles[])
-			.then((res) => res.filter((r) => user.roles.includes(r.id)))
-			.catch(() => [{ name: 'Default' }]);
-
-		const roleString = roles.map((r) => r.name).join(', ');
-
-		const default_emote_set = await gql.getDefaultEmoteSet(user.id).catch(() => null);
-		if (!default_emote_set) {
-			return {
-				Success: false,
-				Result: 'User is missing default emote set',
-			};
-		}
-
-		const emote_set = user.emote_sets.find((e) => e.id === default_emote_set.emote_set_id);
-
-		const slots = emote_set?.emotes.length || 0;
-		const max_slots = emote_set?.capacity || 0;
-		const id =
-			user.connections.find((c) => c.platform === ConnectionPlatform.TWITCH)?.id ?? null;
-
-		const Result = [
-			`${user.username} (${id})`,
-			`7TV ID: ${user.id}`,
-			`Roles: ${roleString}`,
-			`Created: ${DifferenceFmt(new Date(user.created_at).getTime())} ago`,
-			`Slots: ${slots} / ${max_slots.toString().replace(/\B(?=(\d{3})+(?!\d))/g, `_`)}`,
-		].join(' | ');
+		const Result = await GetInformation(internalUser);
 
 		return {
 			Success: true,
 			Result,
 		};
 	},
-	LongDescription: async (prefix) => [
-		`Display information about a 7TV user.`,
-		'',
-		`**Usage**: ${prefix}7tvu <username>`,
-		`**Example**: ${prefix}7tvu @melon095`,
-		'',
-		'Displays info such as the user id, username, 7TV ID, roles, creation date, and emote slots.',
-	],
+	LongDescription: async function (prefix, user) {
+		let example = '';
+		if (user) {
+			example = `**Example**: ${await GetInformation(user)}`;
+		}
+
+		return [
+			`Display information about a 7TV user.`,
+			'',
+			`**Usage**: ${prefix}7tvu <username>`,
+			`**Example**: ${prefix}7tvu @melon095`,
+			'',
+			'',
+			example,
+		];
+	},
 });
