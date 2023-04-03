@@ -83,7 +83,7 @@ const getEmoteFromName = async (ctx: TCommandContext) => {
 	const emotes = await gql
 		.SearchEmoteByName(ctx.input.join(' '), filter)
 		.then((res) => res.emotes)
-		.then(await filterByAuthor(uploader as string));
+		.then(await filterByAuthor(Bot.User.CleanName(uploader as string)));
 
 	if (!emotes.length) {
 		return {
