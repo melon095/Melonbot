@@ -74,13 +74,15 @@ export interface EnabledEmote {
 	IsAlias: () => boolean;
 }
 
-interface EmoteSearchResult {
+export interface EmoteSearchResult {
 	emotes: {
 		count: number;
-		items: {
-			id: string;
-			name: string;
-		}[];
+		items: (EmoteSet & {
+			owner: {
+				username: string;
+				id: string;
+			};
+		})[];
 	};
 }
 
@@ -293,6 +295,10 @@ export default {
                     items {
                         id
                         name
+                        owner {
+                            username
+                            id
+                        }
                     }
                 }
             }`,

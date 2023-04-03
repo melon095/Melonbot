@@ -1,6 +1,6 @@
 import { EPermissionLevel } from '../../Typings/enums.js';
 import { TCommandContext, ArgType } from '../../Models/Command.js';
-import gql, { EmoteSearchFilter } from '../../SevenTVGQL.js';
+import gql, { EmoteSearchFilter, EmoteSearchResult } from '../../SevenTVGQL.js';
 import { extractSeventTVID } from './../../tools/regex.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
 
@@ -15,7 +15,7 @@ registerCommand({
 	Params: [
 		[ArgType.String, 'index'],
 		[ArgType.Boolean, 'exact'],
-		[ArgType.String, 'author'],
+		[ArgType.String, 'uploader'],
 	],
 	Flags: [],
 	PreHandlers: [],
@@ -34,11 +34,16 @@ registerCommand({
 		`Searches up to 100 7TV emotes.`,
 		`**Usage**: ${prefix}7tv <search term>`,
 		`**Example**: ${prefix}7tv Apu`,
+		'',
 		'-e, --exact',
 		'   Search for an exact match',
 		'',
 		'-i, --index <number>',
 		'   Return the emotes at the specified index',
+		'',
+		'-u, --uploader <name>',
+		'   Search for emotes by a specific uploader',
+		'   It expects the users current Twitch username.',
 		'',
 		'By default the command will return the first 5 emotes',
 	],
@@ -52,49 +57,66 @@ const getEmoteFromID = async (id: string) => {
 	};
 };
 
+async function filterByAuthor(
+	uploader: string,
+): Promise<(emotes: EmoteSearchResult['emotes']) => EmoteSearchResult['emotes']['items']> {
+	if (uploader === '') return (emotes) => emotes.items;
+
+	const sevenTvID = await (async () => {
+		const internalUser = await Bot.User.ResolveUsername(uploader);
+
+		const seventv = await gql.GetUser(internalUser);
+
+		return seventv.id;
+	})();
+
+	return (emotes) => emotes.items.filter((e) => e.owner.id === sevenTvID);
+}
+
 const getEmoteFromName = async (ctx: TCommandContext) => {
 	const filter: EmoteSearchFilter = {};
-	const { exact, index } = ctx.data.Params;
+	const { exact, index, uploader } = ctx.data.Params;
 	if (exact) {
 		filter.exact_match = true;
 	}
 
 	const emotes = await gql
 		.SearchEmoteByName(ctx.input.join(' '), filter)
-		.then((res) => res.emotes);
+		.then((res) => res.emotes)
+		.then(await filterByAuthor(Bot.User.CleanName(uploader as string)));
 
-	if (!emotes.items.length) {
+	if (!emotes.length) {
 		return {
 			Success: false,
 			Result: 'No emotes found :(',
 		};
 	}
 
-	if (emotes.items.length > 1) {
-		const intIdx = index ? parseInt(index as string) : 0 || 0;
-
-		const chunks = [];
-		for (let i = 0; i < emotes.items.length; i += 5) {
-			chunks.push(emotes.items.slice(i, i + 5));
-		}
-
-		let message;
-		if (intIdx < chunks.length) {
-			message = chunks[intIdx]
-				.map((emote) => `${emote.name} - https://7tv.app/emotes/${emote.id}`)
-				.join(' | ');
-		} else {
-			message = `Index out of range (0-${chunks.length - 1})`;
-		}
-
+	if (emotes.length === 1) {
 		return {
 			Success: true,
-			Result: message,
+			Result: `'${emotes[0].name}' - https://7tv.app/emotes/${emotes[0].id}`,
 		};
+	}
+
+	const intIdx = ~~index;
+
+	const chunks = [];
+	for (let i = 0; i < emotes.length; i += 5) {
+		chunks.push(emotes.slice(i, i + 5));
+	}
+
+	let message;
+	if (intIdx < chunks.length) {
+		message = chunks[intIdx]
+			.map((emote) => `${emote.name} - https://7tv.app/emotes/${emote.id}`)
+			.join(' | ');
+	} else {
+		message = `Index out of range (0-${chunks.length - 1})`;
 	}
 
 	return {
 		Success: true,
-		Result: `'${emotes.items[0].name}' - https://7tv.app/emotes/${emotes.items[0].id}`,
+		Result: message,
 	};
 };
