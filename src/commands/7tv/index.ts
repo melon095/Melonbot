@@ -42,7 +42,7 @@ registerCommand({
 		'   Return the emotes at the specified index',
 		'',
 		'-u, --uploader <name>',
-		'   Search for emotes by a specific author',
+		'   Search for emotes by a specific uploader',
 		'   It expects the users current Twitch username.',
 		'',
 		'By default the command will return the first 5 emotes',
