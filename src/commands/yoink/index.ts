@@ -67,12 +67,23 @@ registerCommand({
 		let writeSet: string;
 
 		switch (ctx.channel.Name) {
-			case readChan:
+			case readChan: {
 				readSet = (await ctx.channel.GetChannelData('SevenTVEmoteSet')).ToString();
 				break;
-			case writeChan:
+			}
+			case writeChan: {
+				const isAllowed = await gql.isAllowedToModify(await ctx.channel.User(), ctx.user);
+				if (!isAllowed.okay) {
+					return {
+						Success: true,
+						Result: isAllowed.message,
+					};
+				}
+
 				writeSet = (await ctx.channel.GetChannelData('SevenTVEmoteSet')).ToString();
+
 				break;
+			}
 		}
 
 		const convertToEmoteSet = async (user: string) =>
