@@ -2,7 +2,7 @@ import { Method } from 'got';
 import { EventsubTypes } from '../Singletons/Redis/Data.Types.js';
 import { Helix } from './../Typings/types.js';
 import got from './../tools/Got.js';
-import { Sleep, token } from './../tools/tools.js';
+import { Sleep, GetOrGenerateBotToken } from './../tools/tools.js';
 import { Result, Err, Ok } from './../tools/result.js';
 import User from './../controller/User/index.js';
 import { chunkArr } from './../tools/generators.js';
@@ -101,14 +101,11 @@ interface RequestOpts {
 const BASE_URL = 'https://api.twitch.tv/helix/';
 
 const _createHeaders = async (): Promise<Record<string, string>> => {
-	const { error, token: t, status } = await token.Bot();
-	if (status === 'ERROR') {
-		throw error;
-	}
+	const token = await GetOrGenerateBotToken();
 
 	return {
 		'Client-ID': Bot.Config.Twitch.ClientID,
-		Authorization: `Bearer ${t}`,
+		Authorization: `Bearer ${token}`,
 	};
 };
 
@@ -118,7 +115,13 @@ const _request = async <T>(
 	options: { params?: URLSearchParams; body?: object } = {},
 	requestOpts: RequestOpts = {},
 ): Promise<Result<T, string>> => {
-	const headers = await _createHeaders();
+	let headers;
+	try {
+		headers = await _createHeaders();
+	} catch (e) {
+		// FIXME: cleanup
+		return new Err((e as Error).message);
+	}
 	const url = `${BASE_URL}${path}`;
 
 	options.body && (headers['Content-Type'] = 'application/json');

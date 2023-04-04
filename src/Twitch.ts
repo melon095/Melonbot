@@ -1,32 +1,20 @@
 import DankTwitch from '@kararty/dank-twitch-irc';
 import * as tools from './tools/tools.js';
 import { Channel, ExecuteCommand } from './controller/Channel/index.js';
-import got from './tools/Got.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
 import ChannelTable from './controller/DB/Tables/ChannelTable.js';
+import assert from 'node:assert';
 
-interface IUserInformation {
-	data: [
-		{
-			id: string;
-			login: string;
-			name: string;
-			type: string;
-			broadcaster_type: string;
-			description: string;
-			profile_image_url: string;
-			offline_image_url: string;
-			view_count: number;
-			email?: string;
-			created_at: string;
-		},
-	];
+function NoticeMessageIsReject(message: string) {
+	return (
+		message.includes('Bad response message') &&
+		message.includes('@msg-id=msg_rejected_mandatory')
+	);
 }
 
 export default class Twitch {
 	public client: DankTwitch.ChatClient;
-	public owner!: string;
 
 	public channels: Channel[] = [];
 
@@ -45,6 +33,7 @@ export default class Twitch {
 				secure: true,
 			},
 		});
+
 		this.client.on('ready', () => {
 			Bot.Log.Info('Twitch client ready');
 			this.initFlags[0] = true;
@@ -59,15 +48,12 @@ export default class Twitch {
 				error instanceof DankTwitch.SayError &&
 				error.cause instanceof DankTwitch.MessageError
 			) {
-				if (
-					error.message.includes('Bad response message') &&
-					error.message.includes('@msg-id=msg_rejected_mandatory')
-				) {
-					this.TwitchChannelSpecific({
-						Name: error.failedChannelName,
-					})?.AutomodMessage(
-						'A message that was about to be posted was blocked by automod',
-					);
+				if (NoticeMessageIsReject(error.cause.message)) {
+					const message = 'A message that was about to be posted was blocked by automod';
+
+					this.TwitchChannelSpecific({ Name: error.failedChannelName })?.say(message, {
+						SkipBanphrase: true,
+					});
 				}
 			}
 		});
@@ -146,41 +132,13 @@ export default class Twitch {
 
 	private async SetOwner(): Promise<void> {
 		try {
-			const owner = await Bot.Redis.SGet('Owner');
 			const self = await Bot.Redis.SGet('SelfID');
 
-			if (owner !== '') {
-				this.owner = owner;
-				this.initFlags[1] = true;
-			}
+			if (self) Bot.ID = self;
+			else {
+				const selfUser = await Bot.User.ResolveUsername(Bot.Config.BotUsername);
 
-			if (self !== '') {
-				Bot.ID = self;
-			}
-
-			if (owner !== '' && self !== '') {
-				return;
-			}
-
-			const url = `https://api.twitch.tv/helix/users?id=${Bot.Config.OwnerUserID}&login=${Bot.Config.BotUsername}`;
-
-			const body: IUserInformation = await got('json')(url, {
-				method: 'GET',
-				headers: {
-					Authorization: `Bearer ${(await tools.token.Bot()).token}`,
-					'Client-ID': Bot.Config.Twitch.ClientID,
-				},
-			}).json();
-
-			for (const user of body.data) {
-				if (user.id === Bot.Config.OwnerUserID) {
-					await Bot.Redis.SSet('Owner', user.login);
-					this.owner = user.login;
-				}
-				if (user.login === Bot.Config.BotUsername) {
-					await Bot.Redis.SSet('SelfID', user.id);
-					Bot.ID = user.id;
-				}
+				await Bot.Redis.SSet('SelfID', selfUser.TwitchUID);
 			}
 
 			this.initFlags[1] = true;

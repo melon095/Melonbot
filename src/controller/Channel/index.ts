@@ -374,12 +374,6 @@ export class Channel {
 		} else this.UserCooldowns[id][idx] = val;
 	}
 
-	AutomodMessage(message: string): void {
-		if (this.Queue.hasMessage) {
-			this.say(message, { SkipBanphrase: true });
-		}
-	}
-
 	private async InitiateTrivia(): Promise<void> {
 		this.Trivia = new TriviaController();
 

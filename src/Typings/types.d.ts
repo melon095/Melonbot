@@ -2,12 +2,6 @@ export type ChannelTalkOptions = {
 	SkipBanphrase?: boolean = false;
 };
 
-export type TTokenFunction = {
-	status: 'OK' | 'ERROR' | 'MESSAGE';
-	token: string;
-	error: string;
-};
-
 export type TAccessToken = {
 	access_token: string;
 };

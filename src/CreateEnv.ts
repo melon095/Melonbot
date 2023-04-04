@@ -81,10 +81,8 @@ export const Setup = {
 
 	Bot: async () => {
 		// Twitch Specific Config
-		if (!(await tools.token.Bot()).token) {
-			Bot.Log.Error('Missing Twitch Config');
-			process.exit(-1);
-		}
+		await tools.GetOrGenerateBotToken();
+
 		// Create Twitch objects
 		Bot.Twitch = {
 			Controller: await Twitch.Init(),

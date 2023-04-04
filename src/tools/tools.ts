@@ -1,9 +1,6 @@
-import { TTokenFunction } from './../Typings/types';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import Got from './Got.js';
-
-const VALIDATE_WEBSITE = 'https://id.twitch.tv/oauth2/validate';
 
 type TSecondsConvertions = {
 	fy: number;
@@ -60,74 +57,81 @@ export const DifferenceFmt = (numToDiff: number, join = ', '): string => {
 	return SecondsFmt(~~(Date.now() * 0.001) - Number(String(numToDiff).slice(0, 10)), join);
 };
 
-const createToken = async (): Promise<string | null> => {
-	const scopes: string[] = [
-		'channel:manage:broadcast',
-		'moderation:read',
-		'whispers:read',
-		'whispers:edit',
-		'chat:read',
-		'chat:edit',
-		'channel:moderate',
-	];
+const TWITCH_BOT_TOKEN_SCOPES = [
+	'channel:manage:broadcast',
+	'moderation:read',
+	'whispers:read',
+	'whispers:edit',
+	'chat:read',
+	'chat:edit',
+	'channel:moderate',
+].join(' ') as string;
 
-	const url = `https://id.twitch.tv/oauth2/token?client_id=${
-		Bot.Config.Twitch.ClientID
-	}&client_secret=${
-		Bot.Config.Twitch.ClientSecret
-	}&grant_type=client_credentials&scope=${scopes.join(' ')}`;
+const TWITCH_VALIDATE_WEBSITE = 'https://id.twitch.tv/oauth2/validate' as const;
 
-	const { statusCode, body } = await Got('json').post(url, { throwHttpErrors: false });
+function CreateOauth2TokenURL(): string {
+	const { ClientID, ClientSecret } = Bot.Config.Twitch;
 
-	const json = JSON.parse(body);
+	const url = new URL('https://id.twitch.tv/oauth2/token');
 
-	if (statusCode >= 400) {
-		Bot.Log.Error('tools/createToken %o', json);
-		return null;
+	url.searchParams.append('client_id', ClientID);
+	url.searchParams.append('client_secret', ClientSecret);
+	url.searchParams.append('grant_type', 'client_credentials');
+	url.searchParams.append('scope', TWITCH_BOT_TOKEN_SCOPES);
+
+	return url.toString();
+}
+
+async function GenerateNewBotToken(): Promise<string> {
+	const url = CreateOauth2TokenURL();
+
+	const { statusCode, body } = await Got('json').post(url);
+
+	switch (statusCode) {
+		case 200:
+			const json = JSON.parse(body);
+
+			const { access_token, expires_in } = json;
+			const clear_token_fn = await Bot.Redis.SSet('apptoken', access_token);
+
+			clear_token_fn(expires_in);
+			return access_token;
+		default:
+			throw new Error(`Could not generate new token. ${statusCode} ${body}`);
+	}
+}
+
+/**
+ * Fetches a valid App access token for the bot.
+ */
+export async function GetOrGenerateBotToken(): Promise<string> {
+	const apptoken = await Bot.Redis.SGet('apptoken');
+
+	if (!apptoken) {
+		return GenerateNewBotToken();
 	}
 
-	const { access_token, expires_in } = json;
+	const validate = await Got('json')({
+		url: TWITCH_VALIDATE_WEBSITE,
+		headers: {
+			Authorization: `Bearer ${apptoken}`,
+		},
+	});
 
-	await (
-		await Bot.Redis.SSet('apptoken', access_token)
-	)(expires_in);
-
-	return access_token;
-};
-
-export const token = {
-	async Bot(): Promise<TTokenFunction> {
-		const apptoken = await Bot.Redis.SGet('apptoken');
-
-		if (!apptoken) {
-			const newToken = await createToken();
-			if (!newToken)
-				return {
-					status: 'ERROR',
-					error: 'Could not get new token',
-					token: '',
-				};
-			return { status: 'OK', error: '', token: newToken };
+	switch (validate.statusCode) {
+		case 200: {
+			return apptoken;
 		}
 
-		const token = await Got('json').get(VALIDATE_WEBSITE, {
-			headers: {
-				Authorization: `Bearer ${apptoken}`,
-			},
-			throwHttpErrors: false,
-		});
+		case 401: {
+			return GenerateNewBotToken();
+		}
 
-		if (token.statusCode === 200) return { status: 'OK', token: apptoken, error: '' };
-
-		const body = JSON.parse(token.body);
-		Bot.Log.Error('tools/token/Bot %o', body);
-		const newToken = await createToken();
-
-		if (!newToken) return { status: 'ERROR', token: '', error: 'No token' };
-
-		return { status: 'OK', token: newToken, error: '' };
-	},
-};
+		default: {
+			throw new Error(`Failed to validate token -> ${validate.statusCode} ${validate.body}}`);
+		}
+	}
+}
 
 export async function Live(id: string): Promise<boolean> {
 	const isLive = await Bot.SQL.selectFrom('channels')
@@ -138,16 +142,10 @@ export async function Live(id: string): Promise<boolean> {
 	return Boolean(isLive?.live);
 }
 
-export async function ViewerList(id: string): Promise<string[]> {
-	const viewers = await Bot.Redis.SGet(`channel:${id}:viewers`);
-	if (!viewers) return [];
-	return JSON.parse(viewers);
-}
-
-export const Sleep = async (seconds = 1): Promise<boolean> => {
+export const Sleep = async (seconds = 1): Promise<void> => {
 	return new Promise((Resolve) => {
 		setTimeout(() => {
-			Resolve(true);
+			Resolve();
 		}, seconds);
 	});
 };
