@@ -361,7 +361,11 @@ export default {
 		});
 
 		if (response.statusCode !== 201) {
-			throw new Error(`Failed to send whisper: ${response.body}`);
+			Bot.Log.Warn(
+				'Failed to send whisper %i %O',
+				response.statusCode,
+				JSON.parse(response.bodyo),
+			);
 		}
 	},
 	Raw: <T>() => _request<T>,

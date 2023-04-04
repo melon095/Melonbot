@@ -45,7 +45,9 @@ setInterval(async () => {
 		await Helix.Whisper(
 			`FeelsDankMan 🖐 Your suggestion '${suggestion.suggestion}' was finished!`,
 			user.TwitchUID,
-		);
+		).catch((error) => {
+			Bot.Log.Error(error);
+		});
 	}
 }, CHECK_INTERVAL);
 
