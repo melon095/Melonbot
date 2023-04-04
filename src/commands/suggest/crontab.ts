@@ -43,7 +43,7 @@ setInterval(async () => {
 		Bot.Log.Info(`Notifying user ${user.TwitchUID} about finished suggestion ${suggestion.id}`);
 
 		await Helix.Whisper(
-			`FeelsDankMan 🖐 Your suggestion '${suggestion.suggestion}' was finished!`,
+			`FeelsDankMan 👋 Your suggestion '${suggestion.suggestion}' was finished!`,
 			user.TwitchUID,
 		).catch((error) => {
 			Bot.Log.Error(error);
