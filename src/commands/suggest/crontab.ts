@@ -1,7 +1,7 @@
 import { Selectable } from 'kysely';
 import SuggestionsTable from '../../controller/DB/Tables/SuggestionsTable.js';
 import { ResolveInternalID } from '../../controller/User/index.js';
-import Helix from '../../Helix';
+import Helix from '../../Helix/index.js';
 
 const VERY_PRIVATE_BOT_USER_TOKEN = process.env.MELONBOT_USERTOKEN;
 const UPDATE_INTERVAL = 1000 * 60 * 30; // 5 minutes
