@@ -32,3 +32,19 @@ Build with `make build` and can be ran with `make run` or by using the [docker-c
 ```bash
 node Scripts/Secret.EventSubKey.mjs
 ```
+
+### Generating a User Token for the bot.
+
+Goto https://twitchtokengenerator.com/
+
+Select all scopes
+
+Use your Client-Secret and Client-ID to generate a token.
+
+Open `redis-cli`
+
+Set the access token to -> `Melonbot:UserToken:Access`
+
+Set the refresh token to -> `Melonbot:UserToken:Refresh`
+
+**Note**. If the bot account changes password or 2FA the token would have to be manually generated again.
