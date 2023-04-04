@@ -29,8 +29,7 @@ import {
 	ChannelDatabaseToMode,
 	PermissionModeToDatabase,
 } from './controller/DB/Tables/ChannelTable.js';
-
-type ProcessType = 'BOT' | 'WEB';
+import type { ProcessType } from './globals.js';
 
 export const Setup = {
 	All: async (Process: ProcessType): Promise<void> => {

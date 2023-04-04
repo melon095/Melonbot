@@ -2,7 +2,7 @@ import { Method } from 'got';
 import { EventsubTypes } from '../Singletons/Redis/Data.Types.js';
 import { Helix } from './../Typings/types.js';
 import got from './../tools/Got.js';
-import { Sleep, GetOrGenerateBotToken } from './../tools/tools.js';
+import { Sleep, GetOrGenerateBotToken, GetVeryPrivatePersonalToken } from './../tools/tools.js';
 import { Result, Err, Ok } from './../tools/result.js';
 import User from './../controller/User/index.js';
 import { chunkArr } from './../tools/generators.js';
@@ -340,6 +340,33 @@ export default {
 		);
 
 		return users;
+	},
+	Whisper: async function (message: string, user_id_recipient: string): Promise<void> {
+		const token = await GetVeryPrivatePersonalToken();
+		const url = `${BASE_URL}whispers`;
+
+		const response = await got('default')(url, {
+			method: 'POST',
+			headers: {
+				'Client-ID': Bot.Config.Twitch.ClientID,
+				Authorization: `Bearer ${token}`,
+			},
+			searchParams: {
+				from_user_id: String(Bot.ID),
+				to_user_id: user_id_recipient,
+			},
+			json: {
+				message,
+			},
+		});
+
+		if (response.statusCode !== 204) {
+			Bot.Log.Warn(
+				'Failed to send whisper %i %O',
+				response.statusCode,
+				JSON.parse(response.body),
+			);
+		}
 	},
 	Raw: <T>() => _request<T>,
 };

@@ -3,7 +3,7 @@ import { Generated } from 'kysely';
 interface SuggestionsTable {
 	id: Generated<string>;
 	suggestion: string;
-	user_id: string;
+	user_id: number;
 	state: SuggestionState;
 }
 

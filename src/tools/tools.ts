@@ -1,5 +1,8 @@
+import assert from 'node:assert';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { RefreshTwitchToken } from '../controller/User/index.js';
+import Strategy from '../web/oauth.js';
 import Got from './Got.js';
 
 type TSecondsConvertions = {
@@ -125,6 +128,42 @@ export async function GetOrGenerateBotToken(): Promise<string> {
 
 		case 401: {
 			return GenerateNewBotToken();
+		}
+
+		default: {
+			throw new Error(`Failed to validate token -> ${validate.statusCode} ${validate.body}}`);
+		}
+	}
+}
+
+/**
+ * Fetches a User Access token for the bot.
+ */
+export async function GetVeryPrivatePersonalToken(): Promise<string> {
+	const [access, refresh] = await Promise.all([
+		Bot.Redis.SGet('UserToken:Access'),
+		Bot.Redis.SGet('UserToken:Refresh'),
+	]);
+
+	assert(access && refresh, 'No user token found!');
+
+	const validate = await Got('json')({
+		url: TWITCH_VALIDATE_WEBSITE,
+		headers: {
+			Authorization: `Bearer ${access}`,
+		},
+	});
+
+	switch (validate.statusCode) {
+		case 200:
+			return access;
+
+		case 401: {
+			const result = await RefreshTwitchToken(refresh);
+
+			await Bot.Redis.SSet('UserToken:Access', result.access_token);
+
+			return result.access_token;
 		}
 
 		default: {

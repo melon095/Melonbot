@@ -320,7 +320,7 @@ export async function GetValidTwitchToken(user: User): Promise<string | null> {
 	return token.access_token;
 }
 
-function RefreshTwitchToken(refresh_token: string) {
+export function RefreshTwitchToken(refresh_token: string) {
 	return Strategy.RefreshToken(refresh_token, {
 		authenticationMethod: AuthenticationMethod.Query,
 		tokenURL: 'https://id.twitch.tv/oauth2/token',

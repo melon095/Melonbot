@@ -1,5 +1,4 @@
 import { Kysely, sql } from 'kysely';
-import { GenerateSqlEnum } from '../index.js';
 
 function suggestionHasIdColumn(db: Kysely<any>) {
 	return db
@@ -10,23 +9,30 @@ function suggestionHasIdColumn(db: Kysely<any>) {
 }
 
 export async function up(db: Kysely<any>): Promise<void> {
-	if ((await suggestionHasIdColumn(db)).length) {
-		await db.schema
-			.alterTable('suggestions')
-			.dropColumn('suggestion_id')
-			.addColumn('id', 'uuid', (col) =>
-				col
-					.notNull()
-					.primaryKey()
-					.defaultTo(sql`uuid_generate_v4()`),
-			)
-			.dropColumn('request_username')
-			.addColumn('user_id', 'varchar', (col) => col.notNull().references('users.user_id'))
-			.addColumn('state', sql`${GenerateSqlEnum('pending', 'finished', 'denied')}`, (col) =>
-				col.notNull().defaultTo('pending'),
-			)
-			.execute();
+	try {
+		if ((await suggestionHasIdColumn(db)).length) {
+			await db.schema.dropTable('suggestions').execute();
+		}
+	} catch {
+		/* ... */
 	}
+
+	await sql`
+        CREATE TYPE suggestion_state AS ENUM ('pending', 'finished', 'denied');
+    `.execute(db);
+
+	await db.schema
+		.createTable('suggestions')
+		.addColumn('id', 'uuid', (col) =>
+			col
+				.notNull()
+				.primaryKey()
+				.defaultTo(sql`uuid_generate_v4()`),
+		)
+		.addColumn('user_id', 'integer', (col) => col.notNull().references('users.id'))
+		.addColumn('state', sql`suggestion_state`, (col) => col.notNull().defaultTo('pending'))
+		.addColumn('suggestion', 'text', (col) => col.notNull())
+		.execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {}

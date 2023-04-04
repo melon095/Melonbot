@@ -14,12 +14,20 @@ export declare interface RS extends RedisSingleton {
 	on<U extends keyof RedisEvents>(event: U, listener: RedisEvents[U]): ThisParameterType;
 }
 
+export type ProcessType = 'BOT' | 'WEB';
+
 type TGlobalConfig = TConfigFile & {
 	[key: string]: string | boolean | number;
 	StaticData: TStaticDataConfig;
 };
 
 declare global {
+	declare namespace NodeJS {
+		export interface ProcessEnv {
+			TYPE: ProcessType;
+		}
+	}
+
 	var Bot: {
 		Config: TGlobalConfig;
 		SQL: KyselyDB;
