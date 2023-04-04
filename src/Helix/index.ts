@@ -364,7 +364,7 @@ export default {
 			Bot.Log.Warn(
 				'Failed to send whisper %i %O',
 				response.statusCode,
-				JSON.parse(response.bodyo),
+				JSON.parse(response.body),
 			);
 		}
 	},
