@@ -360,7 +360,7 @@ export default {
 			},
 		});
 
-		if (response.statusCode !== 201) {
+		if (response.statusCode !== 204) {
 			Bot.Log.Warn(
 				'Failed to send whisper %i %O',
 				response.statusCode,
