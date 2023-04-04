@@ -3,7 +3,7 @@ import SuggestionsTable from '../../controller/DB/Tables/SuggestionsTable.js';
 import { ResolveInternalID } from '../../controller/User/index.js';
 import Helix from '../../Helix/index.js';
 
-const UPDATE_INTERVAL = 1000 * 60 * 30; // 5 minutes
+const UPDATE_INTERVAL = 1000 * 60 * 5; // 5 minutes
 const CHECK_INTERVAL = 1000 * 60 * 8; // 8 minutes
 
 const pendingSuggestionList: Selectable<SuggestionsTable>[] = [];
