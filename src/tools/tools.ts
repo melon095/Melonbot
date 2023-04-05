@@ -253,7 +253,7 @@ export const UppercaseFirst = (str: string): string => {
 /**
  * Returns a tuple of [success, error]
  */
-export const ExtractAllSettledPromises = <S, E>(
+export const ExtractAllSettledPromises = <S = void, E = Error>(
 	promises: PromiseSettledResult<S>[],
 ): [S[], E[]] => {
 	const success: S[] = [];
