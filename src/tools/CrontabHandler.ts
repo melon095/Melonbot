@@ -3,8 +3,6 @@ export interface CrontabOpts {
 	func: () => Promise<void> | void;
 	/** The interval in milliseconds. */
 	interval: number;
-	/** Randomize the interval by a random number between 0 and this value. in seconds */
-	randomize?: number;
 	/** Run the function immediately. */
 	runImmediately?: boolean;
 }
@@ -33,9 +31,6 @@ export function CreateCrontab(opts: CrontabOpts): Function {
 
 	const start = () => {
 		interval = opts.interval;
-		if (opts.randomize) {
-			interval += Math.random() * opts.randomize;
-		}
 		if (opts.runImmediately) wrapper();
 
 		timeout = setInterval(wrapper, interval);
