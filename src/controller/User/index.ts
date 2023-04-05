@@ -100,12 +100,15 @@ export default class User {
 	}
 
 	static async GetEveryone(): Promise<User[]> {
-		// TODO can do this better.
+		const sqlUsers = await Bot.SQL.selectFrom('users').selectAll().execute();
 
-		return Bot.SQL.selectFrom('users')
-			.selectAll()
-			.execute()
-			.then((users) => users.map((user) => new User(user)));
+		const users = [];
+
+		for (const user of sqlUsers) {
+			users.push(new User(user));
+		}
+
+		return users;
 	}
 
 	static CleanName(name: string) {

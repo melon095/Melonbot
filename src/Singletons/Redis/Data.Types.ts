@@ -3,13 +3,17 @@ import { ChannelDataNames } from './../../IndividualData.js';
 export type TPubRecType =
 	| 'banphrase'
 	| 'connect'
-	// Reserved for only my channel.
-	| 'channel.follow'
 	| 'channel.update'
 	| 'stream.online'
 	| 'stream.offline';
 
 export type EventsubTypes = Exclude<TPubRecType, 'connect' | 'banphrase'>;
+
+export const VALID_EVENTSUB_TYPES: ReadonlyArray<EventsubTypes> = [
+	'channel.update',
+	'stream.offline',
+	'stream.online',
+] as const;
 
 /**
  * Type is the eventsub type that was emitted
@@ -41,10 +45,6 @@ export interface IPubBroadcasterData {
 }
 
 export interface IPubUserToBroadcaster extends IPubUserData, IPubBroadcasterData {}
-
-export interface IPubFollow extends IPubUserToBroadcaster {
-	followed_at: string;
-}
 
 export const EStreamType = {
 	Live: 'live',

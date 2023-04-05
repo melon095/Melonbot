@@ -4,6 +4,10 @@ import gql, { EmoteSearchFilter, EmoteSearchResult } from '../../SevenTVGQL.js';
 import { extractSeventTVID } from './../../tools/regex.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
 
+if (process.env.TYPE === 'BOT') {
+	await import('./crontabs.js');
+}
+
 registerCommand({
 	Name: '7tv',
 	Ping: true,
