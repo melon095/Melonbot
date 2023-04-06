@@ -199,7 +199,7 @@ async function gql<ResponseBody>(query: string, variables: object = {}) {
 
 export default {
 	setup: (Bearer: string) => {
-		api = Got('json').extend({
+		api = Got['Default'].extend({
 			prefixUrl: url,
 			headers: {
 				Authorization: `Bearer ${Bearer}`,

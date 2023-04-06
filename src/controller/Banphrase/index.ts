@@ -46,9 +46,8 @@ export async function CheckMessageBanphrase(
 			message,
 		};
 
-		const { statusCode, body } = await Got('json').post(url, {
+		const { statusCode, body } = await Got['Default'].post(url, {
 			json,
-			throwHttpErrors: false,
 			timeout: {
 				request: 5000,
 				connect: 5000,

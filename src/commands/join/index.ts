@@ -7,9 +7,9 @@ import { registerCommand } from '../../controller/Commands/Handler.js';
 import { GetSafeError } from '../../Models/Errors.js';
 
 const isMod = async (user: User, channel: string) => {
-	const mods = (await Got('json')
-		.get(`https://api.ivr.fi/v2/twitch/modvip/${channel}?skipCache=true`)
-		.json()) as Ivr.ModVip;
+	const mods = await Got['Ivr']
+		.get(`modvip/${channel}`, { searchParams: { skipCache: true } })
+		.json<Ivr.ModVip>();
 
 	return mods.mods.some((mod) => mod.id === user.TwitchUID);
 };

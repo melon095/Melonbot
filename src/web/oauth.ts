@@ -179,7 +179,7 @@ class Strategy<ProfileKind> {
 			searchParams.set('client_id', opts.clientID);
 			searchParams.set('client_secret', opts.clientSecret);
 
-			return await Got('default')
+			return await Got['Default']
 				.post(tokenURL, {
 					searchParams,
 					throwHttpErrors: true,
@@ -189,7 +189,7 @@ class Strategy<ProfileKind> {
 				})
 				.json();
 		} else if (authenticationMethod === AuthenticationMethod.Header) {
-			return await Got('default')
+			return await Got['Default']
 				.post(tokenURL, {
 					searchParams,
 					throwHttpErrors: true,
@@ -245,12 +245,13 @@ const HandleSecondStep = async (opts: SecondStepOpts) => {
 	params.append('redirect_uri', opts.redirectURL);
 	params.append('grant_type', 'authorization_code');
 
-	const json = (await Got('json')({
-		method: 'POST',
-		url: tokenURL,
-		searchParams: params,
-		headers,
-	}).json()) as AuthorizationResponse;
+	const json = (await Got['Default']
+		.post({
+			url: tokenURL,
+			searchParams: params,
+			headers,
+		})
+		.json()) as AuthorizationResponse;
 
 	const { access_token, refresh_token, expires_in } = json;
 

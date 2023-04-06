@@ -26,7 +26,7 @@ registerCommand({
 	Code: async function (ctx) {
 		const MESSAGE = (advice: string) => `PotFriend advice: ${advice} PotFriend`;
 
-		const result = await got('json')
+		const result = await got['Default']
 			.get(ADVICE_API)
 			.then((ok) => {
 				const json: IAdviceSlipObject = JSON.parse(ok.body);

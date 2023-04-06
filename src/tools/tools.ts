@@ -88,7 +88,7 @@ function CreateOauth2TokenURL(): string {
 async function GenerateNewBotToken(): Promise<string> {
 	const url = CreateOauth2TokenURL();
 
-	const { statusCode, body } = await Got('json').post(url);
+	const { statusCode, body } = await Got['Default'].post(url);
 
 	switch (statusCode) {
 		case 200:
@@ -114,7 +114,7 @@ export async function GetOrGenerateBotToken(): Promise<string> {
 		return GenerateNewBotToken();
 	}
 
-	const validate = await Got('json')({
+	const validate = await Got['Default']({
 		url: TWITCH_VALIDATE_WEBSITE,
 		headers: {
 			Authorization: `Bearer ${apptoken}`,
@@ -131,7 +131,7 @@ export async function GetOrGenerateBotToken(): Promise<string> {
 		}
 
 		default: {
-			throw new Error(`Failed to validate token -> ${validate.statusCode} ${validate.body}}`);
+			throw new Error(`Failed to validate token -> ${validate.statusCode} ${validate.body}`);
 		}
 	}
 }
@@ -147,7 +147,7 @@ export async function GetVeryPrivatePersonalToken(): Promise<string> {
 
 	assert(access && refresh, 'No user token found!');
 
-	const validate = await Got('json')({
+	const validate = await Got['Default']({
 		url: TWITCH_VALIDATE_WEBSITE,
 		headers: {
 			Authorization: `Bearer ${access}`,
@@ -167,7 +167,7 @@ export async function GetVeryPrivatePersonalToken(): Promise<string> {
 		}
 
 		default: {
-			throw new Error(`Failed to validate token -> ${validate.statusCode} ${validate.body}}`);
+			throw new Error(`Failed to validate token -> ${validate.statusCode} ${validate.body}`);
 		}
 	}
 }

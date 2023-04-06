@@ -1,11 +1,10 @@
 import got from 'got';
 
 const headers = {
-	'User-Agent': 'Melonbot - Twitch Bot',
+	'User-Agent': 'Melonbot',
 };
 
-// Got with default headers and prefail hook
-export const BaseGot = got.extend({
+const BaseGot = got.extend({
 	headers,
 	throwHttpErrors: false,
 	timeout: {
@@ -13,18 +12,27 @@ export const BaseGot = got.extend({
 	},
 });
 
-export default (type: 'default' | 'json') => {
-	switch (type) {
-		case 'default': {
-			return BaseGot;
-		}
-		case 'json': {
-			return BaseGot.extend({
-				headers: {
-					...headers,
-					'Content-Type': 'application/json',
-				},
-			});
-		}
-	}
-};
+const HelixGot = BaseGot.extend({
+	prefixUrl: 'https://api.twitch.tv/helix',
+});
+
+const IvrGot = BaseGot.extend({
+	prefixUrl: 'https://api.ivr.fi/v2/twitch/',
+});
+
+const MagnoliaGot = BaseGot.extend({
+	prefixUrl: 'https://magnolia.melon095.live/api/',
+});
+
+// FIXME: Add auth header here?
+const SpotifyGot = BaseGot.extend({
+	prefixUrl: 'https://api.spotify.com/v1/',
+});
+
+export default {
+	Default: BaseGot,
+	Helix: HelixGot,
+	Ivr: IvrGot,
+	Magnolia: MagnoliaGot,
+	Spotify: SpotifyGot,
+} as const;

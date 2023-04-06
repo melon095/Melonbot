@@ -54,8 +54,3 @@ export async function RefreshToken(refresh_token: string) {
 		headers: CreateSpotifyRequestHeaders(),
 	});
 }
-
-export const SpotifyGot = Got('json').extend({
-	prefixUrl: 'https://api.spotify.com/v1/',
-	throwHttpErrors: false,
-});

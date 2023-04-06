@@ -4,10 +4,11 @@ import StrategyConstructor, {
 	UnauthorizedError,
 } from './../../../oauth.js';
 import { SpotifyTypes } from './../../../../Typings/types.js';
-import { CreateSpotifyRequestHeaders, SpotifyGot } from './../../../../tools/spotify.js';
+import { CreateSpotifyRequestHeaders } from './../../../../tools/spotify.js';
 import { SetUserData, UserDataStoreKeys } from './../../../../IndividualData.js';
 import { FastifyInstance } from 'fastify';
 import AuthenticationValidator from './../../../Hooks/AuthenticationValidator.js';
+import Got from '../../../../tools/Got.js';
 
 export default async function (fastify: FastifyInstance) {
 	const RedirectURI = Bot.Config.Website.WebUrl + '/api/auth/spotify/callback';
@@ -44,7 +45,7 @@ export default async function (fastify: FastifyInstance) {
 			}
 
 			// TODO: Maybe remove this, we don't use it.
-			const { statusCode, body } = await SpotifyGot.get('me', {
+			const { statusCode, body } = await Got['Spotify'].get('me', {
 				headers: {
 					Authorization: `Bearer ${accessToken}`,
 				},

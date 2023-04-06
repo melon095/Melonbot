@@ -37,7 +37,8 @@ export default class TriviaController extends EventEmitter {
 		super();
 		this.id = 0;
 		this.question = '';
-		(this.answer = ''), (this.category = '');
+		this.answer = '';
+		this.category = '';
 		this.hints = [null, null];
 		this.block = false;
 		this.hint_len = [0, 0];
@@ -59,7 +60,7 @@ export default class TriviaController extends EventEmitter {
 
 		Bot.Log.Info(`Trivia: ${API_URL}?${uri.toString()}`);
 
-		const { statusCode, body } = await got('json')(API_URL, {
+		const { statusCode, body } = await got['Default'](API_URL, {
 			searchParams: uri,
 			throwHttpErrors: false,
 		});

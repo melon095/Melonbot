@@ -16,14 +16,15 @@ type ZeroBinResponse = {
 };
 
 const Upload = async (content: string): Promise<string> => {
-	const resp = (await got('json')({
-		url: 'https://zer0b.in/api/p/n',
-		method: 'POST',
-		json: {
-			content,
-			single_view: false,
-		},
-	}).json()) as ZeroBinResponse;
+	const resp = await got['Default']
+		.post({
+			url: 'https://zer0b.in/api/p/n',
+			json: {
+				content,
+				single_view: false,
+			},
+		})
+		.json<ZeroBinResponse>();
 
 	if (!resp.success) {
 		throw new Error('Failed to upload to zer0bin');

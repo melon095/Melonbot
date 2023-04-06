@@ -1,6 +1,6 @@
 import { EPermissionLevel } from '../../Typings/enums.js';
 import { ArgType } from '../../Models/Command.js';
-import { SpotifyGetValidToken, SpotifyGot } from './../../tools/spotify.js';
+import { SpotifyGetValidToken } from './../../tools/spotify.js';
 import Got from './../../tools/Got.js';
 import { SpotifyTypes } from './../../Typings/types.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
@@ -23,14 +23,15 @@ type SongWhipResponse = {
 };
 
 const getSongWhipURL = async (spotifyURL: string): Promise<SongWhipResponse> => {
-	return Got('json')<SongWhipResponse>('https://songwhip.com/api/songwhip/create', {
-		method: 'POST',
-		json: {
-			url: spotifyURL,
-			country: 'US',
-		},
-		throwHttpErrors: false,
-	}).json();
+	return Got['Default']
+		.post('https://songwhip.com/api/songwhip/create', {
+			json: {
+				url: spotifyURL,
+				country: 'US',
+			},
+			throwHttpErrors: false,
+		})
+		.json<SongWhipResponse>();
 };
 
 registerCommand({
@@ -54,7 +55,7 @@ registerCommand({
 			};
 		}
 
-		const { statusCode, body } = await SpotifyGot('me/player', {
+		const { statusCode, body } = await Got['Spotify']('me/player', {
 			headers: {
 				Authorization: `Bearer ${token}`,
 			},

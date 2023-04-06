@@ -98,8 +98,6 @@ interface RequestOpts {
 	CustomHeaders?: Record<string, string>;
 }
 
-const BASE_URL = 'https://api.twitch.tv/helix/';
-
 const _createHeaders = async (): Promise<Record<string, string>> => {
 	const token = await GetOrGenerateBotToken();
 
@@ -122,7 +120,6 @@ const _request = async <T>(
 		// FIXME: cleanup
 		return new Err((e as Error).message);
 	}
-	const url = `${BASE_URL}${path}`;
 
 	options.body && (headers['Content-Type'] = 'application/json');
 
@@ -130,7 +127,7 @@ const _request = async <T>(
 		Object.assign(headers, requestOpts.CustomHeaders);
 	}
 
-	const response = await got('default')(url, {
+	const response = await got['Helix'](path, {
 		method,
 		headers,
 		searchParams: options.params,
@@ -343,10 +340,8 @@ export default {
 	},
 	Whisper: async function (message: string, user_id_recipient: string): Promise<void> {
 		const token = await GetVeryPrivatePersonalToken();
-		const url = `${BASE_URL}whispers`;
 
-		const response = await got('default')(url, {
-			method: 'POST',
+		const response = await got['Helix'].post('whispers', {
 			headers: {
 				'Client-ID': Bot.Config.Twitch.ClientID,
 				Authorization: `Bearer ${token}`,

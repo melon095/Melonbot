@@ -118,12 +118,11 @@ export default class User {
 	static async ResolveTwitchID(id: string[]): Promise<{ Okay: User[]; Failed: string[] }> {
 		const searchParams = new URLSearchParams({ id: id.join(',') });
 
-		const response = (await Got('json')
-			.get({
-				url: `https://api.ivr.fi/v2/twitch/user`,
+		const response = await Got['Ivr']
+			.get('user', {
 				searchParams: searchParams,
 			})
-			.json()) as Ivr.User[];
+			.json<ReadonlyArray<Ivr.User>>();
 
 		if (!response.length) {
 			return { Okay: [], Failed: id };
@@ -179,14 +178,13 @@ export default class User {
 			return dbUser;
 		}
 
-		const response = (await Got('json')
-			.get({
-				url: `https://api.ivr.fi/v2/twitch/user`,
+		const response = await Got['Ivr']
+			.get('user', {
 				searchParams: {
 					login: username,
 				},
 			})
-			.json()) as Ivr.User[];
+			.json<ReadonlyArray<Ivr.User>>();
 
 		if (!response.length) {
 			throw new GetSafeError(`User ${username} not found`);
