@@ -198,7 +198,7 @@ const addEmote = async (
 	} catch (error) {
 		let msg = emote.data.name;
 		if (emote.IsAlias()) {
-			msg += ` (alias of ${emote.data.name})`;
+			msg += ` (alias of ${emote.name})`;
 		}
 
 		throw [msg, error];
