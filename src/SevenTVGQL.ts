@@ -183,10 +183,10 @@ export enum ListItemAction {
 async function gql<ResponseBody>(query: string, variables: object = {}) {
 	const data: Base<ResponseBody> = await api
 		.post('', {
-			body: JSON.stringify({
+			json: {
 				query,
 				variables,
-			}),
+			},
 		})
 		.json();
 
@@ -203,6 +203,7 @@ export default {
 			prefixUrl: url,
 			headers: {
 				Authorization: `Bearer ${Bearer}`,
+				'Content-Type': 'application/json',
 			},
 			hooks: {
 				beforeError: [
