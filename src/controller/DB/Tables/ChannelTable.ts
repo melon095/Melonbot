@@ -1,7 +1,6 @@
 interface ChannelTable {
 	name: string;
 	user_id: string;
-	live: boolean;
 	/**
 	 * Bot permission defines the permission level of the bot in the channel.
 	 *

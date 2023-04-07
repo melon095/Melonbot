@@ -1,6 +1,7 @@
 import { IEventSubHandler } from './Base.js';
 import { IPubStreamOnline } from './../Data.Types.js';
 import { UppercaseFirst } from './../../../tools/tools.js';
+import { DataStoreContainer, UpdateChannelData } from '../../../IndividualData.js';
 
 export default {
 	Type: () => 'stream.online',
@@ -18,10 +19,7 @@ export default {
 			return;
 		}
 
-		await Bot.SQL.updateTable('channels')
-			.set({ live: true })
-			.where('user_id', '=', channel.Id)
-			.execute();
+		await UpdateChannelData(broadcaster_user_id, 'IsLive', new DataStoreContainer('true'));
 
 		await channel.UpdateLive();
 	},

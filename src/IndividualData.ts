@@ -8,7 +8,7 @@ import { sql } from 'kysely';
 import User from './controller/User/index.js';
 import { Err, Ok, Result } from './tools/result.js';
 
-export type ChannelDataNames = 'SevenTVEmoteSet' | 'FollowMessage' | 'Pajbot1';
+export type ChannelDataNames = 'SevenTVEmoteSet' | 'FollowMessage' | 'Pajbot1' | 'IsLive';
 
 export type ChannelDataList = {
 	[key in ChannelDataNames]: DataStoreContainer;
@@ -41,7 +41,7 @@ export class DataStoreContainer {
 	}
 
 	public ToBoolean(): boolean {
-		return this.value === 'true';
+		return this.value === 'true' || this.value === '1';
 	}
 
 	public ToNumber(): number {

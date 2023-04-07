@@ -30,6 +30,7 @@ import {
 	PermissionModeToDatabase,
 } from './controller/DB/Tables/ChannelTable.js';
 import type { ProcessType } from './globals.js';
+import { GetChannelData } from './IndividualData.js';
 
 export const Setup = {
 	All: async (Process: ProcessType): Promise<void> => {
@@ -113,7 +114,8 @@ export const Setup = {
 				Bot.Log.Error(error as Error, `Joining ${channel.name}`);
 				mode = 'Read'; // We want to create a channel object, but since we can't join, we set the mode to read
 			}
-			const newChannel = await Channel.New(user, mode, channel.live);
+			const isLive = await GetChannelData(channel.user_id, 'IsLive');
+			const newChannel = await Channel.New(user, mode, isLive.ToBoolean());
 
 			twitch.channels.push(newChannel);
 

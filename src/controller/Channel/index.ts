@@ -126,7 +126,6 @@ export class Channel {
 				name: Creds.name,
 				user_id: Creds.user_id,
 				bot_permission: 3,
-				live: false,
 			})
 			.onConflict((table) => table.column('user_id').doNothing())
 			.execute();
@@ -236,7 +235,6 @@ export class Channel {
 					name: user.Name,
 					user_id: user.TwitchUID,
 					bot_permission: 1,
-					live: false,
 				})
 				.execute();
 
@@ -354,7 +352,7 @@ export class Channel {
 	}
 
 	async UpdateLive(): Promise<void> {
-		this.Live = await tools.Live(this.Id);
+		this.Live = (await GetChannelData(this.Id, 'IsLive')).ToBoolean();
 		return;
 	}
 

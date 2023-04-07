@@ -172,15 +172,6 @@ export async function GetVeryPrivatePersonalToken(): Promise<string> {
 	}
 }
 
-export async function Live(id: string): Promise<boolean> {
-	const isLive = await Bot.SQL.selectFrom('channels')
-		.select('live')
-		.where('user_id', '=', id)
-		.executeTakeFirst();
-
-	return Boolean(isLive?.live);
-}
-
 export const Sleep = async (seconds = 1): Promise<void> => {
 	return new Promise((Resolve) => {
 		setTimeout(() => {

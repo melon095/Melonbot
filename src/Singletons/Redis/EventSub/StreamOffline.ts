@@ -1,5 +1,6 @@
 import { IEventSubHandler } from './Base.js';
 import { IPubStreamOffline } from './../Data.Types.js';
+import { DataStoreContainer, UpdateChannelData } from '../../../IndividualData.js';
 
 export default {
 	Type: () => 'stream.offline',
@@ -13,10 +14,7 @@ export default {
 			return;
 		}
 
-		await Bot.SQL.updateTable('channels')
-			.set({ live: false })
-			.where('user_id', '=', channel.Id)
-			.execute();
+		await UpdateChannelData(broadcaster_user_id, 'IsLive', new DataStoreContainer('false'));
 
 		await channel.UpdateLive();
 	},

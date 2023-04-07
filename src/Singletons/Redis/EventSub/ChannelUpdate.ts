@@ -1,7 +1,6 @@
 import { IEventSubHandler } from './Base.js';
 import { IPubChannelUpdate } from './../Data.Types.js';
 import TimerSingleton from './../../Timers/index.js';
-import { Logger } from './../../../logger.js';
 
 /*
     This is only triggered on title changes.
