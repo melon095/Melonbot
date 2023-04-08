@@ -175,6 +175,13 @@ export class RedisSingleton extends EventEmitter {
 			.catch(() => false);
 	}
 
+	public async SetOverride(key: string, value: string[]): Promise<boolean> {
+		return await this._client
+			.DEL(`${PREFIX}${key}`)
+			.then(() => this.SetAdd(key, value))
+			.catch(() => false);
+	}
+
 	public async HGetAll(key: string): Promise<{ [key: string]: string }> {
 		return await this._client
 			.HGETALL(`${PREFIX}${key}`)
