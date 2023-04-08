@@ -39,9 +39,11 @@ registerCommand({
 			};
 		}
 
+		/* Find the argument that starts with @ or # and split the input into emotes and channel */
 		const prefixes: string[] = [`@`, `#`];
 		const chanIdx: number = input.findIndex((chan: string) => prefixes.includes(chan[0]));
 
+		/* Lowercase all emotes and filter out the channel */
 		const emotes = input.reduce((emotes: (never | string)[], emote: string, idx: number) => {
 			if (idx === chanIdx) return emotes;
 
@@ -51,9 +53,11 @@ registerCommand({
 			return emotes;
 		}, []);
 
+		/* Find the channel to read from and write to */
 		let writeChan: V3User | string = ctx.channel.Name;
 		let readChan: V3User | string | undefined = input[chanIdx]?.slice(1);
 
+		/* Write to the invoker if no channel was given */
 		if (!readChan) {
 			writeChan = ctx.user.Name;
 			readChan = ctx.channel.Name;
@@ -67,10 +71,12 @@ registerCommand({
 		let writeSet: string;
 
 		switch (ctx.channel.Name) {
+			/* Read channel is current channel */
 			case readChan: {
 				readSet = (await ctx.channel.GetChannelData('SevenTVEmoteSet')).ToString();
 				break;
 			}
+			/* Write channel is current channel */
 			case writeChan: {
 				const isAllowed = await gql.isAllowedToModify(await ctx.channel.User(), ctx.user);
 				if (!isAllowed.okay) {
@@ -104,9 +110,11 @@ registerCommand({
 			};
 		}
 
+		/* Get enabled emotes in read set */
 		let toAdd: Set<EnabledEmote> = new Set();
 		const channelEmotes = await gql.CurrentEnabledEmotes(readSet);
 
+		/* Filter the input based on the settings given */
 		for (const emote of channelEmotes) {
 			(caseSensitive
 				? emotes.includes(emote.name)
@@ -125,6 +133,7 @@ registerCommand({
 
 		const promises: Promise<[string, ChangeEmoteInset]>[] = [];
 
+		/* Go through all matching emotes and add them to write set */
 		toAdd.forEach((emote) => promises.push(addEmote(emote, writeSet, keepAlias)));
 
 		const [success, failed] = await Promise.allSettled(promises).then((i) =>

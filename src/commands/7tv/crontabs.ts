@@ -51,71 +51,74 @@ CreateCrontab({
 					user_sets.user.id,
 				);
 				// Get every editor of their channel
-				await gql.getEditors(user_sets.user.id).then(async (response) => {
-					interface TempUser {
-						TwitchID: string;
-						Name: string;
-					}
+				const {
+					user: { editors: resEditors },
+				} = await gql.getEditors(user_sets.user.id);
 
-					// Finds the twitch id and the 7tv username
-					const fixUser = ({ user }: Editor): Partial<TempUser> => {
-						const id = user.connections.find(
-							(c) => c.platform === ConnectionPlatform.TWITCH,
-						)?.id;
-						return { TwitchID: id, Name: user.username };
-					};
+				interface TempUser {
+					TwitchID: string;
+					Name: string;
+				}
 
-					const resEditors = response.user.editors;
+				// Finds the twitch id and the 7tv username
+				const fixUser = ({ user }: Editor): Partial<TempUser> => {
+					const id = user.connections.find(
+						(c) => c.platform === ConnectionPlatform.TWITCH,
+					)?.id;
+					return { TwitchID: id, Name: user.username };
+				};
 
-					const ids = resEditors
-						.map(fixUser)
-						.filter((e) => e?.TwitchID !== undefined) as TempUser[];
+				const ids = resEditors
+					.map(fixUser)
+					.filter((e) => e?.TwitchID !== undefined) as TempUser[];
 
-					const knownUsers = await Bot.User.GetMultiple(ids);
+				const knownUsers = await Bot.User.GetMultiple(ids);
 
-					const notKnown = ids.filter(
-						(id) => !knownUsers.find((u) => u.TwitchUID === id.TwitchID),
+				const notKnown = ids.filter(
+					(id) => !knownUsers.find((u) => u.TwitchUID === id.TwitchID),
+				);
+
+				const editors: string[] = [];
+				if (notKnown.length) {
+					const promisedEditors = await Bot.User.ResolveTwitchID(
+						notKnown.map((e) => e.TwitchID),
 					);
 
-					const editors: string[] = [];
-					if (notKnown.length) {
-						const promisedEditors = await Bot.User.ResolveTwitchID(
-							notKnown.map((e) => e.TwitchID),
-						);
-
-						if (promisedEditors.Failed.length) {
-							Bot.Log.Error('Failed to resolve usernames for some editors %O', {
-								Channel: channel.Name,
-								Failed: promisedEditors.Failed,
-							});
-						}
-						promisedEditors.Okay.map((e) => editors.push(e.Name));
+					if (promisedEditors.Failed.length) {
+						Bot.Log.Error('Failed to resolve usernames for some editors %O', {
+							Channel: channel.Name,
+							Failed: promisedEditors.Failed,
+						});
 					}
+					promisedEditors.Okay.map((e) => editors.push(e.Name));
+				}
 
-					knownUsers.map((u) => editors.push(u.Name));
+				knownUsers.map((u) => editors.push(u.Name));
 
-					const current_editors = await Bot.Redis.SetMembers(
-						`seventv:${default_emote_sets}:editors`,
-					);
+				Bot.Log.Debug('Editors for %s: %O', channel.Name, editors);
+				await Bot.Redis.SetOverride(`seventv:${default_emote_sets}:editors`, editors);
 
-					const new_editors = editors.filter(
-						(editor) => !current_editors.includes(editor),
-					);
-					const remove_editors = current_editors.filter(
-						(editor) => !editors.includes(editor),
-					);
+				// const current_editors = await Bot.Redis.SetMembers(
+				// 	`seventv:${default_emote_sets}:editors`,
+				// );
 
-					if (new_editors.length > 0) {
-						Bot.Redis.SetAdd(`seventv:${default_emote_sets}:editors`, new_editors);
-					}
+				// const new_editors = editors.filter(
+				// 	(editor) => !current_editors.includes(editor),
+				// );
+				// const remove_editors = current_editors.filter(
+				// 	(editor) => !editors.includes(editor),
+				// );
 
-					if (remove_editors.length > 0) {
-						Bot.Redis.SetRemove(
-							`seventv:${default_emote_sets}:editors`,
-							remove_editors,
-						);
-					}
-				});
+				// if (new_editors.length > 0) {
+				// 	Bot.Redis.SetAdd(`seventv:${default_emote_sets}:editors`, new_editors);
+				// }
+
+				// if (remove_editors.length > 0) {
+				// 	Bot.Redis.SetRemove(
+				// 		`seventv:${default_emote_sets}:editors`,
+				// 		remove_editors,
+				// 	);
+				// }
 
 				if (!default_emote_sets || default_emote_sets === currentEmoteSet) return;
 
