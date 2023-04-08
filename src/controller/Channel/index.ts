@@ -152,6 +152,15 @@ export class Channel {
 		this.EventSubs = new EventSubHandler(this, Bot.Redis);
 	}
 
+	async reply(
+		msg: string,
+		options: ChannelTalkOptions = {
+			SkipBanphrase: false,
+		},
+	): Promise<void> {
+		this.say(msg, options);
+	}
+
 	async say(
 		msg: string,
 		options: ChannelTalkOptions = {
@@ -203,6 +212,19 @@ export class Channel {
 			return;
 		}
 
+		let sayFunc: (msg: string) => void;
+		switch (typeof options.ReplyID) {
+			case 'string': {
+				sayFunc = (msg) => client.reply(this.Name, options.ReplyID!, msg);
+				break;
+			}
+
+			case 'undefined':
+			default: {
+				sayFunc = (msg) => client.privmsg(this.Name, msg);
+			}
+		}
+
 		try {
 			const { banned, reason } = await CheckMessageBanphrase(this, message);
 
@@ -213,9 +235,9 @@ export class Channel {
 					Reason: reason,
 				});
 
-				client.privmsg(this.Name, `FeelsDankMan Bad word -> ${reason}`);
+				sayFunc(`FeelsDankMan Bad word -> ${reason}`);
 			} else {
-				client.privmsg(this.Name, message);
+				sayFunc(message);
 			}
 		} catch (error) {
 			Bot.Log.Error(error as Error, 'banphraseCheck');
@@ -463,7 +485,8 @@ export async function ExecuteCommand(
 		}
 
 		const flags: ChannelTalkOptions = {
-			SkipBanphrase: command.HasFlag(ECommandFlags.NO_BANPHRASE),
+			SkipBanphrase: command.HasFlag(ECommandFlags.NoBanphrase),
+			ReplyID: command.HasFlag(ECommandFlags.ResponseIsReply) ? extras.messageID : undefined,
 		};
 
 		const Return = (message: string) => {
@@ -521,8 +544,6 @@ export async function ExecuteCommand(
 				};
 
 				if (!data.Result || !data.Result.length) return [result, ''];
-
-				if (command.Ping) data.Result = `@${user.Name}, ${data.Result}`;
 
 				if (!data.Success) data.Result = `❗ ${data.Result}`;
 

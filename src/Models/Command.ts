@@ -94,8 +94,9 @@ export interface CommandModel<Mods extends object = object> {
 	readonly Name: string;
 	/**
 	 * Prepend the username of command invoker.
+	 * @deprecated Use the `ResponseIsReply` flag instead.
 	 */
-	readonly Ping: boolean;
+	readonly Ping?: boolean;
 	/**
 	 * Description of command. Used on website and help command.
 	 */

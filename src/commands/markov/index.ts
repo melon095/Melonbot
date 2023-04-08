@@ -28,7 +28,6 @@ const makeReq = async (channel: string, seed?: string): Promise<ApiResponse> => 
 
 registerCommand({
 	Name: 'markov',
-	Ping: false,
 	Description: 'Generate markov chains based of chat',
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,

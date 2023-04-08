@@ -4,7 +4,6 @@ import { registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: 'leave',
-	Ping: true,
 	Description:
 		'Leave your channel, works in your channel and the bots channel. All statistics about your channel will be removed.',
 	Permission: EPermissionLevel.BROADCAST,

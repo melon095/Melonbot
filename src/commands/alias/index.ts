@@ -1,4 +1,4 @@
-import { EPermissionLevel } from './../../Typings/enums.js';
+import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 import gql, { ListItemAction } from './../../SevenTVGQL.js';
 import SevenTVAllowed, { Get7TVUserMod } from './../../PreHandlers/7tv.can.modify.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
@@ -9,14 +9,13 @@ type PreHandlers = {
 
 registerCommand<PreHandlers>({
 	Name: 'alias',
-	Ping: false,
 	Description: "Sets the alias of an emote, don't give it a name and it will remove the alias",
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],
-	Flags: [],
+	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [SevenTVAllowed],
 	Code: async function (ctx, mods) {
 		const { EmoteSet } = mods.SevenTV;

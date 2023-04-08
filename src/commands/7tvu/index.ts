@@ -1,4 +1,4 @@
-import { EPermissionLevel } from '../../Typings/enums.js';
+import { ECommandFlags, EPermissionLevel } from '../../Typings/enums.js';
 import { DifferenceFmt } from './../../tools/tools.js';
 import gql, { ConnectionPlatform } from '../../SevenTVGQL.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
@@ -52,14 +52,13 @@ async function GetInformation(internalUser: User) {
 
 registerCommand({
 	Name: '7tvu',
-	Ping: true,
 	Description: 'Display information about a 7TV user',
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],
-	Flags: [],
+	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [],
 	Code: async function (ctx) {
 		let internalUser;

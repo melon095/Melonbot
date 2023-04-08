@@ -6,7 +6,6 @@ import { registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: 'reload',
-	Ping: false,
 	Description: 'Reload Internal state',
 	Permission: EPermissionLevel.ADMIN,
 	OnlyOffline: false,

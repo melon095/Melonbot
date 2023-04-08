@@ -1,4 +1,4 @@
-import { EPermissionLevel } from './../../Typings/enums.js';
+import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 import gql, { UserEditorPermissions } from '../../SevenTVGQL.js';
 import SevenTVAllowed, { Get7TVUserMod } from './../../PreHandlers/7tv.can.modify.js';
 import PreHandlers from './../../PreHandlers/index.js';
@@ -16,14 +16,13 @@ const isAlreadyEditor = async (owner: string, editor: string) => {
 
 registerCommand<PreHandlers>({
 	Name: 'editor',
-	Ping: true,
 	Description: 'Allows the bot to add and remove users as 7TV editors',
 	Permission: EPermissionLevel.BROADCAST,
 	OnlyOffline: false,
 	Aliases: ['adde', 'addeditor', 'removee', 'removeeditor'],
 	Cooldown: 5,
 	Params: [],
-	Flags: [],
+	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [SevenTVAllowed],
 	Code: async function (ctx, mods) {
 		const { EmoteSet, UserID } = mods.SevenTV;

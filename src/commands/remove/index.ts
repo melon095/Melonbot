@@ -11,7 +11,6 @@ type PreHandlers = {
 
 registerCommand<PreHandlers>({
 	Name: 'remove',
-	Ping: false,
 	Description: 'Remove 7TV emotes',
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,

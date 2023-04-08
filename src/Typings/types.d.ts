@@ -1,5 +1,6 @@
 export type ChannelTalkOptions = {
 	SkipBanphrase?: boolean = false;
+	ReplyID?: string = '';
 };
 
 export type TAccessToken = {

@@ -1,16 +1,15 @@
 import { registerCommand } from '../../controller/Commands/Handler.js';
-import { EPermissionLevel } from './../../Typings/enums.js';
+import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 
 registerCommand({
 	Name: 'github',
-	Ping: false,
 	Description: 'Shows the git repo',
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,
 	Aliases: ['git'],
 	Cooldown: 10,
 	Params: [],
-	Flags: [],
+	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [],
 	Code: async function () {
 		return {

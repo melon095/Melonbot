@@ -12,7 +12,6 @@ import { registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: 'yoink',
-	Ping: false,
 	Description: 'Steal several 7TV emotes from another channel TriHard ',
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,

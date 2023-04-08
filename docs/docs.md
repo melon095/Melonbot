@@ -19,6 +19,8 @@ Name defines the main word that will trigger the command.
 
 ### Ping
 
+`Deprecated` use the `ResponseIsReply` [flag](#flags) instead.
+
 `Type: boolean`
 
 Setting ping to true will automatically prepend the username of whoever ran the commad in the response.
@@ -111,8 +113,6 @@ If the input contains `--forsen` and the command does not state `forsen` is a pa
 
 For example if the command does not want to get checked against the banphrase, if we know that it wont use any user input
 or if it will show a static url.
-
-`Flags = [CommandFlags.NO_BANPHRASE];`
 
 ### Pre Handlers
 

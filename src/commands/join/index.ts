@@ -16,14 +16,13 @@ const isMod = async (user: User, channel: string) => {
 
 registerCommand({
 	Name: 'join',
-	Ping: true,
 	Description: 'Join a channel. Works only in bots channel',
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 20,
 	Params: [],
-	Flags: [ECommandFlags.NO_BANPHRASE],
+	Flags: [ECommandFlags.NoBanphrase],
 	PreHandlers: [],
 	Code: async function (ctx) {
 		if (ctx.channel.Name !== Bot.Config.BotUsername) {

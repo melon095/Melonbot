@@ -1,4 +1,4 @@
-import { EPermissionLevel } from './../../Typings/enums.js';
+import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 
 import got from './../../tools/Got.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
@@ -14,14 +14,13 @@ interface IAdviceSlipObject {
 
 registerCommand({
 	Name: 'PotFriend',
-	Ping: true,
 	Description: 'PotFriend tells you an advice',
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],
-	Flags: [],
+	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [],
 	Code: async function (ctx) {
 		const MESSAGE = (advice: string) => `PotFriend advice: ${advice} PotFriend`;

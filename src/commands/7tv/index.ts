@@ -1,4 +1,4 @@
-import { EPermissionLevel } from '../../Typings/enums.js';
+import { ECommandFlags, EPermissionLevel } from '../../Typings/enums.js';
 import { TCommandContext, ArgType } from '../../Models/Command.js';
 import gql, { EmoteSearchFilter, EmoteSearchResult } from '../../SevenTVGQL.js';
 import { extractSeventTVID } from './../../tools/regex.js';
@@ -10,7 +10,6 @@ if (process.env.TYPE === 'BOT') {
 
 registerCommand({
 	Name: '7tv',
-	Ping: true,
 	Description: 'Search 7TV emotes',
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,
@@ -21,7 +20,7 @@ registerCommand({
 		[ArgType.Boolean, 'exact'],
 		[ArgType.String, 'uploader'],
 	],
-	Flags: [],
+	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [],
 	Code: async function (ctx) {
 		const first = ctx.input[0] ?? this.EarlyEnd.InvalidInput('provide a search term');

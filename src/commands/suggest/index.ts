@@ -1,5 +1,5 @@
 import { registerCommand } from '../../controller/Commands/Handler.js';
-import { EPermissionLevel } from './../../Typings/enums.js';
+import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 
 if (process.env.TYPE === 'BOT') {
 	await import('./crontab.js');
@@ -7,14 +7,13 @@ if (process.env.TYPE === 'BOT') {
 
 registerCommand({
 	Name: 'suggest',
-	Ping: true,
 	Description: 'Suggest a new feature or a bug.',
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 20,
 	Params: [],
-	Flags: [],
+	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [],
 	Code: async function (ctx) {
 		ctx.input.length === 0 && this.EarlyEnd.InvalidInput('You must provide a suggestion.');

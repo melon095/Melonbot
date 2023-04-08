@@ -32,7 +32,7 @@ registerCommand({
 		[ArgType.String, 'username'],
 		[ArgType.String, 'id'],
 	],
-	Flags: [ECommandFlags.NO_BANPHRASE],
+	Flags: [ECommandFlags.NoBanphrase],
 	PreHandlers: [],
 	Code: async function (ctx) {
 		if (ctx.input[0] === 'bot' && ctx.input[1] === 'join') {

@@ -1,17 +1,16 @@
 import { ChannelDatabaseToMode } from './../../controller/DB/Tables/ChannelTable.js';
-import { EPermissionLevel } from './../../Typings/enums.js';
+import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 import { GetCommandBy, registerCommand } from '../../controller/Commands/Handler.js';
 
 registerCommand({
 	Name: 'help',
-	Ping: true,
 	Description: 'Prints out the description of a command or the website if nothing was specified',
 	Permission: EPermissionLevel.VIEWER,
 	OnlyOffline: false,
 	Aliases: ['commands'],
 	Cooldown: 5,
 	Params: [],
-	Flags: [],
+	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [],
 	Code: async function (ctx) {
 		const website = Bot.Config.Website.WebUrl;

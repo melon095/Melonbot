@@ -1,6 +1,6 @@
 export enum ECommandFlags {
-	NO_BANPHRASE = 'no-banphrase',
-	DISPLAY_DELAY = 'display-delay', // Only meant for ping command :^)
+	NoBanphrase = 'no-banphrase',
+	ResponseIsReply = 'response-is-reply',
 }
 
 export enum EPermissionLevel {
