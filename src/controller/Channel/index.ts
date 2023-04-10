@@ -26,6 +26,7 @@ import { IPromolve, Promolve } from '@melon95/promolve';
 import { Insertable, sql } from 'kysely';
 import CommandsExecutionTable from '../DB/Tables/CommandsExecutionTable.js';
 import {
+	DEFAULT_MESSAGE_INTERVAL,
 	PermissionMode,
 	PermissionModeToCooldown,
 	PermissionModeToDatabase,
@@ -137,9 +138,9 @@ export class Channel {
 		this.Name = user.Name;
 		this.Id = user.TwitchUID;
 		this.Mode = Mode;
-		this.Cooldown = PermissionModeToCooldown(Mode) ?? 1250;
+		this.Cooldown = PermissionModeToCooldown(Mode) ?? DEFAULT_MESSAGE_INTERVAL;
 		this.Live = Live;
-		this.Queue = new MessageScheduler();
+		this.Queue = new MessageScheduler(Mode);
 		this.UserCooldowns = {};
 
 		this.Filter = [];
@@ -174,7 +175,7 @@ export class Channel {
 			else msg += ` ${messageEvasionCharacter}`;
 		}
 
-		this.Queue.schedule(msg, options, this.Cooldown);
+		this.Queue.schedule(msg, options);
 		this.LastMessage = msg;
 	}
 
@@ -310,15 +311,20 @@ export class Channel {
 		const { badges } = user;
 
 		// Moderator
-		if (badges.hasModerator || badges.hasBroadcaster) {
+		if ((badges.hasModerator || badges.hasBroadcaster) && this.Mode !== 'Moderator') {
 			await this.setPermissionMode('Moderator');
 		}
 		// Vip
-		else if (badges.hasVIP) {
+		else if (badges.hasVIP && this.Mode !== 'VIP') {
 			await this.setPermissionMode('VIP');
 		}
 		// Default user
-		else if (this.Mode !== 'Read' && !badges.hasModerator && !badges.hasVIP) {
+		else if (
+			!badges.hasModerator &&
+			!badges.hasVIP &&
+			this.Mode !== 'Write' &&
+			this.Mode !== 'Read'
+		) {
 			await this.setPermissionMode('Write');
 		}
 	}
@@ -350,7 +356,8 @@ export class Channel {
 			.execute();
 
 		this.Mode = mode;
-		this.Cooldown = PermissionModeToCooldown(mode) ?? 1250;
+		this.Cooldown = PermissionModeToCooldown(mode) ?? DEFAULT_MESSAGE_INTERVAL;
+		this.Queue.updateCooldown(this.Cooldown);
 
 		Bot.Log.Info('%s is now set as %s.', this.Name, mode);
 	}

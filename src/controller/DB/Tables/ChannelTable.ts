@@ -59,6 +59,8 @@ function PermissionModeToDatabase(mode: PermissionMode): number {
 	}
 }
 
+const DEFAULT_MESSAGE_INTERVAL = 1250 as const;
+
 /**
  * Converts a permission mode to the equivalent message-interval value.
  */
@@ -67,7 +69,7 @@ function PermissionModeToCooldown(mode: PermissionMode): number | null {
 		case 'Read':
 			return null;
 		case 'Write':
-			return 1250;
+			return DEFAULT_MESSAGE_INTERVAL;
 		case 'VIP':
 			return 250;
 		case 'Moderator':
@@ -86,4 +88,5 @@ export {
 	PermissionModeToCooldown,
 	ChannelDatabaseToMode,
 	PermissionModeToDatabase,
+	DEFAULT_MESSAGE_INTERVAL,
 };
