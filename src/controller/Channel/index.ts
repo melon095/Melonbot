@@ -208,11 +208,6 @@ export class Channel {
 
 		const client = Bot.Twitch.Controller.client;
 
-		if (options.SkipBanphrase) {
-			client.privmsg(this.Name, cleanMessage(message));
-			return;
-		}
-
 		let sayFunc: (msg: string) => void;
 		switch (typeof options.ReplyID) {
 			case 'string': {
@@ -224,6 +219,11 @@ export class Channel {
 			default: {
 				sayFunc = (msg) => client.privmsg(this.Name, msg);
 			}
+		}
+
+		if (options.SkipBanphrase) {
+			sayFunc(cleanMessage(message));
+			return;
 		}
 
 		try {
@@ -238,11 +238,11 @@ export class Channel {
 
 				sayFunc(`FeelsDankMan Bad word -> ${reason}`);
 			} else {
-				sayFunc(message);
+				sayFunc(cleanMessage(message));
 			}
 		} catch (error) {
 			Bot.Log.Error(error as Error, 'banphraseCheck');
-			client.privmsg(this.Name, 'FeelsDankMan Banphrase check failed...');
+			sayFunc('FeelsDankMan Banphrase check failed...');
 		}
 	}
 
