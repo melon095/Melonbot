@@ -43,7 +43,7 @@ export async function CheckMessageBanphrase(
 		// (Not allowing http)
 		const url = `https://${pajbot1}/api/v1/banphrases/test`;
 		const json = {
-			message,
+			message: String(message),
 		};
 
 		const { statusCode, body } = await Got['Default'].post(url, {
