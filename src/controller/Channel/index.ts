@@ -556,6 +556,10 @@ export async function ExecuteCommand(
 
 				return [result, data.Result];
 			} catch (error) {
+				if (error instanceof Error) {
+					Bot.Log.Error(error, 'Failed to run a command');
+				}
+
 				const isNotObject = () => typeof error !== 'object';
 
 				let message: string = '';
@@ -580,10 +584,8 @@ export async function ExecuteCommand(
                 } 
                 // FIXME: Missing non-error object, but whatever.
                 else {
-					Bot.Log.Error(error as Error, 'command/run/catch');
-
 					if (user.HasSuperPermission()) {
-                        message = getStringFromError(error as Error);
+                        message = getStringFromError(error as string);
 					} else {
 						message = 'FeelsDankMan command machine broken';
 					}
