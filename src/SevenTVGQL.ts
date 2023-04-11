@@ -188,13 +188,12 @@ export enum ListItemAction {
 const GetPriorityValue = (isFromUserCommand: boolean) => (isFromUserCommand ? 1 : 0);
 
 const RATELIMIT_HEADERS = {
-	limt: 'X-Ratelimit-Limit'.toLowerCase(),
+	limit: 'X-Ratelimit-Limit'.toLowerCase(),
 	remaining: 'X-Ratelimit-Remaining'.toLowerCase(),
 	reset: 'X-Ratelimit-Reset'.toLowerCase(),
 } as const;
 
-// Initial at 4 concurrent
-const RatelimitQueue = new PQeueue({ concurrency: 5, timeout: 10000 });
+const RatelimitQueue = new PQeueue({ concurrency: 25, timeout: 10000 });
 
 function RatelimitSleep(time: number) {
 	RatelimitQueue.pause();
@@ -216,7 +215,7 @@ async function MakeGQLReqeust<ResponseBody>(
 	});
 
 	const [limit, remaining, reset] = [
-		response.headers[RATELIMIT_HEADERS.limt],
+		response.headers[RATELIMIT_HEADERS.limit],
 		response.headers[RATELIMIT_HEADERS.remaining],
 		response.headers[RATELIMIT_HEADERS.reset],
 	];
