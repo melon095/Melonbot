@@ -182,18 +182,13 @@ export enum ListItemAction {
 	UPDATE = 'UPDATE',
 }
 
-/**
- * Requests made from a command should have a higher priority
- */
-const GetPriorityValue = (isFromUserCommand: boolean) => (isFromUserCommand ? 1 : 0);
-
 const RATELIMIT_HEADERS = {
 	limit: 'X-Ratelimit-Limit'.toLowerCase(),
 	remaining: 'X-Ratelimit-Remaining'.toLowerCase(),
 	reset: 'X-Ratelimit-Reset'.toLowerCase(),
 } as const;
 
-const CONCURRENCY_CAP = 25 as const;
+const CONCURRENCY_CAP = 20 as const;
 
 const RatelimitQueue = new PQeueue({
 	concurrency: CONCURRENCY_CAP,
@@ -251,13 +246,15 @@ async function MakeGQLReqeust<ResponseBody>(
 function Add<ResponseBody>(
 	query: string,
 	variables: object = {},
-	priority: number = 0,
+	isUserRequest: boolean,
 ): Promise<ResponseBody> {
+	// Do not apply ratelimit to user requests
+	if (isUserRequest) return MakeGQLReqeust<ResponseBody>(query, variables);
+
 	return new Promise((Resolve, Reject) => {
 		RatelimitQueue.add(() => MakeGQLReqeust<ResponseBody>(query, variables), {
 			/* Needs this so .then is not void | ResponseBody */
 			throwOnTimeout: true,
-			priority,
 		}).then(
 			(res) => Resolve(res),
 			(error) => Reject(error),
@@ -327,7 +324,7 @@ export default {
 			{
 				id,
 			},
-			GetPriorityValue(priority),
+			priority,
 		);
 
 		return body;
@@ -352,7 +349,7 @@ export default {
 			{
 				id,
 			},
-			GetPriorityValue(priority),
+			priority,
 		);
 
 		return this.getUserEmoteSets(data.emoteSet.owner.id);
@@ -381,7 +378,7 @@ export default {
 				page: 1,
 				filter,
 			},
-			GetPriorityValue(priority),
+			priority,
 		);
 	},
 	GetEmoteByID: async (id: string, priority = false): Promise<EmoteSet> => {
@@ -395,7 +392,7 @@ export default {
 			{
 				id,
 			},
-			GetPriorityValue(priority),
+			priority,
 		);
 		return data.emote;
 	},
@@ -421,7 +418,7 @@ export default {
 			{
 				id: emote_set,
 			},
-			GetPriorityValue(priority),
+			priority,
 		);
 
 		const { emotes } = data.emoteSet;
@@ -457,7 +454,7 @@ export default {
 			{
 				id,
 			},
-			GetPriorityValue(priority),
+			priority,
 		);
 
 		return data;
@@ -477,7 +474,7 @@ export default {
 			{
 				id,
 			},
-			GetPriorityValue(priority),
+			priority,
 		);
 
 		return (
@@ -513,7 +510,7 @@ export default {
 				emote_id: emote,
 				name,
 			},
-			GetPriorityValue(priority),
+			priority,
 		);
 
 		const newEmote = data.emoteSet.emotes.find((x) => x.id === emote);
@@ -547,7 +544,7 @@ export default {
 				platform: ConnectionPlatform.TWITCH,
 				id: TwitchUID,
 			},
-			GetPriorityValue(priority),
+			priority,
 		);
 
 		return data.userByConnection;
@@ -561,7 +558,7 @@ export default {
                 }
             }`,
 			{},
-			GetPriorityValue(priority),
+			priority,
 		);
 
 		return data.roles;
@@ -587,7 +584,7 @@ export default {
 					permissions,
 				},
 			},
-			GetPriorityValue(priority),
+			priority,
 		);
 	},
 	isAllowedToModify: async function (channelUser: User, invokerUser: User): Promise<ModifyData> {
