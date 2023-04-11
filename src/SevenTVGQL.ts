@@ -183,10 +183,10 @@ export enum ListItemAction {
 }
 
 const RATELIMIT_HEADERS = {
-	limt: 'X-Ratelimit-Limit',
-	remaining: 'X-Ratelimit-Remaining',
-	reset: 'X-Ratelimit-Reset',
-};
+	limt: 'X-Ratelimit-Limit'.toLowerCase(),
+	remaining: 'X-Ratelimit-Remaining'.toLowerCase(),
+	reset: 'X-Ratelimit-Reset'.toLowerCase(),
+} as const;
 
 const RatelimitQueue = new PQeueue({ concurrency: 1, timeout: 10000 });
 
