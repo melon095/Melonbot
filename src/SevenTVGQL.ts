@@ -188,7 +188,8 @@ const RATELIMIT_HEADERS = {
 	reset: 'X-Ratelimit-Reset'.toLowerCase(),
 } as const;
 
-const RatelimitQueue = new PQeueue({ concurrency: 1, timeout: 10000 });
+// Initial at 4 concurrent
+const RatelimitQueue = new PQeueue({ concurrency: 5, timeout: 10000 });
 
 function RatelimitSleep(time: number) {
 	RatelimitQueue.pause();
