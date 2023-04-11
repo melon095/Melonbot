@@ -11,7 +11,7 @@ type Roles = {
 
 async function GetInformation(internalUser: User) {
 	const user = await gql
-		.GetUser(internalUser, true)
+		.GetUser(internalUser)
 		.then((u) => u)
 		.catch(() => null);
 
@@ -26,7 +26,7 @@ async function GetInformation(internalUser: User) {
 
 	const roleString = roles.map((r) => r.name).join(', ');
 
-	const default_emote_set = await gql.getDefaultEmoteSet(user.id, true).catch(() => null);
+	const default_emote_set = await gql.getDefaultEmoteSet(user.id).catch(() => null);
 	if (!default_emote_set) {
 		return 'User is missing default emote set';
 	}

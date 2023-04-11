@@ -53,7 +53,7 @@ registerCommand({
 });
 
 const getEmoteFromID = async (id: string) => {
-	const emote = await gql.GetEmoteByID(id, true);
+	const emote = await gql.GetEmoteByID(id);
 	return {
 		Success: true,
 		Result: `${emote.name} - https://7tv.app/emotes/${emote.id}`,
@@ -68,7 +68,7 @@ async function filterByAuthor(
 	const sevenTvID = await (async () => {
 		const internalUser = await Bot.User.ResolveUsername(uploader);
 
-		const seventv = await gql.GetUser(internalUser, true);
+		const seventv = await gql.GetUser(internalUser);
 
 		return seventv.id;
 	})();
@@ -84,7 +84,7 @@ const getEmoteFromName = async (ctx: TCommandContext) => {
 	}
 
 	const emotes = await gql
-		.SearchEmoteByName(ctx.input.join(' '), filter, true)
+		.SearchEmoteByName(ctx.input.join(' '), filter)
 		.then((res) => res.emotes)
 		.then(await filterByAuthor(Bot.User.CleanName(uploader as string)));
 

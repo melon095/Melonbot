@@ -44,7 +44,7 @@ registerCommand<PreHandlers>({
 			};
 		}
 
-		const user = await gql.GetUser(internalUser, true);
+		const user = await gql.GetUser(internalUser);
 
 		const resultPrompt = (type: 'Added' | 'Removed', name: string) =>
 			`${type} ${name} as an editor :)`;
@@ -72,7 +72,6 @@ registerCommand<PreHandlers>({
 					UserID(),
 					user.id,
 					UserEditorPermissions.NONE,
-					true,
 				);
 			} catch (error) {
 				return {
@@ -92,7 +91,6 @@ registerCommand<PreHandlers>({
 					UserID(),
 					user.id,
 					UserEditorPermissions.DEFAULT,
-					true,
 				);
 			} catch (error) {
 				return {

@@ -195,7 +195,7 @@ const RatelimitQueue = new PQeueue({
 	timeout: 10000,
 });
 
-function RatelimitSleep(time: number) {
+async function RatelimitSleep(time: number) {
 	RatelimitQueue.pause();
 
 	setTimeout(() => {
@@ -298,7 +298,7 @@ export default {
 			},
 		});
 	},
-	getUserEmoteSets: async (id: string, priority = false): Promise<GetCurrentUser> => {
+	getUserEmoteSets: async (id: string, priority = true): Promise<GetCurrentUser> => {
 		const body = await Add<GetCurrentUser>(
 			`query GetCurrentUser ($id: ObjectID!) {
                 user (id: $id) {
@@ -328,7 +328,7 @@ export default {
 
 		return body;
 	},
-	getUserByEmoteSet: async function (id: string, priority = false): Promise<GetCurrentUser> {
+	getUserByEmoteSet: async function (id: string, priority = true): Promise<GetCurrentUser> {
 		type data = {
 			emoteSet: {
 				owner: {
@@ -356,7 +356,7 @@ export default {
 	SearchEmoteByName: async (
 		emote: string,
 		filter: EmoteSearchFilter = {},
-		priority = false,
+		priority = true,
 	): Promise<EmoteSearchResult> => {
 		return Add<EmoteSearchResult>(
 			`query SearchEmotes($query: String! $page: Int $limit: Int $filter: EmoteSearchFilter) {
@@ -380,7 +380,7 @@ export default {
 			priority,
 		);
 	},
-	GetEmoteByID: async (id: string, priority = false): Promise<EmoteSet> => {
+	GetEmoteByID: async (id: string, priority = true): Promise<EmoteSet> => {
 		const data = await Add<{ emote: EmoteSet }>(
 			`query SearchEmote($id: ObjectID!) {
                 emote(id: $id) {
@@ -398,7 +398,7 @@ export default {
 	CurrentEnabledEmotes: async (
 		emote_set: string,
 		filter?: (emote: EnabledEmote) => boolean,
-		priority = false,
+		priority = true,
 	): Promise<EnabledEmote[]> => {
 		const data = await Add<{ emoteSet: { emotes: EnabledEmote[] } }>(
 			`query GetEmoteSet ($id: ObjectID!) {
@@ -432,7 +432,7 @@ export default {
 
 		return filter ? emotes.filter(filter) : emotes;
 	},
-	getEditors: async (id: string, priority = false): Promise<UserEditor> => {
+	getEditors: async (id: string, priority = true): Promise<UserEditor> => {
 		const data = await Add<UserEditor>(
 			`query GetCurrentUser ($id: ObjectID!) {
                 user (id: $id) {
@@ -458,7 +458,7 @@ export default {
 
 		return data;
 	},
-	getDefaultEmoteSet: async (id: string, priority = false): Promise<{ emote_set_id: string }> => {
+	getDefaultEmoteSet: async (id: string, priority = true): Promise<{ emote_set_id: string }> => {
 		const data = await Add<Connections>(
 			`query GetCurrentUser ($id: ObjectID!) {
                 user (id: $id) {
@@ -491,7 +491,7 @@ export default {
 		action: ListItemAction,
 		emote: string,
 		name?: string,
-		priority = false,
+		priority = true,
 	): Promise<[ChangeEmoteInset, string | null]> => {
 		const data = await Add<ChangeEmoteInset>(
 			`mutation ChangeEmoteInSet($id: ObjectID! $action: ListItemAction! $emote_id: ObjectID! $name: String) {
@@ -516,7 +516,7 @@ export default {
 
 		return [data, newEmote?.name || null];
 	},
-	GetUser: async function ({ TwitchUID }: User, priority = false): Promise<V3User> {
+	GetUser: async function ({ TwitchUID }: User, priority = true): Promise<V3User> {
 		const data = await Add<{ userByConnection: V3User }>(
 			`query GetUserByConnection($platform: ConnectionPlatform! $id: String!) {
                 userByConnection (platform: $platform id: $id) {
@@ -548,7 +548,7 @@ export default {
 
 		return data.userByConnection;
 	},
-	GetRoles: async (priority = false): Promise<{ id: string; name: string }[]> => {
+	GetRoles: async (priority = true): Promise<{ id: string; name: string }[]> => {
 		const data = await Add<{ roles: { id: string; name: string }[] }>(
 			`query GetRoles{
                 roles {
@@ -566,7 +566,7 @@ export default {
 		owner: string,
 		editor: string,
 		permissions: UserEditorPermissions = UserEditorPermissions.DEFAULT,
-		priority = false,
+		priority = true,
 	) => {
 		return Add<UpdateUserEditors>(
 			`mutation UpdateUserEditors($id: ObjectID! $editor_id: ObjectID! $d: UserEditorUpdate!) {
