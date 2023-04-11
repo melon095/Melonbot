@@ -3,6 +3,8 @@ import Got from './tools/Got.js';
 import User from './controller/User/index.js';
 import { GetChannelData } from './IndividualData.js';
 import { ThirdPartyError } from './Models/Errors.js';
+import { Sleep } from './tools/tools.js';
+import PQeueue from 'p-queue';
 
 const url = 'https://7tv.io/v3/gql';
 
@@ -180,21 +182,71 @@ export enum ListItemAction {
 	UPDATE = 'UPDATE',
 }
 
-async function gql<ResponseBody>(query: string, variables: object = {}) {
-	const data: Base<ResponseBody> = await api
-		.post('', {
-			json: {
-				query,
-				variables,
+const RATELIMIT_HEADERS = {
+	limt: 'X-Ratelimit-Limit',
+	remaining: 'X-Ratelimit-Remaining',
+	reset: 'X-Ratelimit-Reset',
+};
+
+const RatelimitQueue = new PQeueue({ concurrency: 1, timeout: 10000 });
+
+function RatelimitSleep(time: number) {
+	RatelimitQueue.pause();
+
+	setTimeout(() => {
+		RatelimitQueue.start();
+	}, time * 1000);
+}
+
+async function MakeGQLReqeust<ResponseBody>(
+	query: string,
+	variables: object = {},
+): Promise<ResponseBody> {
+	const response = await api.post({
+		json: {
+			query,
+			variables,
+		},
+	});
+
+	const [limit, remaining, reset] = [
+		response.headers[RATELIMIT_HEADERS.limt],
+		response.headers[RATELIMIT_HEADERS.remaining],
+		response.headers[RATELIMIT_HEADERS.reset],
+	];
+
+	if (remaining == '0') {
+		Bot.Log.Info(
+			'SevenTV GQL ratelimit reached, initiating sleep next time a request is made. %O',
+			{
+				limit,
+				remaining,
+				reset,
 			},
-		})
-		.json();
+		);
+
+		RatelimitSleep(~~(reset as string));
+	}
+
+	const data = JSON.parse(response.body) as Base<ResponseBody>;
 
 	if (data.errors) {
 		throw new ThirdPartyError(data.errors[0].message);
 	}
 
 	return data.data;
+}
+
+function Add<ResponseBody>(query: string, variables: object = {}): Promise<ResponseBody> {
+	return new Promise((Resolve, Reject) => {
+		RatelimitQueue.add(() => MakeGQLReqeust<ResponseBody>(query, variables), {
+			/* Needs this so .then is not void | ResponseBody */
+			throwOnTimeout: true,
+		}).then(
+			(res) => Resolve(res),
+			(error) => Reject(error),
+		);
+	});
 }
 
 export default {
@@ -235,7 +287,7 @@ export default {
 		});
 	},
 	getUserEmoteSets: async (id: string): Promise<GetCurrentUser> => {
-		const body = await gql<GetCurrentUser>(
+		const body = await Add<GetCurrentUser>(
 			`query GetCurrentUser ($id: ObjectID!) {
                 user (id: $id) {
                     id
@@ -272,7 +324,7 @@ export default {
 			};
 		};
 
-		const data = await gql<data>(
+		const data = await Add<data>(
 			`query GetCurrentUser ($id: ObjectID!) {
                 emoteSet (id: $id) {
                     owner {
@@ -291,7 +343,7 @@ export default {
 		emote: string,
 		filter: EmoteSearchFilter = {},
 	): Promise<EmoteSearchResult> => {
-		return gql<EmoteSearchResult>(
+		return Add<EmoteSearchResult>(
 			`query SearchEmotes($query: String! $page: Int $limit: Int $filter: EmoteSearchFilter) {
                 emotes(query: $query page: $page limit: $limit filter: $filter) {
                     items {
@@ -313,7 +365,7 @@ export default {
 		);
 	},
 	GetEmoteByID: async (id: string): Promise<EmoteSet> => {
-		const data = await gql<{ emote: EmoteSet }>(
+		const data = await Add<{ emote: EmoteSet }>(
 			`query SearchEmote($id: ObjectID!) {
                 emote(id: $id) {
                     id
@@ -330,7 +382,7 @@ export default {
 		emote_set: string,
 		filter?: (emote: EnabledEmote) => boolean,
 	): Promise<EnabledEmote[]> => {
-		const data = await gql<{ emoteSet: { emotes: EnabledEmote[] } }>(
+		const data = await Add<{ emoteSet: { emotes: EnabledEmote[] } }>(
 			`query GetEmoteSet ($id: ObjectID!) {
                 emoteSet (id: $id) {
                     id
@@ -362,7 +414,7 @@ export default {
 		return filter ? emotes.filter(filter) : emotes;
 	},
 	getEditors: async (id: string): Promise<UserEditor> => {
-		const data = await gql<UserEditor>(
+		const data = await Add<UserEditor>(
 			`query GetCurrentUser ($id: ObjectID!) {
                 user (id: $id) {
                     id
@@ -387,7 +439,7 @@ export default {
 		return data;
 	},
 	getDefaultEmoteSet: async (id: string): Promise<{ emote_set_id: string }> => {
-		const data = await gql<Connections>(
+		const data = await Add<Connections>(
 			`query GetCurrentUser ($id: ObjectID!) {
                 user (id: $id) {
                     id
@@ -419,7 +471,7 @@ export default {
 		emote: string,
 		name?: string,
 	): Promise<[ChangeEmoteInset, string | null]> => {
-		const data = await gql<ChangeEmoteInset>(
+		const data = await Add<ChangeEmoteInset>(
 			`mutation ChangeEmoteInSet($id: ObjectID! $action: ListItemAction! $emote_id: ObjectID! $name: String) {
                 emoteSet(id: $id) {
                     id
@@ -442,7 +494,7 @@ export default {
 		return [data, newEmote?.name || null];
 	},
 	GetUser: async function ({ TwitchUID }: User): Promise<V3User> {
-		const data = await gql<{ userByConnection: V3User }>(
+		const data = await Add<{ userByConnection: V3User }>(
 			`query GetUserByConnection($platform: ConnectionPlatform! $id: String!) {
                 userByConnection (platform: $platform id: $id) {
                     id
@@ -473,7 +525,7 @@ export default {
 		return data.userByConnection;
 	},
 	GetRoles: async (): Promise<{ id: string; name: string }[]> => {
-		const data = await gql<{ roles: { id: string; name: string }[] }>(`
+		const data = await Add<{ roles: { id: string; name: string }[] }>(`
                     query GetRoles{
                         roles {
                             name
@@ -488,7 +540,7 @@ export default {
 		editor: string,
 		permissions: UserEditorPermissions = UserEditorPermissions.DEFAULT,
 	) => {
-		return gql<UpdateUserEditors>(
+		return Add<UpdateUserEditors>(
 			`mutation UpdateUserEditors($id: ObjectID! $editor_id: ObjectID! $d: UserEditorUpdate!) {
                 user(id: $id) {
                     editors(editor_id: $editor_id data: $d) {
