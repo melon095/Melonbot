@@ -17,7 +17,7 @@ const resolveEmote = async (
 	getEmoteFromID(extractSeventTVID(name)) ?? getEmoteFromName(name, filters, specific);
 
 const getEmoteFromName = async (name: string, filters: EmoteSearchFilter, specific: number) => {
-	return gql.SearchEmoteByName(name, filters).then((res) => {
+	return gql.SearchEmoteByName(name, filters, true).then((res) => {
 		const e = res?.emotes?.items;
 
 		if (!e || !e.length)
@@ -30,7 +30,7 @@ const getEmoteFromName = async (name: string, filters: EmoteSearchFilter, specif
 };
 
 const getEmoteFromID = (name: string | undefined) => {
-	if (name) return gql.GetEmoteByID(name);
+	if (name) return gql.GetEmoteByID(name, true);
 	return null;
 };
 
@@ -74,7 +74,7 @@ registerCommand<PreHandlers>({
 
 		const name = (ctx.data.Params.alias as string) || emote.name;
 
-		await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.ADD, emote.id, name);
+		await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.ADD, emote.id, name, true);
 		return {
 			Success: true,
 			Result: `Added the emote => ${name}`,

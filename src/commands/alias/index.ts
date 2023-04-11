@@ -26,7 +26,11 @@ registerCommand<PreHandlers>({
 
 		const input = ctx.input[0];
 
-		const [src] = await gql.CurrentEnabledEmotes(EmoteSet(), (emote) => emote.name === input);
+		const [src] = await gql.CurrentEnabledEmotes(
+			EmoteSet(),
+			(emote) => emote.name === input,
+			true,
+		);
 
 		if (!src) {
 			return {
@@ -42,6 +46,7 @@ registerCommand<PreHandlers>({
 			ListItemAction.UPDATE,
 			src.id,
 			dst,
+			true,
 		);
 
 		if (dst === '') {

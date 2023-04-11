@@ -111,7 +111,7 @@ registerCommand({
 
 		/* Get enabled emotes in read set */
 		let toAdd: Set<EnabledEmote> = new Set();
-		const channelEmotes = await gql.CurrentEnabledEmotes(readSet);
+		const channelEmotes = await gql.CurrentEnabledEmotes(readSet, undefined, true);
 
 		/* Filter the input based on the settings given */
 		for (const emote of channelEmotes) {
@@ -181,7 +181,7 @@ registerCommand({
 const getSevenTVAccount = async (channel: string) => {
 	const user = await Bot.User.ResolveUsername(channel);
 
-	return gql.GetUser(user);
+	return gql.GetUser(user, true);
 };
 
 const addEmote = async (
@@ -190,11 +190,12 @@ const addEmote = async (
 	keepAlias: boolean,
 ): Promise<[string, ChangeEmoteInset]> => {
 	try {
-		const opts: [string, ListItemAction, string, string | undefined] = [
+		const opts: [string, ListItemAction, string, string | undefined, boolean] = [
 			emoteset,
 			ListItemAction.ADD,
 			emote.id,
 			undefined,
+			true,
 		];
 
 		if (keepAlias) {

@@ -44,12 +44,7 @@ registerCommand<PreHandlers>({
 			};
 		}
 
-		const user = await gql.GetUser(internalUser).catch(() => null);
-		if (!user)
-			return {
-				Success: false,
-				Result: 'User not found',
-			};
+		const user = await gql.GetUser(internalUser, true);
 
 		const resultPrompt = (type: 'Added' | 'Removed', name: string) =>
 			`${type} ${name} as an editor :)`;
@@ -77,6 +72,7 @@ registerCommand<PreHandlers>({
 					UserID(),
 					user.id,
 					UserEditorPermissions.NONE,
+					true,
 				);
 			} catch (error) {
 				return {
@@ -96,6 +92,7 @@ registerCommand<PreHandlers>({
 					UserID(),
 					user.id,
 					UserEditorPermissions.DEFAULT,
+					true,
 				);
 			} catch (error) {
 				return {
