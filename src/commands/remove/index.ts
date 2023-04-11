@@ -32,7 +32,7 @@ registerCommand<PreHandlers>({
 		}, []);
 
 		const emotes: EnabledEmote[] = [];
-		for (const emote of await gql.CurrentEnabledEmotes(EmoteSet())) {
+		for (const emote of await gql.CurrentEnabledEmotes(EmoteSet(), undefined, true)) {
 			const emoteIdx: number = requestedEmotes.indexOf(emote.name);
 
 			if (emoteIdx === -1) continue;
@@ -55,7 +55,13 @@ registerCommand<PreHandlers>({
 			await Promise.all(
 				emotes.map(async (emote) => {
 					try {
-						await gql.ModifyEmoteSet(EmoteSet(), ListItemAction.REMOVE, emote.id);
+						await gql.ModifyEmoteSet(
+							EmoteSet(),
+							ListItemAction.REMOVE,
+							emote.id,
+							'',
+							true,
+						);
 					} catch (error) {
 						ctx.Log(
 							'info',
