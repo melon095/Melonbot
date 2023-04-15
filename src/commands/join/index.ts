@@ -42,7 +42,7 @@ registerCommand({
 		if (otherUser) {
 			const user = Bot.User.CleanName(otherUser);
 
-			if (!await isMod(ctx.user, user)) {
+			if (!(await isMod(ctx.user, user))) {
 				return {
 					Success: false,
 					Result: 'You need to be a mod in the channel you want me to join :/',
