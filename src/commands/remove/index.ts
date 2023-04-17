@@ -26,30 +26,23 @@ registerCommand<PreHandlers>({
 			this.EarlyEnd.InvalidInput('No emote name provided');
 		}
 
-		const requestedEmotes = ctx.input.reduce((args: string[], arg: string) => {
-			if (!args.includes(arg)) args.push(arg);
-			return args;
-		}, []);
+		const requestedEmotes = new Set(ctx.input);
 
 		const emotes: EnabledEmote[] = [];
 		for (const emote of await gql.CurrentEnabledEmotes(EmoteSet())) {
-			const emoteIdx: number = requestedEmotes.indexOf(emote.name);
-
-			if (emoteIdx === -1) continue;
+			if (!requestedEmotes.delete(emote.name)) continue;
 
 			emotes.push(emote);
-			requestedEmotes[emoteIdx] = requestedEmotes[requestedEmotes.length - 1];
-			--requestedEmotes.length;
-
-			if (!requestedEmotes.length) break;
+			if (!requestedEmotes.size) break;
 		}
 
-		if (requestedEmotes.length)
+		if (requestedEmotes.size) {
+			let out = '';
+			requestedEmotes.forEach((emote) => (out += ' ' + emote));
 			ctx.channel.say(
-				`Could not find the following emote${
-					requestedEmotes.length > 1 ? 's' : ''
-				}: ${requestedEmotes.join(' ')}`,
+				`Could not find the following emote${requestedEmotes.size > 1 ? 's' : ''}:` + out,
 			);
+		}
 
 		const failed = (
 			await Promise.all(
@@ -68,8 +61,8 @@ registerCommand<PreHandlers>({
 			)
 		).reduce((emts, emt) => {
 			if (!emt) return emts;
-			return (emts += ` ` + emt);
-		}, ``);
+			return (emts += ' ' + emt);
+		}, '');
 
 		// prettier-ignore
 		return (function (this: CommandResult) {
