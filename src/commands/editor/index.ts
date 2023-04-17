@@ -44,12 +44,7 @@ registerCommand<PreHandlers>({
 			};
 		}
 
-		const user = await gql.GetUser(internalUser).catch(() => null);
-		if (!user)
-			return {
-				Success: false,
-				Result: 'User not found',
-			};
+		const user = await gql.GetUser(internalUser);
 
 		const resultPrompt = (type: 'Added' | 'Removed', name: string) =>
 			`${type} ${name} as an editor :)`;

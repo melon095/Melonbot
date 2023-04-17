@@ -4,6 +4,7 @@ import { CreateCrontab } from '../../tools/CrontabHandler.js';
 import { ExtractAllSettledPromises } from '../../tools/tools.js';
 
 const ONE_MINUTE = 60 * 1000;
+const FIVE_MINUTES = ONE_MINUTE * 5;
 const ONE_HOUR = ONE_MINUTE * 60;
 
 /**
@@ -21,7 +22,7 @@ CreateCrontab({
 		const channels = Bot.Twitch.Controller.TwitchChannels;
 
 		// Get every channel we are editors of
-		const sets = await gql.getUserEmoteSets(bot_id);
+		const sets = await gql.getUserEmoteSets(bot_id, false);
 		const editor_of = sets.user.editor_of.filter((e) =>
 			e.user.connections.find((c) => c.platform === ConnectionPlatform.TWITCH),
 		);
@@ -29,7 +30,7 @@ CreateCrontab({
 		await Promise.allSettled(
 			editor_of.map(async (user) => {
 				// Get their emote-sets
-				const user_sets = await gql.getUserEmoteSets(user.id);
+				const user_sets = await gql.getUserEmoteSets(user.id, false);
 				if (user_sets === null) return;
 
 				const twitchID = user_sets.user.connections.find(
@@ -49,11 +50,12 @@ CreateCrontab({
 				// Get the default emote-set.
 				const { emote_set_id: default_emote_sets } = await gql.getDefaultEmoteSet(
 					user_sets.user.id,
+					false,
 				);
 				// Get every editor of their channel
 				const {
 					user: { editors: resEditors },
-				} = await gql.getEditors(user_sets.user.id);
+				} = await gql.getEditors(user_sets.user.id, false);
 
 				interface TempUser {
 					TwitchID: string;
@@ -98,28 +100,6 @@ CreateCrontab({
 				Bot.Log.Debug('Editors for %s: %O', channel.Name, editors);
 				await Bot.Redis.SetOverride(`seventv:${default_emote_sets}:editors`, editors);
 
-				// const current_editors = await Bot.Redis.SetMembers(
-				// 	`seventv:${default_emote_sets}:editors`,
-				// );
-
-				// const new_editors = editors.filter(
-				// 	(editor) => !current_editors.includes(editor),
-				// );
-				// const remove_editors = current_editors.filter(
-				// 	(editor) => !editors.includes(editor),
-				// );
-
-				// if (new_editors.length > 0) {
-				// 	Bot.Redis.SetAdd(`seventv:${default_emote_sets}:editors`, new_editors);
-				// }
-
-				// if (remove_editors.length > 0) {
-				// 	Bot.Redis.SetRemove(
-				// 		`seventv:${default_emote_sets}:editors`,
-				// 		remove_editors,
-				// 	);
-				// }
-
 				if (!default_emote_sets || default_emote_sets === currentEmoteSet) return;
 
 				Bot.Log.Info(
@@ -139,20 +119,20 @@ CreateCrontab({
 			}),
 		);
 	},
-	interval: ONE_MINUTE,
+	interval: FIVE_MINUTES,
 });
 /**
  * Fetches 7TV roles
  */
 CreateCrontab({
 	func: async function () {
-		const roles = await gql.GetRoles();
+		const roles = await gql.GetRoles(false);
 
 		if (roles === null) return;
 
 		await Bot.Redis.SSet('seventv:roles', JSON.stringify(roles));
 	},
-	interval: ONE_MINUTE,
+	interval: ONE_HOUR,
 });
 
 /**
@@ -170,9 +150,9 @@ CreateCrontab({
 						await channel.GetChannelData('SevenTVEmoteSet')
 					).ToString();
 
-					const sevenUser = await gql.GetUser(user);
+					const sevenUser = await gql.GetUser(user, false);
 
-					const emoteSet = await gql.getDefaultEmoteSet(sevenUser.id);
+					const emoteSet = await gql.getDefaultEmoteSet(sevenUser.id, false);
 					if (!emoteSet || !emoteSet.emote_set_id) return;
 					const { emote_set_id } = emoteSet;
 
