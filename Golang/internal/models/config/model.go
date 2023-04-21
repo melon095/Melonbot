@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/redis"
+	"github.com/JoachimFlottorp/Melonbot/Golang/internal/redis"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

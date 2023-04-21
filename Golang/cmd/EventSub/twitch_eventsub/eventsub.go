@@ -1,4 +1,4 @@
-package twitch
+package twitch_eventsub
 
 import (
 	"context"

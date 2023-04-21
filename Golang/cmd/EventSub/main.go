@@ -10,14 +10,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/models/config"
-	twitch "github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/Providers/Twitch"
-	"github.com/JoachimFlottorp/Melonbot/Golang/EventSub/internal/server"
+	"github.com/JoachimFlottorp/Melonbot/Golang/cmd/EventSub/server"
+	twitch "github.com/JoachimFlottorp/Melonbot/Golang/cmd/EventSub/twitch_eventsub"
+	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/config"
 	"go.uber.org/zap"
 )
 
 var (
-	cfg   = flag.String("config", "./../../config.json", "config file")
+	cfg   = flag.String("config", "./../config.json", "config file")
 	debug = flag.Bool("debug", false, "debug mode")
 	port  = flag.Int("port", 3000, "port")
 )
@@ -28,16 +28,12 @@ const (
 
 func init() {
 	flag.Parse()
-
-	if cfg == nil {
-		panic("config flag is required")
-	}
 }
 
 func main() {
 	conf, err := config.ReadConfig(*cfg, *debug)
 	if err != nil {
-		zap.S().Fatal(err)
+		panic(err)
 	}
 	conf.Port = *port
 
@@ -77,7 +73,10 @@ func main() {
 	go func() {
 		defer wg.Done()
 
-		server := server.NewServer(gCtx, conf)
+		server, err := server.NewServer(gCtx, conf)
+		if err != nil {
+			zap.S().Fatal(err)
+		}
 
 		c := twitch.Connect_t{Version: version}
 
@@ -89,8 +88,6 @@ func main() {
 	zap.S().Info("Ready!")
 
 	<-done
-
-	zap.S().Info("Shutting down")
 
 	os.Exit(0)
 }
