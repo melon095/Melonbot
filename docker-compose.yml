@@ -5,8 +5,6 @@ services:
     build:
       context: ./Golang
       dockerfile: ./Dockerfile
-      args:
-        - -debug
     volumes:
       - type: bind
         source: ./config.json
