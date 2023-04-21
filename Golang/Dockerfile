@@ -22,7 +22,7 @@ COPY cmd /app/cmd
 FROM golang_deps_base AS eventsub_base
 WORKDIR /app
 COPY cmd/EventSub/ /app/cmd/EventSub/
-RUN go build -ldflags '-extflags "-static"' -o ./out ./cmd/EventSub
+RUN go build -ldflags "-extldflags '-static'" -o ./out ./cmd/EventSub
 
 FROM alpine:${ALPINE_VERSION} as eventsub
 WORKDIR /app
