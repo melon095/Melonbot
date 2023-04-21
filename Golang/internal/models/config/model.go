@@ -2,12 +2,22 @@ package config
 
 import (
 	"encoding/json"
+	"flag"
 	"os"
 
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/redis"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+var (
+	cfg   = flag.String("config", "./../config.json", "config file")
+	debug = flag.Bool("debug", false, "debug mode")
+)
+
+func init() {
+	flag.Parse()
+}
 
 type Config struct {
 	Port     int
@@ -45,8 +55,8 @@ func createLogConfig(isDebug bool) *zap.Config {
 	return config
 }
 
-func ReadConfig(path string, isDebug bool) (*Config, error) {
-	fileDesc, err := os.Open(path)
+func ReadConfig() (*Config, error) {
+	fileDesc, err := os.Open(*cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +67,7 @@ func ReadConfig(path string, isDebug bool) (*Config, error) {
 		return nil, err
 	}
 
-	global, err := createLogConfig(isDebug).Build()
+	global, err := createLogConfig(*debug).Build()
 	if err != nil {
 		return nil, err
 	}
