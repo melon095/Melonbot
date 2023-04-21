@@ -22,7 +22,6 @@ COPY cmd /app/cmd
 FROM golang_deps_base AS eventsub_base
 WORKDIR /app
 COPY cmd/EventSub/ /app/cmd/EventSub/
-ENV CGO_ENABLED=1
 RUN go build -ldflags "-extldflags '-static'" -o ./out ./cmd/EventSub
 
 FROM alpine:${ALPINE_VERSION} as eventsub
