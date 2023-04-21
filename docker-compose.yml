@@ -12,7 +12,7 @@ services:
         source: ./config.json
         target: /app/config.json
 
-      - type: bind$
+      - type: bind
         source: ./Golang/EventSub/db/
         target: /app/db/
     # Quick access to redis and postgres
