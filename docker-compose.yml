@@ -4,7 +4,7 @@ services:
   eventsub:
     build:
       context: ./Golang
-      dockerfile: ./EventSub/Dockerfile
+      dockerfile: ./Dockerfile
       args:
         - -debug
     volumes:
@@ -13,7 +13,7 @@ services:
         target: /app/config.json
 
       - type: bind
-        source: ./Golang/EventSub/db/
+        source: ./Golang/db/
         target: /app/db/
     # Quick access to redis and postgres
     network_mode: host
