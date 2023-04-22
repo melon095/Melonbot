@@ -13,5 +13,14 @@ services:
       - type: bind
         source: ./Golang/db/
         target: /app/db/
-    # Quick access to redis and postgres
+    network_mode: host
+
+  firehose:
+    build:
+      context: ./Golang
+      dockerfile: ./Dockerfile
+    volumes:
+      - type: bind
+        source: ./config.json
+        target: /app/config.json
     network_mode: host
