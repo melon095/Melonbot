@@ -6,9 +6,9 @@ build:
 	@for d in $(BINS); do \
 		echo "Building $$d..."; \
 		if [ "$$(go env GOOS)" = "windows" ]; then \
-			go build -o bin/$$d.exe ./cmd/$$d; \
+			go build -o bin/$$d.exe -mod=readonly -buildvcs=false ./cmd/$$d; \
 		else \
-			go build -o bin/$$d ./cmd/$$d; \
+			go build -o bin/$$d -mod=readonly -buildvcs=false ./cmd/$$d; \
 		fi \
 	done
 
@@ -20,5 +20,5 @@ coverage:
 	go tool cover -html=coverage.out -o coverage.html
 
 clean:
-	go clean
+	go clean -mod=readonly
 	rm -rf bin
