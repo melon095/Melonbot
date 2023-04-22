@@ -22,7 +22,6 @@ WORKDIR /app
 COPY cmd/EventSub/ /app/cmd/EventSub/
 COPY internal /app/internal
 COPY cmd /app/cmd
-COPY vendor /app/vendor
 RUN go build -ldflags "-extldflags '-static'" -o ./out ./cmd/EventSub
 
 FROM alpine:${ALPINE_VERSION} as eventsub
