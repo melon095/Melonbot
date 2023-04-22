@@ -16,12 +16,13 @@ FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as golang_deps_base
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
-COPY internal /app/internal
-COPY cmd /app/cmd
 
 FROM golang_deps_base AS eventsub_base
 WORKDIR /app
 COPY cmd/EventSub/ /app/cmd/EventSub/
+COPY internal /app/internal
+COPY cmd /app/cmd
+COPY vendor /app/vendor
 RUN go build -ldflags "-extldflags '-static'" -o ./out ./cmd/EventSub
 
 FROM alpine:${ALPINE_VERSION} as eventsub
