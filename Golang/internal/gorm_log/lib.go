@@ -1,4 +1,4 @@
-package utils
+package gorm_log
 
 import (
 	"context"

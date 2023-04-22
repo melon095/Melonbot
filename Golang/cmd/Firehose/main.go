@@ -12,6 +12,7 @@ import (
 
 	applicationwrapper "github.com/JoachimFlottorp/Melonbot/Golang/internal/application_wrapper"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/config"
+	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/dbmodels"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/tcp"
 	"github.com/gempir/go-twitch-irc/v4"
 	"go.uber.org/zap"
@@ -26,10 +27,19 @@ var (
 	extractPrivmsgRegex = regexp.MustCompile(`PRIVMSG #(\w+) :(.*)`)
 )
 
+func init() {
+	flag.Parse()
+}
+
 func main() {
 	conf, err := config.ReadConfig(*cfg, *debug)
 	if err != nil {
 		panic(err)
+	}
+
+	db, err := dbmodels.CreateGormPostgres(conf.SQL.Address)
+	if err != nil {
+		zap.S().Fatalf("failed to connect database: %v", err)
 	}
 
 	INITIAL_CONNECTION_MSG := []byte(strings.Join(
@@ -60,18 +70,26 @@ func main() {
 			defer wg.Done()
 
 			tmiClient.OnPrivateMessage(func(message twitch.PrivateMessage) {
+				zap.S().Debug(message.Raw)
+
 				serverToClient.Broadcast(message.Raw)
 			})
 
 			tmiClient.OnNoticeMessage(func(message twitch.NoticeMessage) {
+				zap.S().Debug(message.Raw)
+
 				serverToClient.Broadcast(message.Raw)
 			})
 
 			tmiClient.OnSelfJoinMessage(func(message twitch.UserJoinMessage) {
+				zap.S().Infof("Joined channel %s", message.Channel)
+
 				serverToClient.Broadcast(message.Raw)
 			})
 
 			tmiClient.OnSelfPartMessage(func(message twitch.UserPartMessage) {
+				zap.S().Infof("Left channel %s", message.Channel)
+
 				serverToClient.Broadcast(message.Raw)
 			})
 
@@ -87,7 +105,15 @@ func main() {
 				zap.S().Info("Connected to Twitch")
 			})
 
-			tmiClient.Join("melon095")
+			var channels []dbmodels.ChannelTable
+			if result := db.Find(&channels); result.Error != nil {
+				zap.S().Error(result.Error)
+				return
+			}
+
+			for _, channel := range channels {
+				tmiClient.Join(channel.Name)
+			}
 
 			err := tmiClient.Connect()
 			if err != nil {
