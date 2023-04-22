@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/JoachimFlottorp/GoCommon v0.0.0-20221029195723-955121290521
+	github.com/gempir/go-twitch-irc/v4 v4.0.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.44.0
 	go.uber.org/zap v1.24.0

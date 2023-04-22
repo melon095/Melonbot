@@ -19,6 +19,7 @@ type Config struct {
 }
 
 type TwitchConfig struct {
+	OAuth        string `json:"OAuth"`
 	ClientSecret string `json:"ClientSecret"`
 	ClientID     string `json:"ClientID"`
 }
