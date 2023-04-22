@@ -17,7 +17,9 @@ import (
 )
 
 var (
-	port = flag.Int("port", 3000, "port")
+	port  = flag.Int("port", 3000, "port")
+	cfg   = flag.String("config", "./../config.json", "config file")
+	debug = flag.Bool("debug", false, "debug mode")
 )
 
 const (
@@ -29,7 +31,7 @@ func init() {
 }
 
 func main() {
-	conf, err := config.ReadConfig()
+	conf, err := config.ReadConfig(*cfg, *debug)
 	if err != nil {
 		panic(err)
 	}
