@@ -13,9 +13,12 @@ ARG ALPINE_VERSION=3.17
 
 
 FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as golang_deps_base
+RUN apk add --no-cache --update gcc g++
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
+ENV CGO_ENABLED=1
+ENV GOOS=linux
 
 FROM golang_deps_base AS eventsub_base
 WORKDIR /app
