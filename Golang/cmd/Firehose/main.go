@@ -61,6 +61,11 @@ func main() {
 
 	done.Execute(func(ctx context.Context) {
 		tmiClient := twitch.NewClient(conf.BotUsername, conf.Twitch.OAuth)
+
+		if conf.Verified {
+			tmiClient.SetJoinRateLimiter(twitch.CreateVerifiedRateLimiter())
+		}
+
 		serverToClient := tcp.NewServer()
 
 		wg := sync.WaitGroup{}
@@ -69,6 +74,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 
+			// FIXME: Can this be put into a single function
 			tmiClient.OnPrivateMessage(func(message twitch.PrivateMessage) {
 				zap.S().Debug(message.Raw)
 
