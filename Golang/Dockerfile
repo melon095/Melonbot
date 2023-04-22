@@ -5,7 +5,7 @@
 # For every new binary, there should be a base and a final stage
 # The base stage should be named <binary>_base and the final stage should be named <binary>
 
-# The base stage should copy everything it needs, this is the cmd/<binary> folder and additional files if needed
+# The base stage should copy everything it needs, this is the cmd/<binary>, internal folder and additional files if needed
 # The final stage should copy the binary from the base stage and set the entrypoint to keep the image small
 
 ARG GO_VERSION=1.20.0
