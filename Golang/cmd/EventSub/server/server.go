@@ -95,7 +95,7 @@ func NewServer(ctx context.Context, cfg *config.Config) (*Server, error) {
 	return server, nil
 }
 
-func (s *Server) Start(ctx context.Context, cn twitch.Connect_t) error {
+func (s *Server) Start(ctx context.Context, cn twitch.Connect_t, port int) error {
 	go func() {
 		<-s.ctx.Done()
 
@@ -116,7 +116,7 @@ func (s *Server) Start(ctx context.Context, cn twitch.Connect_t) error {
 
 	zap.S().Infof("Starting server on -> %s", s.config.EventSub.PublicUrl)
 
-	return s.app.Listen(fmt.Sprintf("0.0.0.0:%d", s.config.Port))
+	return s.app.Listen(fmt.Sprintf("0.0.0.0:%d", port))
 }
 
 func (s *Server) indexRoute(c *fiber.Ctx) error {

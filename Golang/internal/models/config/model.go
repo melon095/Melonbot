@@ -10,9 +10,12 @@ import (
 )
 
 type Config struct {
-	Port     int
-	Twitch   TwitchConfig   `json:"Twitch"`
-	EventSub EventSubConfig `json:"EventSub"`
+	Twitch      TwitchConfig   `json:"Twitch"`
+	SQL         SQLConfig      `json:"SQL"`
+	EventSub    EventSubConfig `json:"EventSub"`
+	Verified    bool           `json:"Verified"`
+	Prefix      string         `json:"Prefix"`
+	BotUsername string         `json:"BotUsername"`
 }
 
 type TwitchConfig struct {
@@ -24,6 +27,10 @@ type EventSubConfig struct {
 	PublicUrl string        `json:"PublicUrl"`
 	Secret    string        `json:"Secret"`
 	Redis     redis.Options `json:"Redis"`
+}
+
+type SQLConfig struct {
+	Address string `json:"Address"`
 }
 
 func createLogConfig(isDebug bool) *zap.Config {
