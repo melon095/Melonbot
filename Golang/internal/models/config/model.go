@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/JoachimFlottorp/Melonbot/Golang/Common/redis"
+	"github.com/JoachimFlottorp/Melonbot/Golang/internal/redis"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -45,7 +45,7 @@ func createLogConfig(isDebug bool) *zap.Config {
 	return config
 }
 
-func ReadConfig(path string, isDebug bool) (*Config, error) {
+func ReadConfig(path string, debug bool) (*Config, error) {
 	fileDesc, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func ReadConfig(path string, isDebug bool) (*Config, error) {
 		return nil, err
 	}
 
-	global, err := createLogConfig(isDebug).Build()
+	global, err := createLogConfig(debug).Build()
 	if err != nil {
 		return nil, err
 	}
