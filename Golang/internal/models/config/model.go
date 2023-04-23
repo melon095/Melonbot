@@ -39,7 +39,8 @@ type ServicesConfig struct {
 		Secret    string `json:"Secret"`
 	} `json:"EventSub"`
 	Firehose struct {
-		Port int `json:"Port"`
+		Port       int `json:"Port"`
+		HealthPort int `json:"HealthPort"`
 	} `json:"Firehose"`
 }
 

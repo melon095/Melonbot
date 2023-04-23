@@ -42,4 +42,4 @@ RUN go build -ldflags "-extldflags '-static'" -o ./out ./cmd/Firehose
 FROM alpine:${ALPINE_VERSION} as firehose
 WORKDIR /app
 COPY --from=firehose_base /app/out /app/
-ENTRYPOINT [ "/app/out", "-config", "/app/config.json", "-debug", "-port", "3010" ]
+ENTRYPOINT [ "/app/out", "-config", "/app/config.json", "-debug" ]

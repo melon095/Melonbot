@@ -14,6 +14,7 @@ import (
 	gorm_log "github.com/JoachimFlottorp/Melonbot/Golang/internal/gorm_log"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/config"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/redis"
+	"github.com/JoachimFlottorp/Melonbot/Golang/internal/status"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"go.uber.org/zap"
@@ -109,6 +110,7 @@ func (s *Server) Start(ctx context.Context, cn twitch.Connect_t, port int) error
 
 	s.app.Get("/", s.indexRoute)
 	s.app.Post("/eventsub", s.eventsubRoute)
+	s.app.Get("/health", s.healthRoute)
 
 	err := s.redis.Publish(ctx, redis.PubKeyEventSub, cn)
 
@@ -117,6 +119,12 @@ func (s *Server) Start(ctx context.Context, cn twitch.Connect_t, port int) error
 	zap.S().Infof("Starting server on -> %s", s.config.Services.EventSub.PublicUrl)
 
 	return s.app.Listen(fmt.Sprintf("0.0.0.0:%d", port))
+}
+
+func (s *Server) healthRoute(c *fiber.Ctx) error {
+	health := status.NewStatus()
+
+	return c.JSON(health)
 }
 
 func (s *Server) indexRoute(c *fiber.Ctx) error {

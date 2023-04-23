@@ -13,6 +13,7 @@ import (
 	applicationwrapper "github.com/JoachimFlottorp/Melonbot/Golang/internal/application_wrapper"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/config"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/dbmodels"
+	"github.com/JoachimFlottorp/Melonbot/Golang/internal/status"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/tcp"
 	"github.com/gempir/go-twitch-irc/v4"
 	"go.uber.org/zap"
@@ -20,7 +21,6 @@ import (
 )
 
 var (
-	port  = flag.Int("port", 3000, "port")
 	cfg   = flag.String("config", "./../config.json", "config file")
 	debug = flag.Bool("debug", false, "debug mode")
 
@@ -33,10 +33,11 @@ func init() {
 }
 
 type Application struct {
-	TMI       *twitch.Client
-	TCPServer *tcp.Server
-	DB        *gorm.DB
-	Config    *config.Config
+	TMI          *twitch.Client
+	TCPServer    *tcp.Server
+	HealthServer *status.Server
+	DB           *gorm.DB
+	Config       *config.Config
 }
 
 func (app *Application) createInitialJoinMessage() string {
@@ -191,7 +192,7 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 }
 
 func (app *Application) RunTCP(ctx context.Context) {
-	addr := fmt.Sprintf("127.0.0.1:%d", *port)
+	addr := fmt.Sprintf("127.0.0.1:%d", app.Config.Services.Firehose.Port)
 
 	zap.S().Infof("Starting TCP server on %s", addr)
 
@@ -214,11 +215,17 @@ func main() {
 	done := applicationwrapper.NewWrapper(gCtx, cancel)
 
 	done.Execute(func(ctx context.Context) {
+		statusServer, err := status.NewServer(uint16(conf.Services.Firehose.HealthPort))
+		if err != nil {
+			zap.S().Fatal(err)
+		}
+
 		app := Application{
-			TMI:       twitch.NewClient(conf.BotUsername, conf.Twitch.OAuth),
-			TCPServer: tcp.NewServer(),
-			DB:        db,
-			Config:    conf,
+			TMI:          twitch.NewClient(conf.BotUsername, conf.Twitch.OAuth),
+			TCPServer:    tcp.NewServer(),
+			HealthServer: statusServer,
+			DB:           db,
+			Config:       conf,
 		}
 
 		if conf.Verified {
@@ -243,6 +250,15 @@ func main() {
 			defer wg.Done()
 
 			app.RunTCP(ctx)
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			zap.S().Infof("Starting health server on %d", conf.Services.Firehose.HealthPort)
+
+			app.HealthServer.Start(ctx)
 		}()
 	})
 }

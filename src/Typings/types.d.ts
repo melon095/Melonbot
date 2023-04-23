@@ -48,6 +48,7 @@ export type ServicesConfig = {
 	};
 	Firehose: {
 		Port: number;
+		HealthPort: number;
 	};
 	Website: {
 		JWTSecret: string;

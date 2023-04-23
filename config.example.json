@@ -29,7 +29,8 @@
             "Secret": "12345678910"
         },
         "Firehose": {
-            "Port": 3000
+            "Port": 3010,
+            "HealthPort": 3011
         },
         "Website": {
             "JWTSecret": "Scripts/Secret.EventSubKey.mjs",
