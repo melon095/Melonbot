@@ -101,14 +101,3 @@ export function GetCommandBy(identifier: string): CommandModel | undefined {
 
 	return undefined;
 }
-
-// 	get Commands() {
-// 		return this.commandNameList;
-// 	}
-// 	get Names() {
-// 		const names = [];
-// 		for (const command of this.commandNameList) {
-// 			names.push(command.Name);
-// 		}
-// 		return names;
-// 	}

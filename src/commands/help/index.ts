@@ -1,6 +1,6 @@
-import { ChannelDatabaseToMode } from './../../controller/DB/Tables/ChannelTable.js';
 import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 import { GetCommandBy, registerCommand } from '../../controller/Commands/Handler.js';
+import { CommandPermissionToString } from '../../controller/DB/Tables/CommandTable.js';
 
 registerCommand({
 	Name: 'help',
@@ -34,7 +34,7 @@ registerCommand({
 		}
 
 		const { Name, Description, Cooldown, Permission } = command;
-		const permissionLevel = ChannelDatabaseToMode(Permission);
+		const permissionLevel = CommandPermissionToString(Permission);
 
 		return {
 			Success: true,

@@ -4,8 +4,8 @@ import { CommandModel } from './../../../../Models/Command.js';
 import { EPermissionLevel } from './../../../../Typings/enums.js';
 import AuthenticationValidator from './../../../Hooks/AuthenticationValidator.js';
 import {
-	CommandDatabaseToMode,
 	CommandPermissions,
+	CommandPermissionToString,
 } from './../../../../controller/DB/Tables/CommandTable.js';
 import { GetCommandBy } from '../../../../controller/Commands/Handler.js';
 
@@ -37,13 +37,13 @@ export default async function (fastify: FastifyInstance) {
 			const table = [];
 
 			for await (const command of tableStream) {
-				const Permission = CommandDatabaseToMode(command.perm);
+				const Permission = CommandPermissionToString(command.perm);
 
 				table.push({
 					Table: {
 						Name: command.name,
 						Description: command.description,
-						Permission,
+						Permission: CommandPermissionToString(command.perm),
 					},
 					allowedToRun: user ? MeetsPermissionLevel(user, Permission) : null,
 				});
@@ -98,7 +98,7 @@ export default async function (fastify: FastifyInstance) {
 				Aliases: Alias,
 				Description: command.Description,
 				Cooldown: `${command.Cooldown} Seconds`,
-				Permission: CommandDatabaseToMode(command.Permission),
+				Permission: CommandPermissionToString(command.Permission),
 				'Long Description': LongDescription,
 			};
 
