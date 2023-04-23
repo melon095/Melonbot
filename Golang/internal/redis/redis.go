@@ -17,13 +17,6 @@ const (
 	Nil = redis.Nil
 )
 
-type Options struct {
-	Address  string
-	Username string
-	Password string
-	DB       int
-}
-
 type Key string
 
 func (k Key) String() string {
@@ -83,13 +76,13 @@ type redisInstance struct {
 	client *redis.Client
 }
 
-func Create(ctx context.Context, options Options) (Instance, error) {
-	rds := redis.NewClient(&redis.Options{
-		Addr:     options.Address,
-		Username: options.Username,
-		Password: options.Password,
-		DB:       options.DB,
-	})
+func Create(ctx context.Context, address string) (Instance, error) {
+	opts, err := redis.ParseURL(address)
+	if err != nil {
+		return nil, err
+	}
+
+	rds := redis.NewClient(opts)
 
 	if err := rds.Ping(ctx).Err(); err != nil {
 		return nil, err
