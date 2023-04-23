@@ -13,6 +13,8 @@ function NoticeMessageIsReject(message: string) {
 	);
 }
 
+export const FIREHOSE_HOST = process.env.MELONBOT_FIREHOSE || '127.0.0.1';
+
 export default class Twitch {
 	public client: DankTwitch.ChatClient;
 
@@ -24,7 +26,6 @@ export default class Twitch {
 	private constructor() {
 		this.InitFulfill();
 
-		const host = process.env.MELONBOT_FIREHOSE || '127.0.0.1';
 		const port = Bot.Config.Services.Firehose.Port;
 
 		this.client = new DankTwitch.ChatClient({
@@ -34,7 +35,7 @@ export default class Twitch {
 			connection: {
 				type: 'tcp',
 				secure: false,
-				host,
+				host: FIREHOSE_HOST,
 				port,
 				preSetup: true,
 			},

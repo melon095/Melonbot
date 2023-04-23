@@ -3,6 +3,7 @@ import process from 'node:process';
 import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
 import Got from '../../tools/Got.js';
+import { FIREHOSE_HOST } from '../../Twitch.js';
 
 type HealthResponse = {
 	goroutine_count: number;
@@ -27,14 +28,23 @@ registerCommand({
 			return `${health.goroutine_count} GRC, ${health.memory_usage} Mem`;
 		};
 
+		const GotOpts = {
+			timeout: {
+				request: 1000,
+			},
+		};
+
 		firehoseHealth = await Got['Default']
-			.get(`http://127.0.0.1:${Bot.Config.Services.Firehose.HealthPort}/health`)
+			.get(
+				`http://${FIREHOSE_HOST}:${Bot.Config.Services.Firehose.HealthPort}/health`,
+				GotOpts,
+			)
 			.json<HealthResponse>()
 			.then(formatHealth)
 			.catch(() => 'Down');
 
 		eventsubHealth = await Got['Default']
-			.get(`${Bot.Config.Services.EventSub.PublicUrl}/health`)
+			.get(`${Bot.Config.Services.EventSub.PublicUrl}/health`, GotOpts)
 			.json<HealthResponse>()
 			.then(formatHealth)
 			.catch(() => 'Down');

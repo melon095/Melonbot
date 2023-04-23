@@ -11,12 +11,16 @@ type Status struct {
 	// Amount of goroutines running
 	GoroutineCount int `json:"goroutine_count"`
 	// Memory allocated in bytes
-	MemoryUsage int `json:"memory_usage"`
+	MemoryUsage uint64 `json:"memory_usage"`
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }
 
 // Converts the memory usage to a string formatted in mb
 func (s *Status) MemoryUsageToStr() string {
-	return fmt.Sprintf("%dmb", s.MemoryUsage/1000000)
+	return fmt.Sprintf("%dmb", bToMb(s.MemoryUsage))
 }
 
 func (s *Status) MarshalJSON() ([]byte, error) {
@@ -38,6 +42,6 @@ func NewStatus() *Status {
 
 	return &Status{
 		GoroutineCount: runtime.NumGoroutine(),
-		MemoryUsage:    int(m.Alloc),
+		MemoryUsage:    m.Alloc,
 	}
 }

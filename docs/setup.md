@@ -24,8 +24,18 @@ Website can be started with `npm run start:web`
 
 Using [PM2](https://pm2.keymetrics.io/) is recommended
 
-Bot also has a eventsub broker [here](./../Golang//EventSub/go.mod)
-Build with `make build` and can be ran with `make run` or by using the [docker-compose.yml](../docker-compose.yml) file
+### Eventsub broker
+
+[Eventsub](./../Golang/cmd/EventSub/main.go) broker is a small web server that receives eventsub notifications from twitch and forwards them to the main bot.
+
+### Firehose
+
+[Firehose](./../Golang/cmd/Firehose/main.go) is a MITM TMI proxy.
+
+Port can be changed in config.json -> Services -> Firehose -> Port
+The `MELONBOT_FIREHOSE` environment variable is used if firehose is ran on a seperate machine (local development) otherwise it's defaulted to `127.0.0.1`
+
+All docker programs should be ran with `docker compose`
 
 ### Generate EventSub secret
 
