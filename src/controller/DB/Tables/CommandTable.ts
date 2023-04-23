@@ -1,4 +1,5 @@
 import { Generated } from 'kysely';
+import { EPermissionLevel } from '../../../Typings/enums.js';
 import UserTable from './UserTable.js';
 
 interface CommandTable {
@@ -23,7 +24,7 @@ interface CommandTable {
 
 type CommandPermissions = 'Viewer' | 'VIP' | 'Moderator' | 'Broadcaster' | 'Admin';
 
-function CommandDatabaseToMode(val: number): CommandPermissions {
+function CommandPermissionToString(val: EPermissionLevel | number): CommandPermissions {
 	switch (val) {
 		case 0:
 			return 'Viewer';
@@ -40,22 +41,22 @@ function CommandDatabaseToMode(val: number): CommandPermissions {
 	}
 }
 
-function CommandModeToDatabase(mode: CommandPermissions): number {
-	switch (mode) {
-		case 'Viewer':
-			return 0;
-		case 'VIP':
-			return 1;
-		case 'Moderator':
-			return 2;
-		case 'Broadcaster':
-			return 3;
-		case 'Admin':
-			return 4;
-		default:
-			return 0;
-	}
-}
+// function CommandModeToDatabase(mode: CommandPermissions): number {
+// 	switch (mode) {
+// 		case 'Viewer':
+// 			return 0;
+// 		case 'VIP':
+// 			return 1;
+// 		case 'Moderator':
+// 			return 2;
+// 		case 'Broadcaster':
+// 			return 3;
+// 		case 'Admin':
+// 			return 4;
+// 		default:
+// 			return 0;
+// 	}
+// }
 
 export default CommandTable;
-export { CommandDatabaseToMode, CommandModeToDatabase, CommandPermissions, CommandTable };
+export { CommandPermissionToString, CommandPermissions, CommandTable };

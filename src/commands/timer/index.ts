@@ -170,7 +170,7 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 registerCommand({
 	Name: 'timer',
 	Ping: true,
-	Description: 'Enabled or disable chat timers',
+	Description: 'Modify chat timers',
 	Permission: EPermissionLevel.MOD,
 	OnlyOffline: false,
 	Aliases: ['timers'],
