@@ -10,7 +10,7 @@ import StrategyConstructor, {
 import { FastifyInstance } from 'fastify';
 
 export default async function (fastify: FastifyInstance) {
-	const RedirectURI = Bot.Config.Website.WebUrl + '/api/auth/twitch/callback';
+	const RedirectURI = Bot.Config.Services.Website.WebUrl + '/api/auth/twitch/callback';
 
 	const Strategy = new StrategyConstructor<Helix.User>(
 		{

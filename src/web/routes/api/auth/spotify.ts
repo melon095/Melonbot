@@ -11,7 +11,7 @@ import AuthenticationValidator from './../../../Hooks/AuthenticationValidator.js
 import Got from '../../../../tools/Got.js';
 
 export default async function (fastify: FastifyInstance) {
-	const RedirectURI = Bot.Config.Website.WebUrl + '/api/auth/spotify/callback';
+	const RedirectURI = Bot.Config.Services.Website.WebUrl + '/api/auth/spotify/callback';
 
 	const SCOPE = ['user-read-private', 'user-read-email', 'user-read-playback-state'].join(' ');
 

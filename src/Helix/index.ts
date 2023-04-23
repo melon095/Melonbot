@@ -177,7 +177,7 @@ export default {
 			type: EventsubTypes,
 			condition: T,
 		) {
-			const { PublicUrl, Secret } = Bot.Config.EventSub;
+			const { PublicUrl, Secret } = Bot.Config.Services.EventSub;
 			if (!PublicUrl || !Secret) {
 				return new Err('EventSub is not configured');
 			}

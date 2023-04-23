@@ -114,7 +114,7 @@ func (s *Server) Start(ctx context.Context, cn twitch.Connect_t, port int) error
 
 	assert.Error(err, "failed to publish connect message")
 
-	zap.S().Infof("Starting server on -> %s", s.config.EventSub.PublicUrl)
+	zap.S().Infof("Starting server on -> %s", s.config.Services.EventSub.PublicUrl)
 
 	return s.app.Listen(fmt.Sprintf("0.0.0.0:%d", port))
 }
@@ -130,7 +130,7 @@ func (s *Server) eventsubRoute(c *fiber.Ctx) error {
 
 	header := twitch.NewHeaders(c.GetReqHeaders())
 
-	validate, err := twitch.ValidateHMAC(header, c.Body(), s.config.EventSub.Secret)
+	validate, err := twitch.ValidateHMAC(header, c.Body(), s.config.Services.EventSub.Secret)
 
 	if err != nil || !validate {
 		zap.S().Warnw("Received an invalid HMAC", "error", err)

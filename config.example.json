@@ -7,10 +7,6 @@
     "SQL": {
         "Address": "postgres://user:password@localhost:5432/melonbot"
     },
-    "EventSub": {
-        "PublicUrl": "https://example.website.root",
-        "Secret": ""
-    },
     "Redis": {
         "Address": "redis://password@host:port"
     },
@@ -19,11 +15,6 @@
     "Prefix": "melon",
     "BotUsername": "", // Username of bot LOWERCASE!!
     "OwnerUserID": "", // ID of the owner
-    "Website": {
-        "JWTSecret": "Scripts/Secret.EventSubKey.mjs",
-        "WebUrl": "", // Public facing IP/Domain to the website if enabled.
-        "Port": 3000
-    },
     "SevenTV": {
         "Bearer": "",
         "user_id": ""
@@ -31,5 +22,19 @@
     "Spotify": {
         "ClientID": "",
         "ClientSecret": ""
+    },
+    "Services": {
+        "EventSub": {
+            "PublicUrl": "https://localhost:3000",
+            "Secret": "12345678910"
+        },
+        "Firehose": {
+            "Port": 3000
+        },
+        "Website": {
+            "JWTSecret": "Scripts/Secret.EventSubKey.mjs",
+            "WebUrl": "", // Public facing IP/Domain to the website if enabled.
+            "Port": 3000
+        }
     }
 }

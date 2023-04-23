@@ -53,11 +53,11 @@ func main() {
 }
 
 func validateConfig(conf *config.Config) {
-	if conf.EventSub.PublicUrl == "" {
+	if conf.Services.EventSub.PublicUrl == "" {
 		zap.S().Fatal("EventSub public url is required")
 	}
 
-	if !strings.Contains(conf.EventSub.PublicUrl, "https://") {
+	if !strings.HasPrefix(conf.Services.EventSub.PublicUrl, "https://") {
 		zap.S().Fatal("EventSub public url must be https")
 	}
 }
