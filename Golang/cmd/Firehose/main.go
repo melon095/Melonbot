@@ -62,8 +62,6 @@ func (app *Application) formatTwitchMsg(msg string) string {
 func (app *Application) RunTMI(ctx context.Context) {
 	// FIXME: Can this be put into a single function
 	app.TMI.OnPrivateMessage(func(message twitch.PrivateMessage) {
-		zap.S().Debug(message.Raw)
-
 		app.TCPServer.Broadcast(message.Raw + "\r\n")
 	})
 
@@ -131,8 +129,6 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 			return
 		}
 
-		zap.S().Debugf("Received: %s", msg)
-
 		/*
 			Due to mimicking a IRC server,
 			we have to manually handle certain commands like JOIN, PART and NICK
@@ -181,11 +177,13 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 			channel := match[2]
 			message := match[3]
 
+			zap.S().Infof("Replying in %s with %s", channel, message)
 			app.TMI.Reply(channel, replyParentMsgID, message)
 		} else if match := extractPrivmsgRegex.FindStringSubmatch(msg); match != nil {
 			channel := match[1]
 			message := match[2]
 
+			zap.S().Infof("Saying in %s with %s", channel, message)
 			app.TMI.Say(channel, message)
 		}
 	}
