@@ -26,11 +26,14 @@ export default class Twitch {
 
 		this.client = new DankTwitch.ChatClient({
 			username: Bot.Config.BotUsername,
-			password: Bot.Config.Twitch.OAuth,
+			password: '',
 			rateLimits: Bot.Config.Verified ? 'verifiedBot' : 'default',
 			connection: {
-				type: 'websocket',
-				secure: true,
+				type: 'tcp',
+				secure: false,
+				host: '127.0.0.1',
+				port: Bot.Config.Services.Firehose.Port,
+				preSetup: true,
 			},
 		});
 

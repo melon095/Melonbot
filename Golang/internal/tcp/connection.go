@@ -40,6 +40,14 @@ func (c *Connection) Write(msg []byte) error {
 	return c.w.Flush()
 }
 
+func (c *Connection) WriteString(msg string) error {
+	_, err := c.w.WriteString(msg)
+	if err != nil {
+		return err
+	}
+	return c.w.Flush()
+}
+
 // Close closes the connection
 func (c *Connection) Close() error {
 	return c.conn.Close()

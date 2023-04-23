@@ -42,7 +42,7 @@ func main() {
 		zap.S().Fatalf("failed to connect database: %v", err)
 	}
 
-	INITIAL_CONNECTION_MSG := []byte(strings.Join(
+	INITIAL_CONNECTION_MSG := strings.Join(
 		[]string{
 			fmt.Sprintf(":tmi.twitch.tv 001 %s :Welcome, GLHF!", conf.BotUsername),
 			fmt.Sprintf(":tmi.twitch.tv 002 %s :Your host is tmi.twitch.tv", conf.BotUsername),
@@ -50,10 +50,14 @@ func main() {
 			fmt.Sprintf(":tmi.twitch.tv 004 %s :-", conf.BotUsername),
 			fmt.Sprintf(":tmi.twitch.tv 375 %s :-", conf.BotUsername),
 			fmt.Sprintf(":tmi.twitch.tv 372 %s :You are in a maze of twisty passages, all alike.", conf.BotUsername),
-			fmt.Sprintf(":tmi.twitch.tv 376 %s :>", conf.BotUsername),
+			fmt.Sprintf(":tmi.twitch.tv 376 %s :>\r\n", conf.BotUsername),
 		},
 		"\r\n",
-	))
+	)
+
+	formatTwitchMsg := func(msg string) string {
+		return fmt.Sprintf(":%s!%s@%s.tmi.twitch.tv %s\r\n", conf.BotUsername, conf.BotUsername, conf.BotUsername, msg)
+	}
 
 	gCtx, cancel := context.WithCancel(context.Background())
 
@@ -78,33 +82,33 @@ func main() {
 			tmiClient.OnPrivateMessage(func(message twitch.PrivateMessage) {
 				zap.S().Debug(message.Raw)
 
-				serverToClient.Broadcast(message.Raw)
+				serverToClient.Broadcast(message.Raw + "\r\n")
 			})
 
 			tmiClient.OnNoticeMessage(func(message twitch.NoticeMessage) {
 				zap.S().Debug(message.Raw)
 
-				serverToClient.Broadcast(message.Raw)
+				serverToClient.Broadcast(message.Raw + "\r\n")
 			})
 
 			tmiClient.OnSelfJoinMessage(func(message twitch.UserJoinMessage) {
 				zap.S().Infof("Joined channel %s", message.Channel)
-
-				serverToClient.Broadcast(message.Raw)
 			})
 
 			tmiClient.OnSelfPartMessage(func(message twitch.UserPartMessage) {
 				zap.S().Infof("Left channel %s", message.Channel)
-
-				serverToClient.Broadcast(message.Raw)
 			})
 
 			tmiClient.OnUserJoinMessage(func(message twitch.UserJoinMessage) {
-				serverToClient.Broadcast(message.Raw)
+				serverToClient.Broadcast(message.Raw + "\r\n")
 			})
 
 			tmiClient.OnUserPartMessage(func(message twitch.UserPartMessage) {
-				serverToClient.Broadcast(message.Raw)
+				serverToClient.Broadcast(message.Raw + "\r\n")
+			})
+
+			tmiClient.OnUserStateMessage(func(message twitch.UserStateMessage) {
+				serverToClient.Broadcast(message.Raw + "\r\n")
 			})
 
 			tmiClient.OnConnect(func() {
@@ -156,7 +160,7 @@ func main() {
 						return
 					}
 
-					zap.S().Infof("Received: %s", msg)
+					zap.S().Debugf("Received: %s", msg)
 
 					/*
 						Due to mimicking a IRC server,
@@ -170,6 +174,10 @@ func main() {
 
 						tmiClient.Join(channel)
 
+						reply := formatTwitchMsg(fmt.Sprintf("JOIN #%s", channel))
+
+						c.WriteString(reply)
+
 					} else if strings.HasPrefix(msg, "PART") {
 
 						channel := strings.TrimPrefix(msg, "PART #")
@@ -178,20 +186,24 @@ func main() {
 
 						tmiClient.Depart(channel)
 
+						reply := formatTwitchMsg(fmt.Sprintf("PART #%s", channel))
+
+						c.WriteString(reply)
+
 					} else if strings.HasPrefix(msg, "NICK") {
 						// Some clients expect a response for some commands
-						c.Write(INITIAL_CONNECTION_MSG)
+						c.WriteString(INITIAL_CONNECTION_MSG)
 
 					} else if strings.HasPrefix(msg, "CAP REQ") {
 						// Same with nick
 
-						c.Write([]byte(":tmi.twitch.tv CAP * ACK :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n"))
+						c.WriteString(":tmi.twitch.tv CAP * ACK :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n")
 
 					} else if strings.HasPrefix(msg, "PING") {
 
 						msgCorrId := strings.TrimPrefix(msg, "PING :")
 
-						c.Write([]byte(fmt.Sprintf(":tmi.twitch.tv PONG tmi.twitch.tv :%s\r\n", msgCorrId)))
+						c.WriteString(fmt.Sprintf(":tmi.twitch.tv PONG tmi.twitch.tv :%s\r\n", msgCorrId))
 
 					} else if match := isReplyRegex.FindStringSubmatch(msg); match != nil {
 						replyParentMsgID := match[1]

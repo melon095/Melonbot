@@ -41,7 +41,6 @@ type ServicesConfig struct {
 	Firehose struct {
 		Port int `json:"Port"`
 	} `json:"Firehose"`
-	Website map[string]string `json:"Website"`
 }
 
 func createLogConfig(isDebug bool) *zap.Config {

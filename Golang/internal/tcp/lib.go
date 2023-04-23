@@ -65,7 +65,7 @@ func (s *Server) Start(ctx context.Context, addr string, handler func(*Connectio
 // Broadcast sends a message to all connections
 func (s *Server) Broadcast(msg string) error {
 	for _, conn := range s.connections {
-		err := conn.Write([]byte(msg))
+		err := conn.WriteString(msg)
 
 		switch err {
 		case nil:
