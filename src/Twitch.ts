@@ -24,6 +24,9 @@ export default class Twitch {
 	private constructor() {
 		this.InitFulfill();
 
+		const host = process.env.MELONBOT_FIREHOSE || '127.0.0.1';
+		const port = Bot.Config.Services.Firehose.Port;
+
 		this.client = new DankTwitch.ChatClient({
 			username: Bot.Config.BotUsername,
 			password: '',
@@ -31,8 +34,8 @@ export default class Twitch {
 			connection: {
 				type: 'tcp',
 				secure: false,
-				host: '127.0.0.1',
-				port: Bot.Config.Services.Firehose.Port,
+				host,
+				port,
 				preSetup: true,
 			},
 		});

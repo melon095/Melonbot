@@ -192,7 +192,8 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 }
 
 func (app *Application) RunTCP(ctx context.Context) {
-	addr := fmt.Sprintf("127.0.0.1:%d", app.Config.Services.Firehose.Port)
+	// Listen all interfaces
+	addr := fmt.Sprintf("0.0.0.0:%d", app.Config.Services.Firehose.Port)
 
 	zap.S().Infof("Starting TCP server on %s", addr)
 
