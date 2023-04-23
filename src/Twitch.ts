@@ -49,6 +49,19 @@ export default class Twitch {
 		this.client.on('PRIVMSG', (msg) => this.MessageHandler(msg));
 
 		this.client.on('error', (error) => {
+			if (error instanceof DankTwitch.ConnectionError) {
+				// Ignore, as this is caused by the firehose server going down
+
+				return;
+			}
+
+			if (
+				error instanceof DankTwitch.JoinError &&
+				error.message.includes('Error occured in transport layer')
+			) {
+				return; // Firehose server is not yet up, dt-irc tried to connect
+			}
+
 			Bot.Log.Error(error, 'TMI Error');
 
 			if (
