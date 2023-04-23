@@ -1,6 +1,7 @@
 import Helix from './../../Helix/index.js';
 import { EPermissionLevel } from './../../Typings/enums.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
+import TimerSingleton from '../../Singletons/Timers/index.js';
 
 registerCommand({
 	Name: 'leave',
@@ -30,6 +31,8 @@ registerCommand({
 		}, 10000); // Leave after 10 seconds.
 
 		await Bot.SQL.deleteFrom('channels').where('user_id', '=', ctx.channel.Id).execute();
+
+		await TimerSingleton.I().DeleteForChannel(ctx.channel.Id);
 
 		return {
 			Success: true,
