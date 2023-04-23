@@ -53,7 +53,7 @@ type Server struct {
 }
 
 func NewServer(ctx context.Context, cfg *config.Config) (*Server, error) {
-	redis, err := redis.Create(ctx, cfg.EventSub.Redis)
+	redis, err := redis.Create(ctx, cfg.Redis.Address)
 	assert.Error(err)
 
 	apptoken, _ := redis.Get(ctx, "apptoken")

@@ -4,18 +4,22 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/JoachimFlottorp/Melonbot/Golang/internal/redis"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 type Config struct {
-	Twitch      TwitchConfig   `json:"Twitch"`
-	SQL         SQLConfig      `json:"SQL"`
+	Twitch TwitchConfig `json:"Twitch"`
+	SQL    struct {
+		Address string `json:"Address"`
+	} `json:"SQL"`
 	EventSub    EventSubConfig `json:"EventSub"`
 	Verified    bool           `json:"Verified"`
 	Prefix      string         `json:"Prefix"`
 	BotUsername string         `json:"BotUsername"`
+	Redis       struct {
+		Address string `json:"Address"`
+	}
 }
 
 type TwitchConfig struct {
@@ -25,9 +29,8 @@ type TwitchConfig struct {
 }
 
 type EventSubConfig struct {
-	PublicUrl string        `json:"PublicUrl"`
-	Secret    string        `json:"Secret"`
-	Redis     redis.Options `json:"Redis"`
+	PublicUrl string `json:"PublicUrl"`
+	Secret    string `json:"Secret"`
 }
 
 type SQLConfig struct {
