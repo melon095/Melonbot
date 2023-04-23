@@ -5,6 +5,7 @@ services:
     build:
       context: ./Golang
       dockerfile: ./Dockerfile
+      target: eventsub
     volumes:
       - type: bind
         source: ./config.json
@@ -19,6 +20,7 @@ services:
     build:
       context: ./Golang
       dockerfile: ./Dockerfile
+      target: firehose
     volumes:
       - type: bind
         source: ./config.json
