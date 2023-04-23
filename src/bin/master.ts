@@ -1,14 +1,24 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { TConfigFile } from '../Typings/types.js';
+
 (async () => {
-	/* eslint-disable @typescript-eslint/ban-ts-comment */
 	/*Ignore error not containing required data*/
 	// @ts-ignore
 	global.Bot = {};
 	// @ts-ignore
 	Bot.Config = {};
-	// @ts-ignore
-	Bot.Config.Twitch = {};
-	// @ts-ignore
-	Bot.Config.SQL = {};
+
+	// Import and load config before anything is imported
+	const addConfig = (cfg: object) => {
+		for (const [name, value] of Object.entries(cfg)) Bot.Config[name] = value;
+	};
+
+	const cfg: TConfigFile = JSON.parse(
+		await fs.readFile(path.join(process.cwd() + '/config.json'), 'utf-8'),
+	);
+
+	addConfig(cfg);
 
 	const { Setup } = await import('../CreateEnv.js');
 

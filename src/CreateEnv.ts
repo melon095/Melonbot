@@ -1,21 +1,7 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-/*Ignore error not containing required data*/
-// @ts-ignore
-global.Bot = {};
-// @ts-ignore
-Bot.Config = {};
-// @ts-ignore
-Bot.Config.Twitch = {};
-// @ts-ignore
-Bot.Config.SQL = {};
-
 import CreateDatabaseConnection, { DoMigration } from './controller/DB/index.js';
 import Twitch from './Twitch.js';
-import { TConfigFile } from './Typings/types';
 import { exit } from 'node:process';
 import { StoreToDB } from './controller/Commands/Handler.js';
-import fs from 'node:fs';
-import path from 'node:path';
 import ErrorHandler from './ErrorHandler.js';
 import { Channel } from './controller/Channel/index.js';
 import { Sleep } from './tools/tools.js';
@@ -50,10 +36,7 @@ export const Setup = {
 		Bot.Config.StaticData = {
 			messageEvasionCharacter: '\u{E0000}',
 		};
-		const cfg: TConfigFile = JSON.parse(
-			fs.readFileSync(path.join(process.cwd() + '/config.json'), 'utf-8'),
-		);
-		addConfig(cfg);
+
 		Bot.SQL = CreateDatabaseConnection();
 		await DoMigration(Bot.SQL);
 
@@ -125,10 +108,6 @@ export const Setup = {
 		// Spawn loops after everything is setup
 		await import('./loops/loops.js');
 	},
-};
-
-export const addConfig = (cfg: object) => {
-	for (const [name, value] of Object.entries(cfg)) Bot.Config[name] = value;
 };
 
 export {};

@@ -9,8 +9,18 @@
 			"type": "go",
 			"request": "launch",
 			"mode": "debug",
-			"args": [],
-			"program": "${workspaceRoot}/Golang/EventSub/main.go"
+			"args": ["-debug"],
+			"cwd": "${workspaceRoot}/Golang",
+			"program": "${workspaceRoot}/Golang/cmd/EventSub/main.go"
+		},
+		{
+			"name": "Firehose",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"args": ["-debug"],
+			"cwd": "${workspaceRoot}/Golang",
+			"program": "${workspaceRoot}/Golang/cmd/Firehose/main.go"
 		},
 		{
 			"type": "pwa-node",
