@@ -145,11 +145,6 @@ export default class Twitch {
 		}
 	}
 
-	async TryRejoin(channel: Channel, name: string): Promise<void> {
-		await this.client.join(name);
-		await channel.setPermissionMode('Write');
-	}
-
 	private async SetOwner(): Promise<void> {
 		try {
 			const self = await Bot.Redis.SGet('SelfID');
@@ -177,12 +172,6 @@ export default class Twitch {
 
 		try {
 			const user = await Bot.User.Get(senderUserID, senderUsername);
-
-			// Update bot's mode if they have changed.
-			if (senderUsername === Bot.Config.BotUsername) {
-				channel.UpdateAll(msg);
-				return;
-			}
 
 			const [commandName, ...input] = messageText
 				.replace(Bot.Config.Prefix, '')

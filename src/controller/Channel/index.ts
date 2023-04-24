@@ -276,29 +276,6 @@ export class Channel {
 		}
 	}
 
-	// On self messages.
-	async UpdateAll(user: DankTwitch.PrivmsgMessage): Promise<void> {
-		const { badges } = user;
-
-		// Moderator
-		if ((badges.hasModerator || badges.hasBroadcaster) && this.Mode !== 'Moderator') {
-			await this.setPermissionMode('Moderator');
-		}
-		// Vip
-		else if (badges.hasVIP && this.Mode !== 'VIP') {
-			await this.setPermissionMode('VIP');
-		}
-		// Default user
-		else if (
-			!badges.hasModerator &&
-			!badges.hasVIP &&
-			this.Mode !== 'Write' &&
-			this.Mode !== 'Read'
-		) {
-			await this.setPermissionMode('Write');
-		}
-	}
-
 	async User(): Promise<User> {
 		return Bot.User.Get(this.Id, this.Name);
 	}
@@ -315,24 +292,10 @@ export class Channel {
 		) as string[];
 	}
 
-	public async setPermissionMode(mode: PermissionMode) {
-		const asDatabase = PermissionModeToDatabase(mode);
-
-		await Bot.SQL.updateTable('channels')
-			.set({
-				bot_permission: asDatabase,
-			})
-			.where('user_id', '=', this.Id)
-			.execute();
-
-		this.Mode = mode;
-
-		Bot.Log.Info('%s is now set as %s.', this.Name, mode);
-	}
-
 	async UpdateName(newName: string): Promise<void> {
 		try {
-			await Bot.Twitch.Controller.TryRejoin(this, newName);
+			await Bot.Twitch.Controller.client.part(this.Name);
+			await Bot.Twitch.Controller.client.join(newName);
 			await Bot.SQL.updateTable('channels')
 				.set({
 					name: newName,

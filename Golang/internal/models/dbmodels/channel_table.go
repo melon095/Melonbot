@@ -2,6 +2,23 @@ package dbmodels
 
 type BotPermmision int
 
+func (b BotPermmision) String() string {
+	switch b {
+	case ReadPermission:
+		return "Read"
+	case WritePermission:
+		return "Write"
+	case VIPPermission:
+		return "VIP"
+	case ModeratorPermission:
+		return "Moderator"
+	case BotPermission:
+		return "Bot"
+	default:
+		return "Unknown"
+	}
+}
+
 // Returns the message interval cooldown in milliseconds a bot is allowed to send messages to a channel
 func (b BotPermmision) ToMessageCooldown() int {
 	switch b {

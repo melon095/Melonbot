@@ -47,6 +47,26 @@ type Application struct {
 	LastMessage  map[string]string
 }
 
+func (app *Application) setPermission(channel string, perm dbmodels.BotPermmision) {
+	result := app.DB.
+		Model(&dbmodels.ChannelTable{}).
+		Where("name = ?", channel).
+		Update("bot_permission", perm)
+
+	if result.Error != nil {
+		zap.S().Errorf("Failed to update permission for channel %s: %s", channel, result.Error)
+		return
+	}
+
+	err := app.Scheduler.UpdateTimer(channel, perm)
+	if err != nil {
+		zap.S().Errorf("Failed to update timer for channel %s: %s", channel, err)
+		return
+	}
+
+	zap.S().Infof("Updated permission for channel %s to %s", channel, perm.String())
+}
+
 func (app *Application) createInitialJoinMessage() string {
 	return strings.Join( // FIXME: Some kind of cached version?
 		[]string{
@@ -97,6 +117,40 @@ func (app *Application) RunTMI(ctx context.Context) {
 
 	app.TMI.OnUserStateMessage(func(message twitch.UserStateMessage) {
 		app.TCPServer.Broadcast(message.Raw + "\r\n")
+
+		if message.User.Name == app.Config.BotUsername {
+			cs := app.Scheduler.ChannelSchedules[message.Channel]
+
+			isMod := userIsModerator(&message)
+			isVIP := userIsVIP(&message)
+			isBroadcaster := userIsBroadcaster(&message)
+
+			// Assign the correct permission level to the channel
+			if isBroadcaster && !cs.IntervalIsCurrently(dbmodels.BotPermission) {
+
+				app.setPermission(message.Channel, dbmodels.BotPermission)
+
+			} else if isMod && !cs.IntervalIsCurrently(dbmodels.ModeratorPermission) {
+
+				app.setPermission(message.Channel, dbmodels.ModeratorPermission)
+
+			} else if isVIP && !cs.IntervalIsCurrently(dbmodels.VIPPermission) {
+
+				app.setPermission(message.Channel, dbmodels.VIPPermission)
+
+				// FIXME: So ugly
+				// Checks if it is currently not Mod, Vip, Read or Write mode.
+				// It's not write mode if it's vip mode.
+				// So if the vip badge is gone and it's not write mode, it's set to write mode
+			} else if !cs.IntervalIsCurrently(dbmodels.ReadPermission) &&
+				!cs.IntervalIsCurrently(dbmodels.WritePermission) &&
+				!isVIP &&
+				!isMod {
+
+				app.setPermission(message.Channel, dbmodels.WritePermission)
+
+			}
+		}
 	})
 
 	app.TMI.OnConnect(func() {
@@ -249,17 +303,18 @@ func (app *Application) RunTCP(ctx context.Context) {
 }
 
 func (app *Application) onScheduleMessage(ctx messagescheduler.MessageContext) {
-	lastMsg, ok := app.LastMessage[ctx.Channel]
-	if !ok || lastMsg != ctx.Message {
-		app.LastMessage[ctx.Channel] = ctx.Message
+	lastMsg := app.LastMessage[ctx.Channel]
 
-	} else if strings.HasSuffix(ctx.Message, messageEvasionCharacter) {
-		ctx.Message = strings.TrimSuffix(ctx.Message, messageEvasionCharacter)
+	if lastMsg == ctx.Message {
+		if strings.Contains(ctx.Message, messageEvasionCharacter) {
+			ctx.Message = strings.ReplaceAll(ctx.Message, messageEvasionCharacter, "")
 
-	} else {
-		ctx.Message += messageEvasionCharacter
-
+		} else {
+			ctx.Message += fmt.Sprintf(" %s", messageEvasionCharacter)
+		}
 	}
+
+	app.LastMessage[ctx.Channel] = ctx.Message
 
 	if ctx.ReplyTo != nil {
 		app.TMI.Reply(ctx.Channel, *ctx.ReplyTo, ctx.Message)
@@ -344,4 +399,16 @@ func removeTrailingNewline(s string) string {
 	s = strings.ReplaceAll(s, "\r", "")
 
 	return s
+}
+
+func userIsBroadcaster(msg *twitch.UserStateMessage) bool {
+	return msg.User.Badges["broadcaster"] == 1
+}
+
+func userIsModerator(msg *twitch.UserStateMessage) bool {
+	return msg.User.Badges["moderator"] == 1
+}
+
+func userIsVIP(msg *twitch.UserStateMessage) bool {
+	return msg.User.Badges["vip"] == 1
 }

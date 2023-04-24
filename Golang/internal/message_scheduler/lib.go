@@ -26,6 +26,10 @@ type ChannelSchedule struct {
 	Ctx          context.Context
 }
 
+func (cs *ChannelSchedule) IntervalIsCurrently(interval dbmodels.BotPermmision) bool {
+	return cs.Interval == interval
+}
+
 type MessageScheduler struct {
 	ChannelSchedules map[string]*ChannelSchedule
 	Ctx              context.Context
