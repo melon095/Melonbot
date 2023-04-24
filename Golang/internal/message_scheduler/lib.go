@@ -122,7 +122,6 @@ func (ms *MessageScheduler) Run() {
 
 	// Generate a goroutine for each channel
 	for channel, schedule := range ms.ChannelSchedules {
-		zap.S().Info(channel)
 		go ms.channelLoop(channel, schedule)
 	}
 }
@@ -138,8 +137,6 @@ func (ms *MessageScheduler) channelLoop(channel string, schedule *ChannelSchedul
 		case <-schedule.Timer.C:
 			// Send message if there is one
 			if len(schedule.MessageQueue) > 0 {
-				// FIXME: Blocking call
-				// FIXME: Deference ?
 				ms.OnMessage(*schedule.MessageQueue[0])
 				schedule.MessageQueue = schedule.MessageQueue[1:]
 			}
