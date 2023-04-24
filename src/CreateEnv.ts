@@ -33,10 +33,6 @@ export const Setup = {
 			exit();
 		});
 
-		Bot.Config.StaticData = {
-			messageEvasionCharacter: '\u{E0000}',
-		};
-
 		Bot.SQL = CreateDatabaseConnection();
 		await DoMigration(Bot.SQL);
 

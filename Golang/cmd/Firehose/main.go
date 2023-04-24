@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	applicationwrapper "github.com/JoachimFlottorp/Melonbot/Golang/internal/application_wrapper"
+	messagescheduler "github.com/JoachimFlottorp/Melonbot/Golang/internal/message_scheduler"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/config"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/dbmodels"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/status"
@@ -18,6 +19,10 @@ import (
 	"github.com/gempir/go-twitch-irc/v4"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+)
+
+const (
+	messageEvasionCharacter = "\U000e0000"
 )
 
 var (
@@ -38,6 +43,8 @@ type Application struct {
 	HealthServer *status.Server
 	DB           *gorm.DB
 	Config       *config.Config
+	Scheduler    *messagescheduler.MessageScheduler
+	LastMessage  map[string]string
 }
 
 func (app *Application) createInitialJoinMessage() string {
@@ -73,6 +80,7 @@ func (app *Application) RunTMI(ctx context.Context) {
 
 	app.TMI.OnSelfJoinMessage(func(message twitch.UserJoinMessage) {
 		zap.S().Infof("Joined channel %s", message.Channel)
+
 	})
 
 	app.TMI.OnSelfPartMessage(func(message twitch.UserPartMessage) {
@@ -103,6 +111,7 @@ func (app *Application) RunTMI(ctx context.Context) {
 
 	for _, channel := range channels {
 		app.TMI.Join(channel.Name)
+		app.Scheduler.AddChannel(channel.Name, channel.GetBotPermission())
 	}
 
 	err := app.TMI.Connect()
@@ -143,11 +152,20 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 			because the actual connection has been established to Twitch a long time ago.
 		*/
 		if strings.HasPrefix(msg, "JOIN") {
-			channel := strings.TrimPrefix(msg, "JOIN #")
+			channel := removeTrailingNewline(strings.TrimPrefix(msg, "JOIN #"))
 
 			zap.S().Infof("Received JOIN for %s", channel)
 
+			var dbChannel dbmodels.ChannelTable
+			result := app.DB.First(&dbChannel, "name = ?", channel)
+
+			if result.Error != nil {
+				zap.S().Errorf("Failed to find channel %s in database %s", channel, result.Error)
+				continue
+			}
+
 			app.TMI.Join(channel)
+			app.Scheduler.AddChannel(dbChannel.Name, dbChannel.GetBotPermission())
 
 			reply := app.formatTwitchMsg(fmt.Sprintf("JOIN #%s", channel))
 
@@ -155,9 +173,15 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 
 		} else if strings.HasPrefix(msg, "PART") {
 
-			channel := strings.TrimPrefix(msg, "PART #")
-
+			channel := removeTrailingNewline(strings.TrimPrefix(msg, "PART #"))
 			zap.S().Infof("Received PART for %s", channel)
+
+			// FIXME: Should this silently fail?
+			err := app.Scheduler.RemoveChannel(channel)
+			if err != nil {
+				zap.S().Errorf("Failed to remove channel %s from scheduler %s", channel, err)
+				continue
+			}
 
 			app.TMI.Depart(channel)
 
@@ -186,13 +210,24 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 			message := match[3]
 
 			zap.S().Infof("Replying in %s with %s", channel, message)
-			app.TMI.Reply(channel, replyParentMsgID, message)
+			if err := app.Scheduler.AddMessage(messagescheduler.MessageContext{
+				Channel: channel,
+				Message: message,
+				ReplyTo: &replyParentMsgID,
+			}); err != nil {
+				zap.S().Error(err)
+			}
 		} else if match := extractPrivmsgRegex.FindStringSubmatch(msg); match != nil {
 			channel := match[1]
 			message := match[2]
 
 			zap.S().Infof("Saying in %s with %s", channel, message)
-			app.TMI.Say(channel, message)
+			if err := app.Scheduler.AddMessage(messagescheduler.MessageContext{
+				Channel: channel,
+				Message: message,
+			}); err != nil {
+				zap.S().Error(err)
+			}
 		}
 	}
 }
@@ -204,6 +239,26 @@ func (app *Application) RunTCP(ctx context.Context) {
 	zap.S().Infof("Starting TCP server on %s", addr)
 
 	app.TCPServer.Start(ctx, addr, app.onTCPClient)
+}
+
+func (app *Application) onScheduleMessage(ctx messagescheduler.MessageContext) {
+	lastMsg, ok := app.LastMessage[ctx.Channel]
+	if !ok || lastMsg != ctx.Message {
+		app.LastMessage[ctx.Channel] = ctx.Message
+
+	} else if strings.HasSuffix(ctx.Message, messageEvasionCharacter) {
+		ctx.Message = strings.TrimSuffix(ctx.Message, messageEvasionCharacter)
+
+	} else {
+		ctx.Message += messageEvasionCharacter
+
+	}
+
+	if ctx.ReplyTo != nil {
+		app.TMI.Reply(ctx.Channel, *ctx.ReplyTo, ctx.Message)
+	} else {
+		app.TMI.Say(ctx.Channel, ctx.Message)
+	}
 }
 
 func main() {
@@ -233,6 +288,8 @@ func main() {
 			HealthServer: statusServer,
 			DB:           db,
 			Config:       conf,
+			Scheduler:    messagescheduler.NewMessageScheduler(ctx),
+			LastMessage:  make(map[string]string),
 		}
 
 		if conf.Verified {
@@ -267,5 +324,17 @@ func main() {
 
 			app.HealthServer.Start(ctx)
 		}()
+
+		app.Scheduler.SetOnMessage(app.onScheduleMessage)
+		app.Scheduler.Run()
+
+		wg.Wait()
 	})
+}
+
+func removeTrailingNewline(s string) string {
+	s = strings.TrimSuffix(s, "\r")
+	s = strings.TrimSuffix(s, "\n")
+
+	return s
 }

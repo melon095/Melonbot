@@ -1,5 +1,5 @@
 /* eslint-disable no-var */
-import { Helix, TConfigFile, TStaticDataConfig } from './Typings/types';
+import { Helix, TConfigFile } from './Typings/types';
 import { ErrorFunction } from './ErrorHandler.js';
 import { Logger } from './logger.js';
 
@@ -16,11 +16,6 @@ export declare interface RS extends RedisSingleton {
 
 export type ProcessType = 'BOT' | 'WEB';
 
-type TGlobalConfig = TConfigFile & {
-	[key: string]: string | boolean | number;
-	StaticData: TStaticDataConfig;
-};
-
 declare global {
 	declare namespace NodeJS {
 		export interface ProcessEnv {
@@ -29,7 +24,7 @@ declare global {
 	}
 
 	var Bot: {
-		Config: TGlobalConfig;
+		Config: TConfigFile;
 		SQL: KyselyDB;
 		Redis: RS;
 		Twitch: {

@@ -1,8 +1,6 @@
 import { TUserCooldown, ChannelTalkOptions } from './../../Typings/types';
 import { EPermissionLevel, ECommandFlags } from './../../Typings/enums.js';
 import { CheckMessageBanphrase } from './../Banphrase/index.js';
-import * as tools from './../../tools/tools.js';
-import { MessageScheduler } from './../../tools/MessageScheduler.js';
 import DankTwitch from '@kararty/dank-twitch-irc';
 import {
 	ParseArguments,
@@ -25,12 +23,7 @@ import { EventsubTypes } from './../../Singletons/Redis/Data.Types';
 import { IPromolve, Promolve } from '@melon95/promolve';
 import { Insertable, sql } from 'kysely';
 import CommandsExecutionTable from '../DB/Tables/CommandsExecutionTable.js';
-import {
-	DEFAULT_MESSAGE_INTERVAL,
-	PermissionMode,
-	PermissionModeToCooldown,
-	PermissionModeToDatabase,
-} from '../DB/Tables/ChannelTable.js';
+import { PermissionMode, PermissionModeToDatabase } from '../DB/Tables/ChannelTable.js';
 import { GetCommandBy } from '../Commands/Handler.js';
 import {
 	GetSafeError,
@@ -69,19 +62,9 @@ export class Channel {
 	public Mode: PermissionMode;
 
 	/**
-	 * @description The value of Mode just in number format
-	 */
-	public Cooldown: number;
-
-	/**
 	 * @description if live or not 4Head
 	 */
 	public Live: boolean;
-
-	/**
-	 * @description Message queue for the channel, this let's the bot abide by the Cooldown rule.
-	 */
-	public Queue: MessageScheduler;
 
 	/**
 	 * @description Last message in channel.
@@ -138,9 +121,7 @@ export class Channel {
 		this.Name = user.Name;
 		this.Id = user.TwitchUID;
 		this.Mode = Mode;
-		this.Cooldown = PermissionModeToCooldown(Mode) ?? DEFAULT_MESSAGE_INTERVAL;
 		this.Live = Live;
-		this.Queue = new MessageScheduler(Mode);
 		this.UserCooldowns = {};
 
 		this.Filter = [];
@@ -148,8 +129,6 @@ export class Channel {
 
 		this.setupTrivia();
 
-		// Create callback for the message queue.
-		this.Queue.on('message', (a, b) => this.onQueue(a, b));
 		this.EventSubs = new EventSubHandler(this, Bot.Redis);
 	}
 
@@ -168,14 +147,48 @@ export class Channel {
 			SkipBanphrase: false,
 		},
 	): Promise<void> {
-		if (this.LastMessage === msg) {
-			const { messageEvasionCharacter } = Bot.Config.StaticData;
-			if (msg.includes(messageEvasionCharacter))
-				msg = msg.replace(new RegExp(messageEvasionCharacter), '');
-			else msg += ` ${messageEvasionCharacter}`;
+		if (this.Mode === 'Read') return;
+
+		const client = Bot.Twitch.Controller.client;
+
+		let sayFunc: (msg: string) => void;
+		switch (typeof options.ReplyID) {
+			case 'string': {
+				sayFunc = (msg) => client.reply(this.Name, options.ReplyID!, msg);
+				break;
+			}
+
+			case 'undefined':
+			default: {
+				sayFunc = (msg) => client.privmsg(this.Name, msg);
+			}
 		}
 
-		this.Queue.schedule(msg, options);
+		if (options.SkipBanphrase) {
+			sayFunc(cleanMessage(msg));
+			return;
+		}
+
+		try {
+			const { banned, reason } = await CheckMessageBanphrase(this, msg);
+
+			if (banned) {
+				Bot.Log.Warn('Banphrase triggered %O', {
+					Channel: this.Name,
+					Message: msg,
+					Reason: reason,
+				});
+
+				sayFunc(`FeelsDankMan Bad word -> ${reason}`);
+			} else {
+				sayFunc(cleanMessage(msg));
+			}
+		} catch (error) {
+			Bot.Log.Error(error as Error, 'banphraseCheck');
+			sayFunc('FeelsDankMan Banphrase check failed...');
+		}
+
+		// this.Queue.schedule(msg, options);
 		this.LastMessage = msg;
 	}
 
@@ -200,49 +213,6 @@ export class Channel {
 				EmoteSet: emoteSet,
 				Channel: this.Name,
 			};
-		}
-	}
-
-	private async onQueue(message: string, options: ChannelTalkOptions): Promise<void> {
-		if (this.Mode === 'Read') return;
-
-		const client = Bot.Twitch.Controller.client;
-
-		let sayFunc: (msg: string) => void;
-		switch (typeof options.ReplyID) {
-			case 'string': {
-				sayFunc = (msg) => client.reply(this.Name, options.ReplyID!, msg);
-				break;
-			}
-
-			case 'undefined':
-			default: {
-				sayFunc = (msg) => client.privmsg(this.Name, msg);
-			}
-		}
-
-		if (options.SkipBanphrase) {
-			sayFunc(cleanMessage(message));
-			return;
-		}
-
-		try {
-			const { banned, reason } = await CheckMessageBanphrase(this, message);
-
-			if (banned) {
-				Bot.Log.Warn('Banphrase triggered %O', {
-					Channel: this.Name,
-					Message: message,
-					Reason: reason,
-				});
-
-				sayFunc(`FeelsDankMan Bad word -> ${reason}`);
-			} else {
-				sayFunc(cleanMessage(message));
-			}
-		} catch (error) {
-			Bot.Log.Error(error as Error, 'banphraseCheck');
-			sayFunc('FeelsDankMan Banphrase check failed...');
 		}
 	}
 
@@ -356,8 +326,6 @@ export class Channel {
 			.execute();
 
 		this.Mode = mode;
-		this.Cooldown = PermissionModeToCooldown(mode) ?? DEFAULT_MESSAGE_INTERVAL;
-		this.Queue.updateCooldown(this.Cooldown);
 
 		Bot.Log.Info('%s is now set as %s.', this.Name, mode);
 	}
