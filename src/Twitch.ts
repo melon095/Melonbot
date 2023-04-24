@@ -13,6 +13,8 @@ function NoticeMessageIsReject(message: string) {
 	);
 }
 
+export const FIREHOSE_HOST = process.env.MELONBOT_FIREHOSE || '127.0.0.1';
+
 export default class Twitch {
 	public client: DankTwitch.ChatClient;
 
@@ -24,13 +26,18 @@ export default class Twitch {
 	private constructor() {
 		this.InitFulfill();
 
+		const port = Bot.Config.Services.Firehose.Port;
+
 		this.client = new DankTwitch.ChatClient({
 			username: Bot.Config.BotUsername,
-			password: Bot.Config.Twitch.OAuth,
+			password: '',
 			rateLimits: Bot.Config.Verified ? 'verifiedBot' : 'default',
 			connection: {
-				type: 'websocket',
-				secure: true,
+				type: 'tcp',
+				secure: false,
+				host: FIREHOSE_HOST,
+				port,
+				preSetup: true,
 			},
 		});
 
@@ -42,6 +49,19 @@ export default class Twitch {
 		this.client.on('PRIVMSG', (msg) => this.MessageHandler(msg));
 
 		this.client.on('error', (error) => {
+			if (error instanceof DankTwitch.ConnectionError) {
+				// Ignore, as this is caused by the firehose server going down
+
+				return;
+			}
+
+			if (
+				error instanceof DankTwitch.JoinError &&
+				error.message.includes('Error occured in transport layer')
+			) {
+				return; // Firehose server is not yet up, dt-irc tried to connect
+			}
+
 			Bot.Log.Error(error, 'TMI Error');
 
 			if (

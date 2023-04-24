@@ -20,5 +20,4 @@ coverage:
 	go tool cover -html=coverage.out -o coverage.html
 
 clean:
-	go clean -mod=readonly
-	rm -rf bin
+	go clean

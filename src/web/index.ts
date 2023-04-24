@@ -30,7 +30,7 @@ declare module 'fastify' {
 	}
 }
 
-const SECRET = Buffer.from(Bot.Config.Website.JWTSecret);
+const SECRET = Buffer.from(Bot.Config.Services.Website.JWTSecret);
 const ISSUER = 'MELONBOT-OAUTH';
 
 export interface JWTData {
@@ -82,7 +82,7 @@ export const Authenticator = new (class {
 })();
 
 (async function () {
-	const port = Bot.Config.Website.Port || 3000;
+	const port = Bot.Config.Services.Website.Port || 3000;
 
 	const app = fastify({ pluginTimeout: 10000 });
 

@@ -32,3 +32,14 @@ WORKDIR /app
 COPY --from=eventsub_base /app/out /app/
 ENTRYPOINT [ "/app/out", "-config", "/app/config.json", "-debug", "-port", "3001" ]
 
+FROM golang_deps_base AS firehose_base
+WORKDIR /app
+COPY cmd/Firehose/ /app/cmd/Firehose/
+COPY internal /app/internal
+COPY cmd /app/cmd
+RUN go build -ldflags "-extldflags '-static'" -o ./out ./cmd/Firehose
+
+FROM alpine:${ALPINE_VERSION} as firehose
+WORKDIR /app
+COPY --from=firehose_base /app/out /app/
+ENTRYPOINT [ "/app/out", "-config", "/app/config.json", "-debug" ]

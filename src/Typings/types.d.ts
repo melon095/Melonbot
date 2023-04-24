@@ -22,10 +22,6 @@ export type TConfigFile = {
 	SQL: {
 		Address: string;
 	};
-	EventSub: {
-		PublicUrl: string;
-		Secret: string;
-	};
 	Redis: {
 		Address: string;
 	};
@@ -34,11 +30,6 @@ export type TConfigFile = {
 	Prefix: string;
 	BotUsername: string;
 	OwnerUserID: string;
-	Website: {
-		JWTSecret: string;
-		WebUrl: string;
-		Port: number;
-	};
 	SevenTV: {
 		Bearer: string;
 		user_id: string;
@@ -47,7 +38,24 @@ export type TConfigFile = {
 		ClientID: string;
 		ClientSecret: string;
 	};
+	Services: ServicesConfig;
 };
+
+export type ServicesConfig = {
+	EventSub: {
+		PublicUrl: string;
+		Secret: string;
+	};
+	Firehose: {
+		Port: number;
+		HealthPort: number;
+	};
+	Website: {
+		JWTSecret: string;
+		WebUrl: string;
+		Port: number;
+	};
+} & Record<string, object>;
 
 export type TStaticDataConfig = {
 	messageEvasionCharacter: string;

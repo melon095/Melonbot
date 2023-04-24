@@ -176,6 +176,22 @@ export default class TimerSingleton {
 
 		return timer.Stop();
 	}
+
+	/**
+	 * Stops and permamently removes every timer for a channel
+	 */
+	public async DeleteForChannel(userid: string): Promise<void> {
+		const timers = this._timers.get(userid);
+		if (!timers) {
+			return;
+		}
+
+		for (const timer of timers) {
+			timer.Stop();
+		}
+
+		await Bot.SQL.deleteFrom('timers').where('owner', '=', userid).execute();
+	}
 }
 
 export class SingleTimer {

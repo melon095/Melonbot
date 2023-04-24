@@ -3,15 +3,11 @@ package main
 import (
 	"context"
 	"flag"
-	"os"
-	"os/signal"
 	"strings"
-	"sync"
-	"syscall"
-	"time"
 
 	"github.com/JoachimFlottorp/Melonbot/Golang/cmd/EventSub/server"
 	twitch "github.com/JoachimFlottorp/Melonbot/Golang/cmd/EventSub/twitch_eventsub"
+	applicationwrapper "github.com/JoachimFlottorp/Melonbot/Golang/internal/application_wrapper"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/config"
 	"go.uber.org/zap"
 )
@@ -35,44 +31,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	conf.Port = *port
 
 	validateConfig(conf)
 
-	doneSig := make(chan os.Signal, 1)
-	signal.Notify(doneSig, syscall.SIGINT, syscall.SIGTERM)
-
 	gCtx, cancel := context.WithCancel(context.Background())
 
-	wg := sync.WaitGroup{}
+	done := applicationwrapper.NewWrapper(gCtx, cancel)
 
-	done := make(chan any)
-
-	go func() {
-		<-doneSig
-		cancel()
-
-		go func() {
-			select {
-			case <-time.After(10 * time.Second):
-			case <-doneSig:
-			}
-			zap.S().Fatal("Forced to shutdown, because the shutdown took too long")
-		}()
-
-		zap.S().Info("Shutting down")
-
-		wg.Wait()
-
-		zap.S().Info("Shutdown complete")
-		close(done)
-	}()
-
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
+	done.Execute(func(ctx context.Context) {
 		server, err := server.NewServer(gCtx, conf)
 		if err != nil {
 			zap.S().Fatal(err)
@@ -80,24 +46,18 @@ func main() {
 
 		c := twitch.Connect_t{Version: version}
 
-		if err := server.Start(gCtx, c); err != nil {
+		if err := server.Start(gCtx, c, *port); err != nil {
 			zap.S().Fatal(err)
 		}
-	}()
-
-	zap.S().Info("Ready!")
-
-	<-done
-
-	os.Exit(0)
+	})
 }
 
 func validateConfig(conf *config.Config) {
-	if conf.EventSub.PublicUrl == "" {
+	if conf.Services.EventSub.PublicUrl == "" {
 		zap.S().Fatal("EventSub public url is required")
 	}
 
-	if !strings.Contains(conf.EventSub.PublicUrl, "https://") {
+	if !strings.HasPrefix(conf.Services.EventSub.PublicUrl, "https://") {
 		zap.S().Fatal("EventSub public url must be https")
 	}
 }

@@ -13,7 +13,7 @@ registerCommand({
 	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [],
 	Code: async function (ctx) {
-		const website = Bot.Config.Website.WebUrl;
+		const website = Bot.Config.Services.Website.WebUrl;
 
 		if (ctx.input.length <= 0) {
 			return {

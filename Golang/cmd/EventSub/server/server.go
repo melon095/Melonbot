@@ -14,6 +14,7 @@ import (
 	gorm_log "github.com/JoachimFlottorp/Melonbot/Golang/internal/gorm_log"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/config"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/redis"
+	"github.com/JoachimFlottorp/Melonbot/Golang/internal/status"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"go.uber.org/zap"
@@ -95,7 +96,7 @@ func NewServer(ctx context.Context, cfg *config.Config) (*Server, error) {
 	return server, nil
 }
 
-func (s *Server) Start(ctx context.Context, cn twitch.Connect_t) error {
+func (s *Server) Start(ctx context.Context, cn twitch.Connect_t, port int) error {
 	go func() {
 		<-s.ctx.Done()
 
@@ -109,14 +110,21 @@ func (s *Server) Start(ctx context.Context, cn twitch.Connect_t) error {
 
 	s.app.Get("/", s.indexRoute)
 	s.app.Post("/eventsub", s.eventsubRoute)
+	s.app.Get("/health", s.healthRoute)
 
 	err := s.redis.Publish(ctx, redis.PubKeyEventSub, cn)
 
 	assert.Error(err, "failed to publish connect message")
 
-	zap.S().Infof("Starting server on -> %s", s.config.EventSub.PublicUrl)
+	zap.S().Infof("Starting server on -> %s", s.config.Services.EventSub.PublicUrl)
 
-	return s.app.Listen(fmt.Sprintf("0.0.0.0:%d", s.config.Port))
+	return s.app.Listen(fmt.Sprintf("0.0.0.0:%d", port))
+}
+
+func (s *Server) healthRoute(c *fiber.Ctx) error {
+	health := status.NewStatus()
+
+	return c.JSON(health)
 }
 
 func (s *Server) indexRoute(c *fiber.Ctx) error {
@@ -130,7 +138,7 @@ func (s *Server) eventsubRoute(c *fiber.Ctx) error {
 
 	header := twitch.NewHeaders(c.GetReqHeaders())
 
-	validate, err := twitch.ValidateHMAC(header, c.Body(), s.config.EventSub.Secret)
+	validate, err := twitch.ValidateHMAC(header, c.Body(), s.config.Services.EventSub.Secret)
 
 	if err != nil || !validate {
 		zap.S().Warnw("Received an invalid HMAC", "error", err)
