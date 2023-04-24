@@ -152,43 +152,50 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 			because the actual connection has been established to Twitch a long time ago.
 		*/
 		if strings.HasPrefix(msg, "JOIN") {
-			channel := removeTrailingNewline(strings.TrimPrefix(msg, "JOIN #"))
+			channels := strings.Split(removeTrailingNewline(strings.TrimPrefix(msg, "JOIN #")), ",")
+			for _, channel := range channels {
+				channel = strings.TrimPrefix(channel, "#")
 
-			zap.S().Infof("Received JOIN for %s", channel)
+				zap.S().Infof("Received JOIN for %s", channel)
 
-			var dbChannel dbmodels.ChannelTable
-			result := app.DB.First(&dbChannel, "name = ?", channel)
+				var dbChannel dbmodels.ChannelTable
+				result := app.DB.First(&dbChannel, "name = ?", channel)
 
-			if result.Error != nil {
-				zap.S().Errorf("Failed to find channel %s in database %s", channel, result.Error)
-				continue
+				if result.Error != nil {
+					zap.S().Errorf("Failed to find channel %s in database %s", channel, result.Error)
+					continue
+				}
+
+				app.TMI.Join(channel)
+				app.Scheduler.AddChannel(dbChannel.Name, dbChannel.GetBotPermission())
+
+				reply := app.formatTwitchMsg(fmt.Sprintf("JOIN #%s", channel))
+
+				c.WriteString(reply)
+
 			}
-
-			app.TMI.Join(channel)
-			app.Scheduler.AddChannel(dbChannel.Name, dbChannel.GetBotPermission())
-
-			reply := app.formatTwitchMsg(fmt.Sprintf("JOIN #%s", channel))
-
-			c.WriteString(reply)
-
 		} else if strings.HasPrefix(msg, "PART") {
+			channels := strings.Split(removeTrailingNewline(strings.TrimPrefix(msg, "PART #")), ",")
 
-			channel := removeTrailingNewline(strings.TrimPrefix(msg, "PART #"))
-			zap.S().Infof("Received PART for %s", channel)
+			for _, channel := range channels {
+				channel = strings.TrimPrefix(channel, "#")
 
-			// FIXME: Should this silently fail?
-			err := app.Scheduler.RemoveChannel(channel)
-			if err != nil {
-				zap.S().Errorf("Failed to remove channel %s from scheduler %s", channel, err)
-				continue
+				zap.S().Infof("Received PART for %s", channel)
+
+				// FIXME: Should this silently fail?
+				err := app.Scheduler.RemoveChannel(channel)
+				if err != nil {
+					zap.S().Errorf("Failed to remove channel %s from scheduler %s", channel, err)
+					continue
+				}
+
+				app.TMI.Depart(channel)
+
+				reply := app.formatTwitchMsg(fmt.Sprintf("PART #%s", channel))
+
+				c.WriteString(reply)
+
 			}
-
-			app.TMI.Depart(channel)
-
-			reply := app.formatTwitchMsg(fmt.Sprintf("PART #%s", channel))
-
-			c.WriteString(reply)
-
 		} else if strings.HasPrefix(msg, "NICK") {
 			// Some clients expect a response for some commands
 			c.WriteString(app.createInitialJoinMessage())
@@ -221,7 +228,7 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 			channel := match[1]
 			message := match[2]
 
-			zap.S().Infof("Saying in %s with %s", channel, message)
+			zap.S().Infof("Sending %s to %s", message, channel)
 			if err := app.Scheduler.AddMessage(messagescheduler.MessageContext{
 				Channel: channel,
 				Message: message,
@@ -333,8 +340,8 @@ func main() {
 }
 
 func removeTrailingNewline(s string) string {
-	s = strings.TrimSuffix(s, "\r")
-	s = strings.TrimSuffix(s, "\n")
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
 
 	return s
 }
