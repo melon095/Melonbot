@@ -268,7 +268,7 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 		} else if match := isReplyRegex.FindStringSubmatch(msg); match != nil {
 			replyParentMsgID := match[1]
 			channel := match[2]
-			message := match[3]
+			message := removeTrailingNewline(match[3])
 
 			zap.S().Infof("Replying in %s with %s", channel, message)
 			if err := app.Scheduler.AddMessage(messagescheduler.MessageContext{
@@ -280,7 +280,7 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 			}
 		} else if match := extractPrivmsgRegex.FindStringSubmatch(msg); match != nil {
 			channel := match[1]
-			message := match[2]
+			message := removeTrailingNewline(match[2])
 
 			zap.S().Infof("Sending %s to %s", message, channel)
 			if err := app.Scheduler.AddMessage(messagescheduler.MessageContext{
