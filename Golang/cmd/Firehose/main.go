@@ -120,13 +120,21 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 
 	for {
 		msg, err := c.ReadString()
-		if err == io.EOF || err == net.ErrClosed { // || err.(*net.OpError) /* wsarecv on winblows */ != nil {
-			zap.S().Info("Client disconnected")
-			return
-		} else if err != nil {
-			zap.S().Error(err)
 
-			return
+		if err != nil {
+			switch err {
+			case io.EOF, net.ErrClosed, err.(*net.OpError) /* wsarecv on winblows */ :
+				{
+					zap.S().Info("Client disconnected")
+					return
+				}
+			default:
+				{
+					zap.S().Error(err)
+					return
+				}
+
+			}
 		}
 
 		/*

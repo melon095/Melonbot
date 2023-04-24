@@ -20,7 +20,12 @@ func bToMb(b uint64) uint64 {
 
 // Converts the memory usage to a string formatted in mb
 func (s *Status) MemoryUsageToStr() string {
-	return fmt.Sprintf("%dmb", bToMb(s.MemoryUsage))
+	mb := bToMb(s.MemoryUsage)
+	if mb == 0 {
+		return "Less than 1mb"
+	}
+
+	return fmt.Sprintf("%dmb", mb)
 }
 
 func (s *Status) MarshalJSON() ([]byte, error) {
