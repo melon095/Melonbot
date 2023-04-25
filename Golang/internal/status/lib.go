@@ -14,18 +14,18 @@ type Status struct {
 	MemoryUsage uint64 `json:"memory_usage"`
 }
 
-func bToMb(b uint64) uint64 {
+func bToMiB(b uint64) uint64 {
 	return b / 1024 / 1024
 }
 
 // Converts the memory usage to a string formatted in mb
 func (s *Status) MemoryUsageToStr() string {
-	mb := bToMb(s.MemoryUsage)
+	mb := bToMiB(s.MemoryUsage)
 	if mb == 0 {
-		return "Less than 1mb"
+		return "Less than 1 MiB"
 	}
 
-	return fmt.Sprintf("%dmb", mb)
+	return fmt.Sprintf("%dMiB", mb)
 }
 
 func (s *Status) MarshalJSON() ([]byte, error) {
