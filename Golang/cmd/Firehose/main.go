@@ -14,6 +14,7 @@ import (
 	messagescheduler "github.com/JoachimFlottorp/Melonbot/Golang/internal/message_scheduler"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/config"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/models/dbmodels"
+	"github.com/JoachimFlottorp/Melonbot/Golang/internal/redis"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/status"
 	"github.com/JoachimFlottorp/Melonbot/Golang/internal/tcp"
 	"github.com/gempir/go-twitch-irc/v4"
@@ -42,29 +43,44 @@ type Application struct {
 	TCPServer    *tcp.Server
 	HealthServer *status.Server
 	DB           *gorm.DB
+	Redis        redis.Instance
 	Config       *config.Config
 	Scheduler    *messagescheduler.MessageScheduler
 	LastMessage  map[string]string
 }
 
-func (app *Application) setPermission(channel string, perm dbmodels.BotPermmision) {
+type ChannelUpdateMode struct {
+	Channel string
+	Mode    string
+}
+
+func (c ChannelUpdateMode) Type() string {
+	return "channel.mode_update"
+}
+
+func (app *Application) setPermission(ctx context.Context, channel *dbmodels.ChannelTable, perm dbmodels.BotPermmision) {
 	result := app.DB.
-		Model(&dbmodels.ChannelTable{}).
-		Where("name = ?", channel).
+		Model(channel).
+		Where("user_id = ?", channel.UserID).
 		Update("bot_permission", perm)
 
 	if result.Error != nil {
-		zap.S().Errorf("Failed to update permission for channel %s: %s", channel, result.Error)
+		zap.S().Errorf("Failed to update permission for channel %s: %s", channel.Name, result.Error)
 		return
 	}
 
-	err := app.Scheduler.UpdateTimer(channel, perm)
+	err := app.Scheduler.UpdateTimer(channel.Name, perm)
 	if err != nil {
-		zap.S().Errorf("Failed to update timer for channel %s: %s", channel, err)
+		zap.S().Errorf("Failed to update timer for channel %s: %s", channel.Name, err)
 		return
 	}
 
-	zap.S().Infof("Updated permission for channel %s to %s", channel, perm.String())
+	zap.S().Infof("Updated permission for channel %s to %s", channel.Name, perm.String())
+
+	app.Redis.Publish(ctx, redis.PubKeyEventSub, ChannelUpdateMode{
+		Channel: channel.UserID,
+		Mode:    perm.String(),
+	})
 }
 
 func (app *Application) createInitialJoinMessage() string {
@@ -119,7 +135,17 @@ func (app *Application) RunTMI(ctx context.Context) {
 		app.TCPServer.Broadcast(message.Raw + "\r\n")
 
 		if message.User.Name == app.Config.BotUsername {
-			cs := app.Scheduler.ChannelSchedules[message.Channel]
+			channel := &dbmodels.ChannelTable{}
+			result := app.DB.
+				Where("name = ?", message.Channel).
+				First(channel)
+
+			if result.Error != nil {
+				zap.S().Errorf("Failed to find channel %s: %s", message.Channel, result.Error)
+				return
+			}
+
+			cs := app.Scheduler.ChannelSchedules[channel.Name]
 
 			isMod := userIsModerator(&message)
 			isVIP := userIsVIP(&message)
@@ -128,26 +154,27 @@ func (app *Application) RunTMI(ctx context.Context) {
 			// Assign the correct permission level to the channel
 			if isBroadcaster && !cs.IntervalIsCurrently(dbmodels.BotPermission) {
 
-				app.setPermission(message.Channel, dbmodels.BotPermission)
+				app.setPermission(ctx, channel, dbmodels.BotPermission)
 
 			} else if isMod && !cs.IntervalIsCurrently(dbmodels.ModeratorPermission) {
 
-				app.setPermission(message.Channel, dbmodels.ModeratorPermission)
+				app.setPermission(ctx, channel, dbmodels.ModeratorPermission)
 
 			} else if isVIP && !cs.IntervalIsCurrently(dbmodels.VIPPermission) {
 
-				app.setPermission(message.Channel, dbmodels.VIPPermission)
+				app.setPermission(ctx, channel, dbmodels.VIPPermission)
 
 				// FIXME: So ugly
-				// Checks if it is currently not Mod, Vip, Read or Write mode.
-				// It's not write mode if it's vip mode.
-				// So if the vip badge is gone and it's not write mode, it's set to write mode
+				// Checks if it is currently not a Mod, Vip, Bot channel and not in read or Write mode.
+				// If the bot used to be VIP, but now has lost the VIP badge, we can put it in write mode.
+				// We are also sure it's did not lose VIP and gained Mod, because that would have been caught above.
 			} else if !cs.IntervalIsCurrently(dbmodels.ReadPermission) &&
 				!cs.IntervalIsCurrently(dbmodels.WritePermission) &&
 				!isVIP &&
-				!isMod {
+				!isMod &&
+				!isBroadcaster {
 
-				app.setPermission(message.Channel, dbmodels.WritePermission)
+				app.setPermission(ctx, channel, dbmodels.WritePermission)
 
 			}
 		}
@@ -344,11 +371,17 @@ func main() {
 			zap.S().Fatal(err)
 		}
 
+		redisInst, err := redis.Create(ctx, conf.Redis.Address)
+		if err != nil {
+			zap.S().Fatal(err)
+		}
+
 		app := Application{
 			TMI:          twitch.NewClient(conf.BotUsername, conf.Twitch.OAuth),
 			TCPServer:    tcp.NewServer(),
 			HealthServer: statusServer,
 			DB:           db,
+			Redis:        redisInst,
 			Config:       conf,
 			Scheduler:    messagescheduler.NewMessageScheduler(ctx),
 			LastMessage:  make(map[string]string),

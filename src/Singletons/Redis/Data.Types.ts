@@ -1,9 +1,11 @@
+import { PermissionMode } from '../../controller/DB/Tables/ChannelTable.js';
 import { ChannelDataNames } from './../../IndividualData.js';
 
 export type TPubRecType =
 	| 'banphrase'
 	| 'connect'
 	| 'channel.update'
+	| 'channel.mode_update'
 	| 'stream.online'
 	| 'stream.offline';
 
@@ -30,6 +32,11 @@ export interface IPing {
 
 export interface IPubConnect {
 	Version: string;
+}
+
+export interface IPubChannelModeUpdate {
+	Channel: string;
+	Mode: PermissionMode;
 }
 
 export interface IPubUserData {

@@ -51,14 +51,7 @@ export class Channel {
 	 * @description User id of channel
 	 */
 	public Id: string;
-	/**
-	 * @description Mode
-	 * @description Read - Read the chat but don't listen to commands
-	 * @description Write - Read the chat and listen to commands. Cooldown is 1250 milliseconds.
-	 * @description VIP - Cooldown is 250 milliseconds.
-	 * @description Moderator - Cooldown is 50 milliseconds - Enables moderation mode
-	 * @description Bot - Only the bot channel will have this.
-	 */
+
 	public Mode: PermissionMode;
 
 	/**
