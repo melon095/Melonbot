@@ -26,10 +26,8 @@ func (b BotPermmision) ToMessageCooldown() int {
 		return DEFAULT_MESSAGE_INTERVAL
 	case VIPPermission:
 		return 250
-	case ModeratorPermission:
+	case ModeratorPermission, BotPermission:
 		return 50
-	case BotPermission:
-		return 0
 	default:
 		return DEFAULT_MESSAGE_INTERVAL
 	}

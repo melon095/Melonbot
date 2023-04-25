@@ -21,7 +21,7 @@ type MessageContext struct {
 
 type ChannelSchedule struct {
 	Interval     dbmodels.BotPermmision
-	Timer        *time.Timer
+	Timer        *time.Ticker
 	MessageQueue []*MessageContext
 	Ctx          context.Context
 }
@@ -74,7 +74,7 @@ func (ms *MessageScheduler) AddChannel(channel string, interval dbmodels.BotPerm
 
 	ms.ChannelSchedules[channel] = &ChannelSchedule{
 		Interval:     interval,
-		Timer:        time.NewTimer(timeDuration(interval)),
+		Timer:        time.NewTicker(timeDuration(interval)),
 		MessageQueue: make([]*MessageContext, 0),
 		// FIXME: SA1029
 		Ctx: context.WithValue(ms.Ctx, "channel", channel),
@@ -141,7 +141,7 @@ func (ms *MessageScheduler) channelLoop(channel string, schedule *ChannelSchedul
 				schedule.MessageQueue = schedule.MessageQueue[1:]
 			}
 
-			schedule.Timer.Reset(timeDuration(schedule.Interval))
+			// schedule.Timer.Reset(timeDuration(schedule.Interval))
 		}
 	}
 }
