@@ -21,7 +21,6 @@ type MessageContext struct {
 
 type ChannelSchedule struct {
 	Interval     dbmodels.BotPermmision
-	Timer        *time.Ticker
 	MessageQueue []*MessageContext
 	Ctx          context.Context
 }
@@ -57,8 +56,6 @@ func (ms *MessageScheduler) UpdateTimer(channel string, interval dbmodels.BotPer
 	zap.S().Infof("Updating timer for channel %s to %d", channel, interval.ToMessageCooldown())
 
 	c.Interval = interval
-	c.Timer.Stop()
-	c.Timer.Reset(timeDuration(interval))
 
 	return nil
 }
@@ -74,7 +71,6 @@ func (ms *MessageScheduler) AddChannel(channel string, interval dbmodels.BotPerm
 
 	ms.ChannelSchedules[channel] = &ChannelSchedule{
 		Interval:     interval,
-		Timer:        time.NewTicker(timeDuration(interval)),
 		MessageQueue: make([]*MessageContext, 0),
 		// FIXME: SA1029
 		Ctx: context.WithValue(ms.Ctx, "channel", channel),
@@ -89,7 +85,6 @@ func (ms *MessageScheduler) RemoveChannel(channel string) error {
 		return ErrChanNotFound
 	}
 
-	c.Timer.Stop()
 	c.Ctx.Done()
 	delete(ms.ChannelSchedules, channel)
 
@@ -115,7 +110,6 @@ func (ms *MessageScheduler) Run() {
 			/*
 				FIXME: This would make any messages that are currently being sent be lost
 			*/
-			schedule.Timer.Stop()
 			schedule.Ctx.Done()
 		}
 	}()
@@ -129,20 +123,34 @@ func (ms *MessageScheduler) Run() {
 func (ms *MessageScheduler) channelLoop(channel string, schedule *ChannelSchedule) {
 	zap.S().Infof("Starting message scheduler for channel %s", channel)
 
+	/*
+		time.Ticker seems to have issues with not being accurate enough.
+
+		See: https://stackoverflow.com/questions/70594795/more-accurate-ticker-than-time-newticker-in-go-on-macos/
+
+		dynamically create a time.Duration to make updating the interval easier
+	*/
+	next := time.Now().Add(timeDuration(schedule.Interval))
+
 	// Wait for timer or program shutdown
 	for {
+		time.Sleep(time.Until(next))
+
 		select {
 		case <-schedule.Ctx.Done():
 			return
-		case <-schedule.Timer.C:
-			// Send message if there is one
-			if len(schedule.MessageQueue) > 0 {
-				ms.OnMessage(*schedule.MessageQueue[0])
-				schedule.MessageQueue = schedule.MessageQueue[1:]
+		default:
+			{
+				/* pass */
 			}
-
-			// schedule.Timer.Reset(timeDuration(schedule.Interval))
 		}
+		// Send message if there is one
+		if len(schedule.MessageQueue) > 0 {
+			ms.OnMessage(*schedule.MessageQueue[0])
+			schedule.MessageQueue = schedule.MessageQueue[1:]
+		}
+
+		next = next.Add(timeDuration(schedule.Interval))
 	}
 }
 

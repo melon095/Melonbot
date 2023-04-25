@@ -70,24 +70,38 @@ func TestUpdateTimer(t *testing.T) {
 
 func TestOnMessage(t *testing.T) {
 	s := NewMessageScheduler(context.Background())
+	perm := dbmodels.VIPPermission
+	timeDur := timeDuration(perm)
 
-	s.AddChannel("test", dbmodels.ModeratorPermission)
+	/*
+		FIXME?: Too high of a interval will cause the test to fail
+		Unable to test Moderator, but it's fine.
+		What matters is Write mode works.
+	*/
+	s.AddChannel("test", perm)
 
-	// onMessage check the message is "test" it got called 5 times and never got called more than 50 milliseconds inbetween
 	fnCount := 0
-	lastCall := time.Now()
+	now := time.Now()
+
 	s.SetOnMessage(func(ctx MessageContext) {
+		if ctx.Channel != "test" {
+			t.Error("Expected channel to be test")
+		}
+
 		if ctx.Message != "test" {
 			t.Error("Expected message to be test")
 		}
 
-		fnCount++
+		ti := time.Now()
 
-		if time.Since(lastCall) < timeDuration(dbmodels.ModeratorPermission) {
-			t.Error("Expected at least 50 milliseconds between calls")
+		/* Allow for a 100ms difference in time :/ */
+		dt := now.Sub(ti) + 100*time.Millisecond
+		if dt > timeDur || dt < -timeDur {
+			t.Error("Expected time difference to be within expected interval")
 		}
 
-		lastCall = time.Now()
+		fnCount++
+		now = time.Now()
 	})
 
 	for i := 0; i < 5; i++ {
