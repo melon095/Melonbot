@@ -4,7 +4,6 @@ import { EPermissionLevel } from './../../Typings/enums.js';
 
 registerCommand({
 	Name: 'trivia',
-	Ping: false,
 	Description:
 		'Initiates a new trivia in the channel, Uses the api created by gazatu at [https://gazatu.xyz]',
 	Permission: EPermissionLevel.VIEWER,

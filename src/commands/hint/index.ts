@@ -6,7 +6,6 @@ registerCommand({
 	Ping: false,
 	Description: 'Displays the trivia hint.',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],

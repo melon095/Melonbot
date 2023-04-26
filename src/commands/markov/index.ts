@@ -30,7 +30,6 @@ registerCommand({
 	Name: 'markov',
 	Description: 'Generate markov chains based of chat',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [[ArgType.String, 'channel']],

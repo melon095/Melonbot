@@ -22,7 +22,6 @@ async function Execute(script: string, ctx: TCommandContext): Promise<object | s
 
 registerCommand({
 	Name: 'testman',
-	Ping: false,
 	Description: 'Debug command',
 	Permission: EPermissionLevel.ADMIN,
 	Aliases: ['debug', 'js', 'eval'],

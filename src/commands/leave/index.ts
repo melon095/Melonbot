@@ -1,5 +1,5 @@
 import Helix from './../../Helix/index.js';
-import { EPermissionLevel } from './../../Typings/enums.js';
+import { ECommandFlags, EPermissionLevel } from './../../Typings/enums.js';
 import { registerCommand } from '../../controller/Commands/Handler.js';
 import TimerSingleton from '../../Singletons/Timers/index.js';
 
@@ -8,11 +8,10 @@ registerCommand({
 	Description:
 		'Leave your channel, works in your channel and the bots channel. All statistics about your channel will be removed.',
 	Permission: EPermissionLevel.BROADCAST,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],
-	Flags: [],
+	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [],
 	Code: async function (ctx) {
 		const { channel } = ctx;

@@ -36,7 +36,6 @@ const getSongWhipURL = async (spotifyURL: string): Promise<SongWhipResponse> => 
 
 registerCommand({
 	Name: 'spotify',
-	Ping: false,
 	Description: 'Get the currently playing song from Spotify.',
 	Permission: EPermissionLevel.VIEWER,
 	Aliases: [],

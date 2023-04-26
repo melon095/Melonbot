@@ -5,7 +5,6 @@ import { GetCommandBy, registerCommand } from '../../controller/Commands/Handler
 
 registerCommand({
 	Name: 'time',
-	Ping: false,
 	Description: 'Time a command, similar to the time command in unix',
 	Permission: EPermissionLevel.ADMIN,
 	Aliases: [],

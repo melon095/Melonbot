@@ -60,11 +60,6 @@ export class Channel {
 	public LastMessage: string = '';
 
 	/**
-	 * @description Commands which can't be run in the channel.
-	 */
-	public Filter: string[];
-
-	/**
 	 * @description Trivia controller.
 	 */
 	public Trivia: TriviaController | null;
@@ -105,7 +100,6 @@ export class Channel {
 		this.Id = user.TwitchUID;
 		this.Mode = Mode;
 
-		this.Filter = [];
 		this.Trivia = null;
 
 		this.setupTrivia();
@@ -364,16 +358,17 @@ export async function ExecuteCommand(
 		if (command.HasFlag(ECommandFlags.OnlyOffline) && (await channel.IsLive())) {
 			return;
 		}
+
+		if (!permissionCheck(channel, command, user, extras)) {
+			return;
+		}
+
 		const hasCooldown = await checkCommandCooldown(channel.Id, user.ID, command.Name);
 		if (hasCooldown) {
 			return;
 		}
 
 		await setCommandCooldown(channel.Id, user.ID, command.Name, command.Cooldown);
-
-		if (!permissionCheck(channel, command, user, extras)) {
-			return;
-		}
 
 		const flags: ChannelTalkOptions = {
 			SkipBanphrase: command.HasFlag(ECommandFlags.NoBanphrase),
@@ -520,7 +515,7 @@ export async function ExecuteCommand(
 }
 
 function createCooldownKey(channel: string, user: number, command: string): string {
-	return `${channel}:cd:${command}:${user}`;
+	return `channel:${channel}:cd:${command}:${user}`;
 }
 
 async function checkCommandCooldown(
@@ -541,9 +536,8 @@ async function setCommandCooldown(
 ): Promise<void> {
 	const key = createCooldownKey(channel, user, command);
 
-	const setExpiry = await Bot.Redis.SSet(key, '1');
-
-	await setExpiry(cooldown);
+	await Bot.Redis.SSet(key, '1');
+	await Bot.Redis.Expire(key, cooldown);
 }
 
 const cleanMessage = (message: string): string => message.replace(/(\r\n|\n|\r)/gm, ' ');

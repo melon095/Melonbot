@@ -11,7 +11,6 @@ registerCommand<PreHandlers>({
 	Name: 'alias',
 	Description: "Sets the alias of an emote, don't give it a name and it will remove the alias",
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],

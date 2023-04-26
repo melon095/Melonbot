@@ -167,7 +167,6 @@ export default class Twitch {
 
 		const channel = this.channels.find((chl) => chl.LowercaseName === channelName);
 
-		// This would never happen, but typescript rules..
 		if (!channel) return;
 
 		try {
@@ -183,14 +182,8 @@ export default class Twitch {
 			if (!messageText.toLocaleLowerCase().startsWith(Bot.Config.Prefix)) {
 				return;
 			}
-			/*
-                Checks if mode is read, allows the owner to use commands there.
-                Or if the command is in the filter.
-            */
-			if (
-				(channel.Mode === 'Read' && user.TwitchUID !== Bot.Config.OwnerUserID) ||
-				channel.Filter.includes(input[1])
-			) {
+
+			if (channel.Mode === 'Read' && user.TwitchUID !== Bot.Config.OwnerUserID) {
 				return;
 			}
 

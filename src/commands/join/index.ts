@@ -18,11 +18,10 @@ registerCommand({
 	Name: 'join',
 	Description: 'Join a channel. Works only in bots channel',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 20,
 	Params: [],
-	Flags: [ECommandFlags.NoBanphrase],
+	Flags: [ECommandFlags.NoBanphrase, ECommandFlags.ResponseIsReply],
 	PreHandlers: [],
 	Code: async function (ctx) {
 		if (ctx.channel.Name !== Bot.Config.BotUsername) {

@@ -13,7 +13,6 @@ registerCommand<PreHandlers>({
 	Name: 'remove',
 	Description: 'Remove 7TV emotes',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],

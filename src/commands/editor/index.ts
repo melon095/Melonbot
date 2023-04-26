@@ -18,7 +18,6 @@ registerCommand<PreHandlers>({
 	Name: 'editor',
 	Description: 'Allows the bot to add and remove users as 7TV editors',
 	Permission: EPermissionLevel.BROADCAST,
-	OnlyOffline: false,
 	Aliases: ['adde', 'addeditor', 'removee', 'removeeditor'],
 	Cooldown: 5,
 	Params: [],
