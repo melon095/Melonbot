@@ -39,7 +39,6 @@ registerCommand({
 	Ping: false,
 	Description: 'Get the currently playing song from Spotify.',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [[ArgType.String, 'channel']],

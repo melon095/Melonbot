@@ -25,7 +25,6 @@ registerCommand({
 	Ping: false,
 	Description: 'Debug command',
 	Permission: EPermissionLevel.ADMIN,
-	OnlyOffline: false,
 	Aliases: ['debug', 'js', 'eval'],
 	Cooldown: 5,
 	Params: [

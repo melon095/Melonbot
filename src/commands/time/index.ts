@@ -8,7 +8,6 @@ registerCommand({
 	Ping: false,
 	Description: 'Time a command, similar to the time command in unix',
 	Permission: EPermissionLevel.ADMIN,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],

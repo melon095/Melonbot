@@ -103,7 +103,7 @@ export default class Twitch {
 	}
 
 	async AddChannelList(user: User): Promise<Channel> {
-		const c = await Channel.New(user, 'Write', false);
+		const c = await Channel.New(user, 'Write');
 		this.channels.push(c);
 		return c;
 	}

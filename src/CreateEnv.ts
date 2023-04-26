@@ -93,8 +93,8 @@ export const Setup = {
 				Bot.Log.Error(error as Error, `Joining ${channel.name}`);
 				mode = 'Read'; // We want to create a channel object, but since we can't join, we set the mode to read
 			}
-			const isLive = await GetChannelData(channel.user_id, 'IsLive');
-			const newChannel = await Channel.New(user, mode, isLive.ToBoolean());
+
+			const newChannel = await Channel.New(user, mode);
 
 			twitch.channels.push(newChannel);
 		}

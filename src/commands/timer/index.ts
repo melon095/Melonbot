@@ -172,7 +172,6 @@ registerCommand({
 	Ping: true,
 	Description: 'Modify chat timers',
 	Permission: EPermissionLevel.MOD,
-	OnlyOffline: false,
 	Aliases: ['timers'],
 	Cooldown: 5,
 	Params: [

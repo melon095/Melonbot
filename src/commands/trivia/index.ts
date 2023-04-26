@@ -8,7 +8,6 @@ registerCommand({
 	Description:
 		'Initiates a new trivia in the channel, Uses the api created by gazatu at [https://gazatu.xyz]',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: ['t'],
 	Cooldown: 5,
 	Params: [

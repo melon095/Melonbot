@@ -55,19 +55,9 @@ export class Channel {
 	public Mode: PermissionMode;
 
 	/**
-	 * @description if live or not 4Head
-	 */
-	public Live: boolean;
-
-	/**
 	 * @description Last message in channel.
 	 */
 	public LastMessage: string = '';
-
-	/**
-	 * @description
-	 */
-	public UserCooldowns: Record<number, TUserCooldown[]>;
 
 	/**
 	 * @description Commands which can't be run in the channel.
@@ -84,8 +74,8 @@ export class Channel {
 	 */
 	public EventSubs: EventSubHandler;
 
-	static async New(user: User, Mode: PermissionMode, Live: boolean): Promise<Channel> {
-		const Channel = new this(user, Mode, Live);
+	static async New(user: User, Mode: PermissionMode): Promise<Channel> {
+		const Channel = new this(user, Mode);
 		await Channel.EventSubs.Done;
 		return Channel;
 	}
@@ -107,15 +97,13 @@ export class Channel {
 			.onConflict((table) => table.column('user_id').doNothing())
 			.execute();
 
-		return new this(user, 'Bot', false);
+		return new this(user, 'Bot');
 	}
 
-	constructor(user: User, Mode: PermissionMode, Live: boolean) {
+	constructor(user: User, Mode: PermissionMode) {
 		this.Name = user.Name;
 		this.Id = user.TwitchUID;
 		this.Mode = Mode;
-		this.Live = Live;
-		this.UserCooldowns = {};
 
 		this.Filter = [];
 		this.Trivia = null;
@@ -269,6 +257,10 @@ export class Channel {
 		}
 	}
 
+	async IsLive(): Promise<boolean> {
+		return (await this.GetChannelData('IsLive')).ToBoolean();
+	}
+
 	async User(): Promise<User> {
 		return Bot.User.Get(this.Id, this.Name);
 	}
@@ -302,27 +294,6 @@ export class Channel {
 		} catch (error) {
 			Bot.Log.Error(error as Error, 'Failed to update name for %s', this.Name);
 		}
-	}
-
-	async UpdateLive(): Promise<void> {
-		this.Live = (await GetChannelData(this.Id, 'IsLive')).ToBoolean();
-		return;
-	}
-
-	public getCooldown(id: number): TUserCooldown[] {
-		return this.UserCooldowns[id];
-	}
-
-	public setCooldown(id: number, val: TUserCooldown): void {
-		if (!this.UserCooldowns[id]) {
-			this.UserCooldowns[id] = [val];
-			return;
-		}
-		const idx = this.UserCooldowns[id].findIndex((channel) => channel.Command === val.Command);
-		if (idx === -1) {
-			this.UserCooldowns[id].push(val);
-			return;
-		} else this.UserCooldowns[id][idx] = val;
 	}
 
 	private async InitiateTrivia(): Promise<void> {
@@ -390,26 +361,15 @@ export async function ExecuteCommand(
 
 		if (typeof command === 'undefined') return;
 
-		if (command.OnlyOffline && channel.Live) {
+		if (command.HasFlag(ECommandFlags.OnlyOffline) && (await channel.IsLive())) {
+			return;
+		}
+		const hasCooldown = await checkCommandCooldown(channel.Id, user.ID, command.Name);
+		if (hasCooldown) {
 			return;
 		}
 
-		const current = Date.now();
-
-		const timeout = channel.getCooldown(user.ID);
-		if (typeof timeout === 'object') {
-			// User has done commands before, find the specific value for current command.
-			const cr = timeout.find((time) => time.Command === command.Name);
-			// If found and is still on cooldown we return.
-			if (typeof cr !== 'undefined' && cr.TimeExecute > current) return;
-		}
-
-		// First time running command this instance or not on cooldown, so we set their cooldown.
-		channel.setCooldown(user.ID, {
-			Command: command.Name,
-			TimeExecute: current + command.Cooldown * 1000,
-			Cooldown: Bot.Config.Development ? 0 : command.Cooldown,
-		});
+		await setCommandCooldown(channel.Id, user.ID, command.Name, command.Cooldown);
 
 		if (!permissionCheck(channel, command, user, extras)) {
 			return;
@@ -557,6 +517,33 @@ export async function ExecuteCommand(
 			SkipBanphrase: true,
 		});
 	}
+}
+
+function createCooldownKey(channel: string, user: number, command: string): string {
+	return `${channel}:cd:${command}:${user}`;
+}
+
+async function checkCommandCooldown(
+	channel: string,
+	user: number,
+	command: string,
+): Promise<boolean> {
+	const key = createCooldownKey(channel, user, command);
+
+	return (await Bot.Redis.SGet(key)) === '1';
+}
+
+async function setCommandCooldown(
+	channel: string,
+	user: number,
+	command: string,
+	cooldown: number,
+): Promise<void> {
+	const key = createCooldownKey(channel, user, command);
+
+	const setExpiry = await Bot.Redis.SSet(key, '1');
+
+	await setExpiry(cooldown);
 }
 
 const cleanMessage = (message: string): string => message.replace(/(\r\n|\n|\r)/gm, ' ');

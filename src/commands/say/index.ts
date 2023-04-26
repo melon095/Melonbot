@@ -3,10 +3,8 @@ import { EPermissionLevel } from './../../Typings/enums.js';
 
 registerCommand({
 	Name: 'say',
-	Ping: false,
 	Description: 'Says the direct input.',
 	Permission: EPermissionLevel.ADMIN,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],
