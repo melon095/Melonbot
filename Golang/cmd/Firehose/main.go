@@ -69,11 +69,7 @@ func (app *Application) setPermission(ctx context.Context, channel *dbmodels.Cha
 		return
 	}
 
-	err := app.Scheduler.UpdateTimer(channel.Name, perm)
-	if err != nil {
-		zap.S().Errorf("Failed to update timer for channel %s: %s", channel.Name, err)
-		return
-	}
+	app.Scheduler.UpdateTimer(channel.Name, perm)
 
 	zap.S().Infof("Updated permission for channel %s to %s", channel.Name, perm.String())
 
@@ -141,7 +137,6 @@ func (app *Application) RunTMI(ctx context.Context) {
 				First(channel)
 
 			if result.Error != nil {
-				zap.S().Errorf("Failed to find channel %s: %s", message.Channel, result.Error)
 				return
 			}
 
@@ -298,24 +293,22 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 			message := removeTrailingNewline(match[3])
 
 			zap.S().Infof("Replying in %s with %s", channel, message)
-			if err := app.Scheduler.AddMessage(messagescheduler.MessageContext{
+
+			app.Scheduler.AddMessage(messagescheduler.MessageContext{
 				Channel: channel,
 				Message: message,
 				ReplyTo: &replyParentMsgID,
-			}); err != nil {
-				zap.S().Error(err)
-			}
+			})
 		} else if match := extractPrivmsgRegex.FindStringSubmatch(msg); match != nil {
 			channel := match[1]
 			message := removeTrailingNewline(match[2])
 
 			zap.S().Infof("Sending %s to %s", message, channel)
-			if err := app.Scheduler.AddMessage(messagescheduler.MessageContext{
+
+			app.Scheduler.AddMessage(messagescheduler.MessageContext{
 				Channel: channel,
 				Message: message,
-			}); err != nil {
-				zap.S().Error(err)
-			}
+			})
 		}
 	}
 }

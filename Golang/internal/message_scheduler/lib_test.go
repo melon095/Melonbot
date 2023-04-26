@@ -50,11 +50,18 @@ func TestAddMessage(t *testing.T) {
 		t.Error("Message not added")
 	}
 
-	if err := s.AddMessage(MessageContext{
+	s.AddMessage(MessageContext{
 		Channel: "test2",
 		Message: "test",
-	}); err != ErrChanNotFound {
-		t.Error("Expected ErrChanNotFound")
+	})
+
+	test2 := s.ChannelSchedules["test2"]
+	if test2 != nil {
+		t.Error("Channel 'test2' added to wrong queue")
+	}
+
+	if len(s.CatchAllScheduler.MessageQueue) != 1 {
+		t.Error("Message not added to catch all")
 	}
 }
 
@@ -63,9 +70,7 @@ func TestUpdateTimer(t *testing.T) {
 
 	s.AddChannel("test", dbmodels.ModeratorPermission)
 
-	if err := s.UpdateTimer("test", dbmodels.ModeratorPermission); err != nil {
-		t.Error("Error updating timer")
-	}
+	s.UpdateTimer("test", dbmodels.ModeratorPermission)
 }
 
 func TestOnMessage(t *testing.T) {

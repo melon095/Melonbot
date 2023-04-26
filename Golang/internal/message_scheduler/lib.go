@@ -25,21 +25,34 @@ type ChannelSchedule struct {
 	Ctx          context.Context
 }
 
+func NewChannelSchedule(ctx context.Context, interval dbmodels.BotPermmision) *ChannelSchedule {
+	return &ChannelSchedule{
+		Interval:     interval,
+		MessageQueue: make([]*MessageContext, 0),
+		Ctx:          ctx,
+	}
+}
+
 func (cs *ChannelSchedule) IntervalIsCurrently(interval dbmodels.BotPermmision) bool {
 	return cs.Interval == interval
 }
 
+// MessageScheduler sends one message within a given interval to a channel
 type MessageScheduler struct {
-	ChannelSchedules map[string]*ChannelSchedule
-	Ctx              context.Context
-	OnMessage        func(ctx MessageContext)
+	// Catch all scheduler which puts messages that don't have a channel in here
+	// It defaults to the lowest permission level (WritePermission) and can't be changed
+	CatchAllScheduler *ChannelSchedule
+	ChannelSchedules  map[string]*ChannelSchedule
+	Ctx               context.Context
+	OnMessage         func(ctx MessageContext)
 }
 
 func NewMessageScheduler(ctx context.Context) *MessageScheduler {
 	return &MessageScheduler{
-		ChannelSchedules: make(map[string]*ChannelSchedule),
-		Ctx:              ctx,
-		OnMessage:        func(ctx MessageContext) {},
+		CatchAllScheduler: NewChannelSchedule(ctx, dbmodels.WritePermission),
+		ChannelSchedules:  make(map[string]*ChannelSchedule),
+		Ctx:               ctx,
+		OnMessage:         func(ctx MessageContext) {},
 	}
 }
 
@@ -47,17 +60,15 @@ func (ms *MessageScheduler) SetOnMessage(f func(ctx MessageContext)) {
 	ms.OnMessage = f
 }
 
-func (ms *MessageScheduler) UpdateTimer(channel string, interval dbmodels.BotPermmision) error {
+func (ms *MessageScheduler) UpdateTimer(channel string, interval dbmodels.BotPermmision) {
 	c, ok := ms.ChannelSchedules[channel]
 	if !ok {
-		return ErrChanNotFound
+		return
 	}
 
 	zap.S().Infof("Updating timer for channel %s to %d", channel, interval.ToMessageCooldown())
 
 	c.Interval = interval
-
-	return nil
 }
 
 func (ms *MessageScheduler) AddChannel(channel string, interval dbmodels.BotPermmision) {
@@ -69,14 +80,14 @@ func (ms *MessageScheduler) AddChannel(channel string, interval dbmodels.BotPerm
 		return
 	}
 
-	ms.ChannelSchedules[channel] = &ChannelSchedule{
-		Interval:     interval,
-		MessageQueue: make([]*MessageContext, 0),
-		// FIXME: SA1029
-		Ctx: context.WithValue(ms.Ctx, "channel", channel),
-	}
+	// FIXME: SA1029
+	ms.ChannelSchedules[channel] = NewChannelSchedule(
+		context.WithValue(ms.Ctx, "channel", channel),
+		interval,
+	)
 
-	go ms.channelLoop(channel, ms.ChannelSchedules[channel])
+	zap.S().Infof("Starting message scheduler for channel %s", channel)
+	go ms.channelLoop(ms.ChannelSchedules[channel])
 }
 
 func (ms *MessageScheduler) RemoveChannel(channel string) error {
@@ -91,15 +102,14 @@ func (ms *MessageScheduler) RemoveChannel(channel string) error {
 	return nil
 }
 
-func (ms *MessageScheduler) AddMessage(ctx MessageContext) error {
+func (ms *MessageScheduler) AddMessage(ctx MessageContext) {
 	c, ok := ms.ChannelSchedules[ctx.Channel]
 	if !ok {
-		return ErrChanNotFound
+		ms.CatchAllScheduler.MessageQueue = append(ms.CatchAllScheduler.MessageQueue, &ctx)
+		return
 	}
 
 	c.MessageQueue = append(c.MessageQueue, &ctx)
-
-	return nil
 }
 
 func (ms *MessageScheduler) Run() {
@@ -116,12 +126,14 @@ func (ms *MessageScheduler) Run() {
 
 	// Generate a goroutine for each channel
 	for channel, schedule := range ms.ChannelSchedules {
-		go ms.channelLoop(channel, schedule)
+		zap.S().Infof("Starting message scheduler for channel %s", channel)
+		go ms.channelLoop(schedule)
 	}
+
+	go ms.channelLoop(ms.CatchAllScheduler)
 }
 
-func (ms *MessageScheduler) channelLoop(channel string, schedule *ChannelSchedule) {
-	zap.S().Infof("Starting message scheduler for channel %s", channel)
+func (ms *MessageScheduler) channelLoop(schedule *ChannelSchedule) {
 
 	/*
 		time.Ticker seems to have issues with not being accurate enough.
