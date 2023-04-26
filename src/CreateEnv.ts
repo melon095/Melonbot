@@ -33,10 +33,6 @@ export const Setup = {
 			exit();
 		});
 
-		Bot.Config.StaticData = {
-			messageEvasionCharacter: '\u{E0000}',
-		};
-
 		Bot.SQL = CreateDatabaseConnection();
 		await DoMigration(Bot.SQL);
 
@@ -101,8 +97,6 @@ export const Setup = {
 			const newChannel = await Channel.New(user, mode, isLive.ToBoolean());
 
 			twitch.channels.push(newChannel);
-
-			await Sleep(Bot.Config.Verified ? 0.025 : 1);
 		}
 
 		// Spawn loops after everything is setup

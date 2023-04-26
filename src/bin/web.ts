@@ -14,7 +14,7 @@ import { TConfigFile } from '../Typings/types.js';
 	// Bot.Config.SQL = {};
 
 	const addConfig = (cfg: object) => {
-		for (const [name, value] of Object.entries(cfg)) Bot.Config[name] = value;
+		Object.assign(Bot.Config, cfg);
 	};
 
 	const cfg: TConfigFile = JSON.parse(

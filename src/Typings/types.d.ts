@@ -57,10 +57,6 @@ export type ServicesConfig = {
 	};
 } & Record<string, object>;
 
-export type TStaticDataConfig = {
-	messageEvasionCharacter: string;
-};
-
 export namespace Helix {
 	export interface Users {
 		data: {

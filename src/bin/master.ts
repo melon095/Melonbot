@@ -11,7 +11,7 @@ import { TConfigFile } from '../Typings/types.js';
 
 	// Import and load config before anything is imported
 	const addConfig = (cfg: object) => {
-		for (const [name, value] of Object.entries(cfg)) Bot.Config[name] = value;
+		Object.assign(Bot.Config, cfg);
 	};
 
 	const cfg: TConfigFile = JSON.parse(
@@ -39,14 +39,6 @@ import { TConfigFile } from '../Typings/types.js';
 	Setup.All('BOT').then(() => Setup.Bot());
 
 	async function exitHandler(): Promise<void> {
-		// Wait for all messages to get sent before turning off bot.
-		const promises = [];
-		for (const channel of Bot.Twitch.Controller.TwitchChannels) {
-			promises.push(channel.Queue.closeAll());
-		}
-
-		await Promise.all(promises);
-
 		await Bot.SQL.destroy();
 	}
 })();
