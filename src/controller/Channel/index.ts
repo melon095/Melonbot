@@ -55,11 +55,6 @@ export class Channel {
 	public Mode: PermissionMode;
 
 	/**
-	 * @description Last message in channel.
-	 */
-	public LastMessage: string = '';
-
-	/**
 	 * @description Trivia controller.
 	 */
 	public Trivia: TriviaController | null;
@@ -162,9 +157,6 @@ export class Channel {
 			Bot.Log.Error(error as Error, 'banphraseCheck');
 			sayFunc('FeelsDankMan Banphrase check failed...');
 		}
-
-		// this.Queue.schedule(msg, options);
-		this.LastMessage = msg;
 	}
 
 	/**
