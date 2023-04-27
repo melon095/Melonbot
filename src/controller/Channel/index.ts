@@ -119,18 +119,18 @@ export class Channel {
 	): Promise<void> {
 		if (this.Mode === 'Read') return;
 
-		const client = Bot.Twitch.Controller.client;
+		const controller = Bot.Twitch.Controller;
 
 		let sayFunc: (msg: string) => void;
 		switch (typeof options.ReplyID) {
 			case 'string': {
-				sayFunc = (msg) => client.reply(this.Name, options.ReplyID!, msg);
+				sayFunc = (msg) => controller.reply(this.Name, options.ReplyID!, msg);
 				break;
 			}
 
 			case 'undefined':
 			default: {
-				sayFunc = (msg) => client.privmsg(this.Name, msg);
+				sayFunc = (msg) => controller.say(this.Name, msg);
 			}
 		}
 
@@ -208,7 +208,7 @@ export class Channel {
 		});
 
 		try {
-			await Bot.Twitch.Controller.client.join(user.Name);
+			await Bot.Twitch.Controller.join(user.Name);
 			const channel = await Bot.Twitch.Controller.AddChannelList(user);
 			const resp = await Promise.all([
 				Helix.EventSub.Create('channel.update', {
@@ -238,8 +238,8 @@ export class Channel {
 
 			channel.say('FeelsDankMan 👋 Hi');
 		} catch (err) {
-			await Bot.Twitch.Controller.client.part(user.Name);
-			throw err;
+			await Bot.Twitch.Controller.part(user.Name);
+			throw err; // :tf:
 		}
 	}
 
@@ -265,8 +265,8 @@ export class Channel {
 
 	async UpdateName(newName: string): Promise<void> {
 		try {
-			await Bot.Twitch.Controller.client.part(this.Name);
-			await Bot.Twitch.Controller.client.join(newName);
+			await Bot.Twitch.Controller.part(this.Name);
+			await Bot.Twitch.Controller.join(newName);
 			await Bot.SQL.updateTable('channels')
 				.set({
 					name: newName,
@@ -274,7 +274,7 @@ export class Channel {
 				.where('user_id', '=', this.Id)
 				.execute();
 
-			await Bot.Twitch.Controller.client.part(this.Name);
+			await Bot.Twitch.Controller.part(this.Name);
 			this.Name = newName;
 			await this.say('FeelsDankMan TeaTime');
 		} catch (error) {

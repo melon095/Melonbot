@@ -74,7 +74,7 @@ export const Setup = {
 
 		const self = await Channel.CreateBot();
 
-		await twitch.client.join(Bot.Config.BotUsername);
+		await twitch.join(Bot.Config.BotUsername);
 		twitch.channels.push(self);
 
 		const channels = await Bot.SQL.selectFrom('channels')
@@ -88,7 +88,7 @@ export const Setup = {
 
 			Bot.Log.Info(`Twitch Joining %s`, channel.name);
 			try {
-				await twitch.client.join(channel.name);
+				await twitch.join(channel.name);
 			} catch (error) {
 				Bot.Log.Error(error as Error, `Joining ${channel.name}`);
 				mode = 'Read'; // We want to create a channel object, but since we can't join, we set the mode to read

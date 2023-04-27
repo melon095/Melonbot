@@ -26,7 +26,7 @@ registerCommand({
 
 		Bot.Twitch.Controller.RemoveChannelList(ctx.channel.Name);
 		setTimeout(() => {
-			Bot.Twitch.Controller.client.part(ctx.channel.Name);
+			Bot.Twitch.Controller.part(ctx.channel.Name);
 		}, 10000); // Leave after 10 seconds.
 
 		await Bot.SQL.deleteFrom('channels').where('user_id', '=', ctx.channel.Id).execute();

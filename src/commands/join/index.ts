@@ -31,9 +31,6 @@ registerCommand({
 			};
 		}
 
-		const response = (pronoun: string) =>
-			`Joining ${pronoun} channel. :) Remember to read 👉 https://twitch.tv/${Bot.Config.BotUsername}/about for info on setting me up.`;
-
 		let other = false;
 		let channel = ctx.user;
 		const otherUser = ctx.input[0];
@@ -81,26 +78,25 @@ registerCommand({
 			};
 		}
 
-		return await Channel.Join(channel)
-			.then(() => {
-				if (!other) {
-					return {
-						Success: true,
-						Result: response('your'),
-					};
-				}
+		const pronoun = other ? channel.Name + "'s" : 'your';
 
-				return {
-					Success: true,
-					Result: response(`${channel.Name}'s`),
-				};
-			})
-			.catch(() => {
-				return {
-					Success: false,
-					Result: 'Something went wrong :(',
-				};
-			});
+		const response = `Joining ${pronoun} channel. :) Remember to read 👉 https://twitch.tv/${Bot.Config.BotUsername}/about for info on setting me up.`;
+
+		try {
+			await Channel.Join(channel);
+
+			return {
+				Success: true,
+				Result: response,
+			};
+		} catch (error) {
+			ctx.Log('error', 'Failed to join channel', error);
+
+			return {
+				Success: false,
+				Result: 'Something went wrong :/',
+			};
+		}
 	},
 	LongDescription: async (prefix) => [
 		`Join a channel. Works only in bots channel`,

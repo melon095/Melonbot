@@ -1,10 +1,15 @@
-import DankTwitch from '@kararty/dank-twitch-irc';
+import DankTwitch, {
+	joinChannel,
+	partChannel,
+	PongMessage,
+	reply,
+	say,
+	sendPing,
+} from '@kararty/dank-twitch-irc';
 import * as tools from './tools/tools.js';
 import { Channel, ExecuteCommand } from './controller/Channel/index.js';
 import { Promolve, IPromolve } from '@melon95/promolve';
 import User from './controller/User/index.js';
-import ChannelTable from './controller/DB/Tables/ChannelTable.js';
-import assert from 'node:assert';
 
 function NoticeMessageIsReject(message: string) {
 	return (
@@ -13,10 +18,28 @@ function NoticeMessageIsReject(message: string) {
 	);
 }
 
+function createConnection() {
+	const port = Bot.Config.Services.Firehose.Port;
+
+	return new DankTwitch.SingleConnection({
+		username: Bot.Config.BotUsername,
+		password: '',
+		rateLimits: Bot.Config.Verified ? 'verifiedBot' : 'default',
+		connection: {
+			type: 'tcp',
+			secure: false,
+			host: FIREHOSE_HOST,
+			port,
+			// Stop sending CAP, PASS
+			preSetup: true,
+		},
+	});
+}
+
 export const FIREHOSE_HOST = process.env.MELONBOT_FIREHOSE || '127.0.0.1';
 
 export default class Twitch {
-	public client: DankTwitch.ChatClient;
+	public client: DankTwitch.SingleConnection;
 
 	public channels: Channel[] = [];
 
@@ -26,21 +49,48 @@ export default class Twitch {
 	private constructor() {
 		this.InitFulfill();
 
-		const port = Bot.Config.Services.Firehose.Port;
+		this.client = createConnection();
 
-		this.client = new DankTwitch.ChatClient({
-			username: Bot.Config.BotUsername,
-			password: '',
-			rateLimits: Bot.Config.Verified ? 'verifiedBot' : 'default',
-			connection: {
-				type: 'tcp',
-				secure: false,
-				host: FIREHOSE_HOST,
-				port,
-				preSetup: true,
-			},
-		});
+		this.setupCallbacks();
 
+		this.client.connect();
+	}
+
+	/*
+        Re-implement ping, say etc functions
+
+        // FIXME: Add validation?
+    */
+
+	ping(): Promise<PongMessage> {
+		return sendPing(this.client);
+	}
+
+	async say(channel: string, message: string): Promise<void> {
+		await say(this.client, channel, message);
+	}
+
+	async reply(channel: string, id: string, message: string): Promise<void> {
+		await reply(this.client, channel, id, message);
+	}
+
+	async join(channel: string): Promise<void> {
+		await joinChannel(this.client, channel);
+	}
+
+	async part(channel: string): Promise<void> {
+		await partChannel(this.client, channel);
+	}
+
+	static async Init() {
+		const t = new Twitch();
+
+		await t.SetOwner();
+
+		return t;
+	}
+
+	private setupCallbacks() {
 		this.client.on('ready', () => {
 			Bot.Log.Info('Twitch client ready');
 			this.initFlags[0] = true;
@@ -80,19 +130,23 @@ export default class Twitch {
 
 		this.client.on('PING', async () => {
 			const before = Date.now();
-			await this.client.ping();
+			await sendPing(this.client);
 			await Bot.Redis.SSet('Latency', String(Date.now() - before));
 		});
 
-		this.client.connect();
-	}
+		this.client.on('close', (error) => {
+			if (error) {
+				Bot.Log.Error(error, 'TMI Connection Closed, reconnecting...');
+			}
 
-	static async Init() {
-		const t = new Twitch();
+			this.client.close();
 
-		await t.SetOwner();
+			this.client = createConnection();
 
-		return t;
+			this.setupCallbacks();
+
+			this.client.connect();
+		});
 	}
 
 	private async InitFulfill() {
@@ -120,19 +174,6 @@ export default class Twitch {
 
 	get InitPromise() {
 		return this.InitReady.promise;
-	}
-
-	async GetChannel(ID: string): Promise<ChannelTable | null> {
-		const channel = await Bot.SQL.selectFrom('channels')
-			.selectAll()
-			.where('user_id', '=', ID)
-			.executeTakeFirst();
-
-		if (!channel) {
-			return null;
-		}
-
-		return channel;
 	}
 
 	TwitchChannelSpecific({ ID, Name }: { ID?: string; Name?: string }) {
