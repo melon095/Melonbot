@@ -526,10 +526,13 @@ async function setCommandCooldown(
 	command: string,
 	cooldown: number,
 ): Promise<void> {
-	const key = createCooldownKey(channel, user, command);
+	if (!Bot.Config.Development) {
+		// Disable cooldowns in development
+		const key = createCooldownKey(channel, user, command);
 
-	await Bot.Redis.SSet(key, '1');
-	await Bot.Redis.Expire(key, cooldown);
+		await Bot.Redis.SSet(key, '1');
+		await Bot.Redis.Expire(key, cooldown);
+	}
 }
 
 const cleanMessage = (message: string): string => message.replace(/(\r\n|\n|\r)/gm, ' ');

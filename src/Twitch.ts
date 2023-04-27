@@ -181,17 +181,13 @@ export default class Twitch {
 	// }
 
 	private async OnTMIError(error: Error) {
-		if (error instanceof DankTwitch.ConnectionError) {
+		if (
+			error instanceof DankTwitch.ConnectionError ||
+			error.message.includes('Error occured in transport layer')
+		) {
 			// Ignore, as this is caused by the firehose server going down
 
 			return;
-		}
-
-		if (
-			error instanceof DankTwitch.JoinError &&
-			error.message.includes('Error occured in transport layer')
-		) {
-			return; // Firehose server is not yet up, dt-irc tried to connect
 		}
 
 		Bot.Log.Error(error, 'TMI Error');
