@@ -1,6 +1,7 @@
 export enum ECommandFlags {
 	NoBanphrase = 'no-banphrase',
 	ResponseIsReply = 'response-is-reply',
+	OnlyOffline = 'only-offline',
 }
 
 export enum EPermissionLevel {

@@ -107,10 +107,6 @@ export interface CommandModel<Mods extends object = object> {
 	 */
 	readonly Permission: EPermissionLevel; // FIXME: Remove this
 	/**
-	 * If command can only be run while streamer is offline
-	 */
-	readonly OnlyOffline: boolean;
-	/**
 	 * Other words which trigger this command
 	 */
 	readonly Aliases: string[];

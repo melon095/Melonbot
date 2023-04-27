@@ -69,12 +69,12 @@ export const Setup = {
 
 		await TimerSingleton.I().Initialize();
 
-		await Bot.Twitch.Controller.InitPromise;
+		await Bot.Twitch.Controller.InitReady;
 		const twitch = Bot.Twitch.Controller;
 
 		const self = await Channel.CreateBot();
 
-		await twitch.client.join(Bot.Config.BotUsername);
+		await twitch.join(Bot.Config.BotUsername);
 		twitch.channels.push(self);
 
 		const channels = await Bot.SQL.selectFrom('channels')
@@ -88,13 +88,13 @@ export const Setup = {
 
 			Bot.Log.Info(`Twitch Joining %s`, channel.name);
 			try {
-				await twitch.client.join(channel.name);
+				await twitch.join(channel.name);
 			} catch (error) {
 				Bot.Log.Error(error as Error, `Joining ${channel.name}`);
 				mode = 'Read'; // We want to create a channel object, but since we can't join, we set the mode to read
 			}
-			const isLive = await GetChannelData(channel.user_id, 'IsLive');
-			const newChannel = await Channel.New(user, mode, isLive.ToBoolean());
+
+			const newChannel = await Channel.New(user, mode);
 
 			twitch.channels.push(newChannel);
 		}

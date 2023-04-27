@@ -36,10 +36,8 @@ const getEmoteFromID = (name: string | undefined) => {
 
 registerCommand<PreHandlers>({
 	Name: 'add',
-	Ping: false,
 	Description: 'Add a 7TV emote',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [

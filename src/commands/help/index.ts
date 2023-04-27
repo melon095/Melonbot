@@ -6,7 +6,6 @@ registerCommand({
 	Name: 'help',
 	Description: 'Prints out the description of a command or the website if nothing was specified',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: ['commands'],
 	Cooldown: 5,
 	Params: [],

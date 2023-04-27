@@ -9,7 +9,6 @@ registerCommand({
 	Name: 'suggest',
 	Description: 'Suggest a new feature or a bug.',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 20,
 	Params: [],

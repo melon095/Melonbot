@@ -1,4 +1,4 @@
-import { EPermissionLevel } from '../../Typings/enums.js';
+import { ECommandFlags, EPermissionLevel } from '../../Typings/enums.js';
 import { ArgType, TCommandContext } from '../../Models/Command.js';
 import { Result, Ok, Err } from './../../tools/result.js';
 import got from './../../tools/Got.js';
@@ -169,17 +169,15 @@ const actionHandlers: Record<ACTION_TYPE, actionHandler> = {
 
 registerCommand({
 	Name: 'timer',
-	Ping: true,
 	Description: 'Modify chat timers',
 	Permission: EPermissionLevel.MOD,
-	OnlyOffline: false,
 	Aliases: ['timers'],
 	Cooldown: 5,
 	Params: [
 		[ArgType.String, 'interval'],
 		[ArgType.String, 'titles'],
 	],
-	Flags: [],
+	Flags: [ECommandFlags.ResponseIsReply],
 	PreHandlers: [],
 	Code: async function (ctx) {
 		const { input } = ctx;

@@ -14,7 +14,6 @@ registerCommand({
 	Name: 'ping',
 	Description: 'Pings the user with some small info.',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 20,
 	Params: [],

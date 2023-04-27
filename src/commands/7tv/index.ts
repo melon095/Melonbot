@@ -12,7 +12,6 @@ registerCommand({
 	Name: '7tv',
 	Description: 'Search 7TV emotes',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [

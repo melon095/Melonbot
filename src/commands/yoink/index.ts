@@ -14,7 +14,6 @@ registerCommand({
 	Name: 'yoink',
 	Description: 'Steal several 7TV emotes from another channel TriHard ',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: ['steal'],
 	Cooldown: 10,
 	Params: [

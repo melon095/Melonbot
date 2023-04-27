@@ -16,7 +16,6 @@ registerCommand({
 	Name: 'PotFriend',
 	Description: 'PotFriend tells you an advice',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],

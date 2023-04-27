@@ -54,7 +54,6 @@ registerCommand({
 	Name: '7tvu',
 	Description: 'Display information about a 7TV user',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: [],
 	Cooldown: 5,
 	Params: [],

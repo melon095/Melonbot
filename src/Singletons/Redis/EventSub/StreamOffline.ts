@@ -15,7 +15,5 @@ export default {
 		}
 
 		await UpdateChannelData(broadcaster_user_id, 'IsLive', new DataStoreContainer('false'));
-
-		await channel.UpdateLive();
 	},
 } as IEventSubHandler<IPubStreamOffline>;

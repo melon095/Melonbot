@@ -55,26 +55,6 @@ export class Channel {
 	public Mode: PermissionMode;
 
 	/**
-	 * @description if live or not 4Head
-	 */
-	public Live: boolean;
-
-	/**
-	 * @description Last message in channel.
-	 */
-	public LastMessage: string = '';
-
-	/**
-	 * @description
-	 */
-	public UserCooldowns: Record<number, TUserCooldown[]>;
-
-	/**
-	 * @description Commands which can't be run in the channel.
-	 */
-	public Filter: string[];
-
-	/**
 	 * @description Trivia controller.
 	 */
 	public Trivia: TriviaController | null;
@@ -84,8 +64,8 @@ export class Channel {
 	 */
 	public EventSubs: EventSubHandler;
 
-	static async New(user: User, Mode: PermissionMode, Live: boolean): Promise<Channel> {
-		const Channel = new this(user, Mode, Live);
+	static async New(user: User, Mode: PermissionMode): Promise<Channel> {
+		const Channel = new this(user, Mode);
 		await Channel.EventSubs.Done;
 		return Channel;
 	}
@@ -107,17 +87,14 @@ export class Channel {
 			.onConflict((table) => table.column('user_id').doNothing())
 			.execute();
 
-		return new this(user, 'Bot', false);
+		return new this(user, 'Bot');
 	}
 
-	constructor(user: User, Mode: PermissionMode, Live: boolean) {
+	constructor(user: User, Mode: PermissionMode) {
 		this.Name = user.Name;
 		this.Id = user.TwitchUID;
 		this.Mode = Mode;
-		this.Live = Live;
-		this.UserCooldowns = {};
 
-		this.Filter = [];
 		this.Trivia = null;
 
 		this.setupTrivia();
@@ -142,18 +119,18 @@ export class Channel {
 	): Promise<void> {
 		if (this.Mode === 'Read') return;
 
-		const client = Bot.Twitch.Controller.client;
+		const controller = Bot.Twitch.Controller;
 
 		let sayFunc: (msg: string) => void;
 		switch (typeof options.ReplyID) {
 			case 'string': {
-				sayFunc = (msg) => client.reply(this.Name, options.ReplyID!, msg);
+				sayFunc = (msg) => controller.reply(this.Name, options.ReplyID!, msg);
 				break;
 			}
 
 			case 'undefined':
 			default: {
-				sayFunc = (msg) => client.privmsg(this.Name, msg);
+				sayFunc = (msg) => controller.say(this.Name, msg);
 			}
 		}
 
@@ -180,9 +157,6 @@ export class Channel {
 			Bot.Log.Error(error as Error, 'banphraseCheck');
 			sayFunc('FeelsDankMan Banphrase check failed...');
 		}
-
-		// this.Queue.schedule(msg, options);
-		this.LastMessage = msg;
 	}
 
 	/**
@@ -234,7 +208,7 @@ export class Channel {
 		});
 
 		try {
-			await Bot.Twitch.Controller.client.join(user.Name);
+			await Bot.Twitch.Controller.join(user.Name);
 			const channel = await Bot.Twitch.Controller.AddChannelList(user);
 			const resp = await Promise.all([
 				Helix.EventSub.Create('channel.update', {
@@ -264,9 +238,13 @@ export class Channel {
 
 			channel.say('FeelsDankMan 👋 Hi');
 		} catch (err) {
-			await Bot.Twitch.Controller.client.part(user.Name);
-			throw err;
+			await Bot.Twitch.Controller.part(user.Name);
+			throw err; // :tf:
 		}
+	}
+
+	async IsLive(): Promise<boolean> {
+		return (await this.GetChannelData('IsLive')).ToBoolean();
 	}
 
 	async User(): Promise<User> {
@@ -287,8 +265,8 @@ export class Channel {
 
 	async UpdateName(newName: string): Promise<void> {
 		try {
-			await Bot.Twitch.Controller.client.part(this.Name);
-			await Bot.Twitch.Controller.client.join(newName);
+			await Bot.Twitch.Controller.part(this.Name);
+			await Bot.Twitch.Controller.join(newName);
 			await Bot.SQL.updateTable('channels')
 				.set({
 					name: newName,
@@ -296,33 +274,12 @@ export class Channel {
 				.where('user_id', '=', this.Id)
 				.execute();
 
-			await Bot.Twitch.Controller.client.part(this.Name);
+			await Bot.Twitch.Controller.part(this.Name);
 			this.Name = newName;
 			await this.say('FeelsDankMan TeaTime');
 		} catch (error) {
 			Bot.Log.Error(error as Error, 'Failed to update name for %s', this.Name);
 		}
-	}
-
-	async UpdateLive(): Promise<void> {
-		this.Live = (await GetChannelData(this.Id, 'IsLive')).ToBoolean();
-		return;
-	}
-
-	public getCooldown(id: number): TUserCooldown[] {
-		return this.UserCooldowns[id];
-	}
-
-	public setCooldown(id: number, val: TUserCooldown): void {
-		if (!this.UserCooldowns[id]) {
-			this.UserCooldowns[id] = [val];
-			return;
-		}
-		const idx = this.UserCooldowns[id].findIndex((channel) => channel.Command === val.Command);
-		if (idx === -1) {
-			this.UserCooldowns[id].push(val);
-			return;
-		} else this.UserCooldowns[id][idx] = val;
 	}
 
 	private async InitiateTrivia(): Promise<void> {
@@ -390,30 +347,20 @@ export async function ExecuteCommand(
 
 		if (typeof command === 'undefined') return;
 
-		if (command.OnlyOffline && channel.Live) {
+		if (command.HasFlag(ECommandFlags.OnlyOffline) && (await channel.IsLive())) {
 			return;
 		}
-
-		const current = Date.now();
-
-		const timeout = channel.getCooldown(user.ID);
-		if (typeof timeout === 'object') {
-			// User has done commands before, find the specific value for current command.
-			const cr = timeout.find((time) => time.Command === command.Name);
-			// If found and is still on cooldown we return.
-			if (typeof cr !== 'undefined' && cr.TimeExecute > current) return;
-		}
-
-		// First time running command this instance or not on cooldown, so we set their cooldown.
-		channel.setCooldown(user.ID, {
-			Command: command.Name,
-			TimeExecute: current + command.Cooldown * 1000,
-			Cooldown: Bot.Config.Development ? 0 : command.Cooldown,
-		});
 
 		if (!permissionCheck(channel, command, user, extras)) {
 			return;
 		}
+
+		const hasCooldown = await checkCommandCooldown(channel.Id, user.ID, command.Name);
+		if (hasCooldown) {
+			return;
+		}
+
+		await setCommandCooldown(channel.Id, user.ID, command.Name, command.Cooldown);
 
 		const flags: ChannelTalkOptions = {
 			SkipBanphrase: command.HasFlag(ECommandFlags.NoBanphrase),
@@ -556,6 +503,35 @@ export async function ExecuteCommand(
 		channel.say('BrokeBack command failed', {
 			SkipBanphrase: true,
 		});
+	}
+}
+
+function createCooldownKey(channel: string, user: number, command: string): string {
+	return `channel:${channel}:cd:${command}:${user}`;
+}
+
+async function checkCommandCooldown(
+	channel: string,
+	user: number,
+	command: string,
+): Promise<boolean> {
+	const key = createCooldownKey(channel, user, command);
+
+	return (await Bot.Redis.SGet(key)) === '1';
+}
+
+async function setCommandCooldown(
+	channel: string,
+	user: number,
+	command: string,
+	cooldown: number,
+): Promise<void> {
+	if (!Bot.Config.Development) {
+		// Disable cooldowns in development
+		const key = createCooldownKey(channel, user, command);
+
+		await Bot.Redis.SSet(key, '1');
+		await Bot.Redis.Expire(key, cooldown);
 	}
 }
 

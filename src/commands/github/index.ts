@@ -5,7 +5,6 @@ registerCommand({
 	Name: 'github',
 	Description: 'Shows the git repo',
 	Permission: EPermissionLevel.VIEWER,
-	OnlyOffline: false,
 	Aliases: ['git'],
 	Cooldown: 10,
 	Params: [],
