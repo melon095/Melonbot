@@ -69,7 +69,7 @@ export const Setup = {
 
 		await TimerSingleton.I().Initialize();
 
-		await Bot.Twitch.Controller.InitPromise;
+		await Bot.Twitch.Controller.InitReady;
 		const twitch = Bot.Twitch.Controller;
 
 		const self = await Channel.CreateBot();

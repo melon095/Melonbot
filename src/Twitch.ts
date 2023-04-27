@@ -44,7 +44,7 @@ export default class Twitch {
 	public channels: Channel[] = [];
 
 	private initFlags: [boolean, boolean] = [false, false];
-	private InitReady: IPromolve<boolean> = Promolve<boolean>();
+	public InitReady: IPromolve<boolean> = Promolve<boolean>();
 
 	private constructor() {
 		this.InitFulfill();
@@ -91,62 +91,16 @@ export default class Twitch {
 	}
 
 	private setupCallbacks() {
-		this.client.on('ready', () => {
-			Bot.Log.Info('Twitch client ready');
-			this.initFlags[0] = true;
-		});
+		this.client.on('ready', this.OnTMIReady.bind(this));
 
-		this.client.on('PRIVMSG', (msg) => this.MessageHandler(msg));
+		this.client.on('PRIVMSG', this.OnTMIPrivmsg.bind(this));
 
-		this.client.on('error', (error) => {
-			if (error instanceof DankTwitch.ConnectionError) {
-				// Ignore, as this is caused by the firehose server going down
+		this.client.on('error', this.OnTMIError.bind(this));
 
-				return;
-			}
+		// FIXME: Firehose prevents TMI ping from working.
+		// this.client.on('PING', this.OnTMIPing.bind(this));
 
-			if (
-				error instanceof DankTwitch.JoinError &&
-				error.message.includes('Error occured in transport layer')
-			) {
-				return; // Firehose server is not yet up, dt-irc tried to connect
-			}
-
-			Bot.Log.Error(error, 'TMI Error');
-
-			if (
-				error instanceof DankTwitch.SayError &&
-				error.cause instanceof DankTwitch.MessageError
-			) {
-				if (NoticeMessageIsReject(error.cause.message)) {
-					const message = 'A message that was about to be posted was blocked by automod';
-
-					this.TwitchChannelSpecific({ Name: error.failedChannelName })?.say(message, {
-						SkipBanphrase: true,
-					});
-				}
-			}
-		});
-
-		this.client.on('PING', async () => {
-			const before = Date.now();
-			await sendPing(this.client);
-			await Bot.Redis.SSet('Latency', String(Date.now() - before));
-		});
-
-		this.client.on('close', (error) => {
-			if (error) {
-				Bot.Log.Error(error, 'TMI Connection Closed, reconnecting...');
-			}
-
-			this.client.close();
-
-			this.client = createConnection();
-
-			this.setupCallbacks();
-
-			this.client.connect();
-		});
+		this.client.on('close', this.OnTMIClose.bind(this));
 	}
 
 	private async InitFulfill() {
@@ -170,10 +124,6 @@ export default class Twitch {
 
 	get TwitchChannels() {
 		return this.channels;
-	}
-
-	get InitPromise() {
-		return this.InitReady.promise;
 	}
 
 	TwitchChannelSpecific({ ID, Name }: { ID?: string; Name?: string }) {
@@ -203,7 +153,64 @@ export default class Twitch {
 		}
 	}
 
-	private async MessageHandler(msg: DankTwitch.PrivmsgMessage) {
+	private async OnTMIReady() {
+		Bot.Log.Info('Twitch client ready');
+		this.initFlags[0] = true;
+	}
+
+	private async OnTMIClose(error: Error | undefined) {
+		Bot.Log.Error('TMI Connection Closed, reconnecting...');
+
+		if (error) {
+			Bot.Log.Error(error);
+		}
+
+		this.client.destroy();
+
+		this.client = createConnection();
+
+		this.setupCallbacks();
+
+		this.client.connect();
+	}
+
+	// private async OnTMIPing() {
+	// 	const before = Date.now();
+	// 	await sendPing(this.client);
+	// 	await Bot.Redis.SSet('Latency', String(Date.now() - before));
+	// }
+
+	private async OnTMIError(error: Error) {
+		if (error instanceof DankTwitch.ConnectionError) {
+			// Ignore, as this is caused by the firehose server going down
+
+			return;
+		}
+
+		if (
+			error instanceof DankTwitch.JoinError &&
+			error.message.includes('Error occured in transport layer')
+		) {
+			return; // Firehose server is not yet up, dt-irc tried to connect
+		}
+
+		Bot.Log.Error(error, 'TMI Error');
+
+		if (
+			error instanceof DankTwitch.SayError &&
+			error.cause instanceof DankTwitch.MessageError
+		) {
+			if (NoticeMessageIsReject(error.cause.message)) {
+				const message = 'A message that was about to be posted was blocked by automod';
+
+				this.TwitchChannelSpecific({ Name: error.failedChannelName })?.say(message, {
+					SkipBanphrase: true,
+				});
+			}
+		}
+	}
+
+	private async OnTMIPrivmsg(msg: DankTwitch.PrivmsgMessage) {
 		const { channelName, messageText, senderUserID, senderUsername } = msg;
 
 		const channel = this.channels.find((chl) => chl.LowercaseName === channelName);
