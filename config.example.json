@@ -26,7 +26,8 @@
     "Services": {
         "EventSub": {
             "PublicUrl": "https://localhost:3000",
-            "Secret": "12345678910"
+            "Secret": "12345678910",
+            "Port": 3001
         },
         "Firehose": {
             "Port": 3010,

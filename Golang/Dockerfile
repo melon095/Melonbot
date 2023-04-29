@@ -30,7 +30,7 @@ RUN go build -ldflags "-extldflags '-static'" -o ./out ./cmd/EventSub
 FROM alpine:${ALPINE_VERSION} as eventsub
 WORKDIR /app
 COPY --from=eventsub_base /app/out /app/
-ENTRYPOINT [ "/app/out", "-config", "/app/config.json", "-debug", "-port", "3001" ]
+ENTRYPOINT [ "/app/out", "-config", "/app/config.json" ]
 
 FROM golang_deps_base AS firehose_base
 WORKDIR /app
@@ -42,4 +42,4 @@ RUN go build -ldflags "-extldflags '-static'" -o ./out ./cmd/Firehose
 FROM alpine:${ALPINE_VERSION} as firehose
 WORKDIR /app
 COPY --from=firehose_base /app/out /app/
-ENTRYPOINT [ "/app/out", "-config", "/app/config.json", "-debug" ]
+ENTRYPOINT [ "/app/out", "-config", "/app/config.json" ]

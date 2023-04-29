@@ -27,9 +27,6 @@ const (
 )
 
 var (
-	cfg   = flag.String("config", "./../config.json", "config file")
-	debug = flag.Bool("debug", false, "debug mode")
-
 	isReplyRegex        = regexp.MustCompile(`@reply-parent-msg-id=([\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}) PRIVMSG #(\w+) :(.*)`)
 	extractPrivmsgRegex = regexp.MustCompile(`PRIVMSG #(\w+) :(.*)`)
 )
@@ -344,7 +341,7 @@ func (app *Application) onScheduleMessage(ctx messagescheduler.MessageContext) {
 }
 
 func main() {
-	conf, err := config.ReadConfig(*cfg, *debug)
+	conf, err := config.ReadConfig()
 	if err != nil {
 		panic(err)
 	}

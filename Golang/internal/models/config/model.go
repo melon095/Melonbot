@@ -2,17 +2,25 @@ package config
 
 import (
 	"encoding/json"
+	"flag"
 	"os"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
+var cfg = flag.String("config", "./../config.json", "config file")
+
+func init() {
+	flag.Parse()
+}
+
 type Config struct {
 	Twitch TwitchConfig `json:"Twitch"`
 	SQL    struct {
 		Address string `json:"Address"`
 	} `json:"SQL"`
+	Devmode     bool   `json:"Development"`
 	Verified    bool   `json:"Verified"`
 	Prefix      string `json:"Prefix"`
 	BotUsername string `json:"BotUsername"`
@@ -37,6 +45,7 @@ type ServicesConfig struct {
 	EventSub struct {
 		PublicUrl string `json:"PublicUrl"`
 		Secret    string `json:"Secret"`
+		Port      int    `json:"Port"`
 	} `json:"EventSub"`
 	Firehose struct {
 		Port       int `json:"Port"`
@@ -63,8 +72,8 @@ func createLogConfig(isDebug bool) *zap.Config {
 	return config
 }
 
-func ReadConfig(path string, debug bool) (*Config, error) {
-	fileDesc, err := os.Open(path)
+func ReadConfig() (*Config, error) {
+	fileDesc, err := os.Open(*cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +84,7 @@ func ReadConfig(path string, debug bool) (*Config, error) {
 		return nil, err
 	}
 
-	global, err := createLogConfig(debug).Build()
+	global, err := createLogConfig(config.Devmode).Build()
 	if err != nil {
 		return nil, err
 	}

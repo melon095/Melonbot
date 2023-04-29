@@ -12,12 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	port  = flag.Int("port", 3000, "port")
-	cfg   = flag.String("config", "./../config.json", "config file")
-	debug = flag.Bool("debug", false, "debug mode")
-)
-
 const (
 	version = "EventSub -- 0.1.0"
 )
@@ -27,7 +21,7 @@ func init() {
 }
 
 func main() {
-	conf, err := config.ReadConfig(*cfg, *debug)
+	conf, err := config.ReadConfig()
 	if err != nil {
 		panic(err)
 	}
@@ -46,7 +40,7 @@ func main() {
 
 		c := twitch.Connect_t{Version: version}
 
-		if err := server.Start(gCtx, c, *port); err != nil {
+		if err := server.Start(gCtx, c, conf.Services.EventSub.Port); err != nil {
 			zap.S().Fatal(err)
 		}
 	})
