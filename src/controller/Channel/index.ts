@@ -265,8 +265,6 @@ export class Channel {
 
 	async UpdateName(newName: string): Promise<void> {
 		try {
-			await Bot.Twitch.Controller.part(this.Name);
-			await Bot.Twitch.Controller.join(newName);
 			await Bot.SQL.updateTable('channels')
 				.set({
 					name: newName,
@@ -275,6 +273,8 @@ export class Channel {
 				.execute();
 
 			await Bot.Twitch.Controller.part(this.Name);
+			await Bot.Twitch.Controller.join(newName);
+
 			this.Name = newName;
 			await this.say('FeelsDankMan TeaTime');
 		} catch (error) {
