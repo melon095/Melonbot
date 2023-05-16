@@ -231,16 +231,18 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 
 				zap.S().Infof("Received JOIN for %s", channel)
 
+				var perm dbmodels.BotPermmision
 				var dbChannel dbmodels.ChannelTable
 				result := app.DB.First(&dbChannel, "name = ?", channel)
 
 				if result.Error != nil {
-					zap.S().Errorf("Failed to find channel %s in database %s", channel, result.Error)
-					continue
+					perm = dbmodels.WritePermission
+				} else {
+					perm = dbChannel.GetBotPermission()
 				}
 
 				app.TMI.Join(channel)
-				app.Scheduler.AddChannel(dbChannel.Name, dbChannel.GetBotPermission())
+				app.Scheduler.AddChannel(channel, perm)
 
 				reply := app.formatTwitchMsg(fmt.Sprintf("JOIN #%s", channel))
 
@@ -255,12 +257,7 @@ func (app *Application) onTCPClient(c *tcp.Connection) {
 
 				zap.S().Infof("Received PART for %s", channel)
 
-				// FIXME: Should this silently fail?
-				err := app.Scheduler.RemoveChannel(channel)
-				if err != nil {
-					zap.S().Errorf("Failed to remove channel %s from scheduler %s", channel, err)
-					continue
-				}
+				_ = app.Scheduler.RemoveChannel(channel)
 
 				app.TMI.Depart(channel)
 
